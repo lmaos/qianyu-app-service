@@ -53,3 +53,4 @@ logs/
 **/build/
 **/dist/
 **/.mvn/wrapper/maven-wrapper.jar
+.github/
