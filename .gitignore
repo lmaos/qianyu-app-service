@@ -39,7 +39,7 @@ build/
 .DS_Store
 
 logs/
-
+.github/
 **/.eclipse
 **/.project
 **/.classpath
@@ -53,4 +53,4 @@ logs/
 **/build/
 **/dist/
 **/.mvn/wrapper/maven-wrapper.jar
-.github/
+**/.github/
