@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.clmcat.app</groupId>
+        <artifactId>qianyu-app-service</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>qianyu-service</artifactId>
+    <packaging>pom</packaging>
+    <modules>
+        <module>qianyu-user-service</module>
+        <module>qianyu-dependencies-service</module>
+    </modules>
+
+    <dependencies>
+        <!-- 直接引入全部API依赖，为了快速开发。 -->
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-dependencies-api</artifactId>
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-user-service</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-api</artifactId>
+                <version>${project.qianyu.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-dependencies</artifactId>
+                <version>${project.qianyu.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

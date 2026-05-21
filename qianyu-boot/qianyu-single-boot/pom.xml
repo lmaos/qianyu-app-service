@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.clmcat.app</groupId>
+        <artifactId>qianyu-boot</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>qianyu-single-boot</artifactId>
+    <description>全局单例启动-依赖所有模块</description>
+
+    <dependencies>
+        <!-- 导入全部的 service 依赖 -->
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-dependencies-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-web-dependencies</artifactId>
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- 导入 API 依赖版本 -->
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-api</artifactId>
+                <version>${project.qianyu.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <!-- 导入 Service 依赖版本 -->
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-service</artifactId>
+                <version>${project.qianyu.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
