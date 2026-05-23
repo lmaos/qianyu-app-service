@@ -22,6 +22,10 @@
             <groupId>com.clmcat.app</groupId>
             <artifactId>qianyu-dependencies-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-core</artifactId>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>

@@ -4,8 +4,10 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Map;
 
+/**
+ * 使用账户登录
+ */
 @Data
 public class AccountLoginDto  implements Serializable {
     @Serial

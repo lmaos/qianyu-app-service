@@ -11,5 +11,7 @@
 
     <artifactId>qianyu-core</artifactId>
 
+    <dependencies>
 
+    </dependencies>
 </project>

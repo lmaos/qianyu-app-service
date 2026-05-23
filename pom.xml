@@ -43,6 +43,32 @@
                 <artifactId>qianyu-api</artifactId>
                 <version>${project.qianyu.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-core</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-dependencies</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mybatis-flex</groupId>
+                <artifactId>mybatis-flex-spring-boot3-starter</artifactId>
+                <version>1.11.7</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mybatis-flex</groupId>
+                <artifactId>mybatis-flex-processor</artifactId>
+                <version>1.11.7</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.googlecode.libphonenumber</groupId>
+                <artifactId>libphonenumber</artifactId>
+                <version>8.13.55</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
