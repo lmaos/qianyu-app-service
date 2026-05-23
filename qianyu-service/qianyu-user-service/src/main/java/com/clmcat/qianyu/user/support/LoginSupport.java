@@ -23,7 +23,7 @@ public class LoginSupport {
      * @return 时间戳
      */
     public static long parseTimeBySnowflake(long userId) {
-        return LOGIN_USER_ID_SNOWFLAKE.get("TimeStrategy", userId);
+        return LOGIN_USER_ID_SNOWFLAKE.get("TimeStrategy", userId) + BASE_TIME;
     }
 
     public static long allocUserId() {

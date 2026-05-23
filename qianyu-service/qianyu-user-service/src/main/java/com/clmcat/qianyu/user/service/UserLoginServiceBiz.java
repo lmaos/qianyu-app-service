@@ -1,5 +1,7 @@
 package com.clmcat.qianyu.user.service;
 
+import com.clmcat.basics.commons.util.Base36;
+import com.clmcat.basics.commons.util.Base62;
 import com.clmcat.qianyu.user.api.UserLoginApi;
 import com.clmcat.qianyu.user.api.model.dto.*;
 import com.clmcat.qianyu.user.mapper.UserAuthMapper;
@@ -12,8 +14,10 @@ import com.clmcat.qianyu.user.model.vo.LoginResultVo;
 import com.clmcat.qianyu.user.support.LoginSupport;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @DubboService
@@ -96,6 +100,7 @@ public class UserLoginServiceBiz implements UserLoginApi  {
      * @param dto
      * @return
      */
+    @Transactional
     public UserAuthResultDto loginOrRegister(UserAuthDto dto) {
 
         UserAuth userAuth = getUserAuth(dto);
@@ -104,24 +109,46 @@ public class UserLoginServiceBiz implements UserLoginApi  {
             String identityType = dto.getIdentityType();
             String identifier = dto.getIdentifier();
             long userId = LoginSupport.allocUserId();
+            String phone = dto.getSocialPhone();
+            String email = dto.getSocialEmail();
+
+            if ("phone".equals(identityType)) {
+                phone = identifier;
+            }
+
+            if ("email".equals(identityType)) {
+                email = identifier;
+            }
+
+            long time = LoginSupport.parseTimeBySnowflake(userId);
 
             userAuth = UserAuth.builder()
                     .userId(userId)
                     .identityType(identityType)
                     .identifier(identifier)
                     .credential(dto.getCredential())
-                    .createTime(System.currentTimeMillis())
-                    .updateTime(System.currentTimeMillis())
+                    .createTime(time)
+                    .updateTime(time)
                     .build();
             userInfo = UserInfo.builder()
                     .userId(userId)
                     .nickname(identifier)
-                    .avatar(dto.getAvatar())
+                    .avatar(dto.getSocialAvatar())
                     .age(0)
                     .gender(0)
                     .bio("")
                     .status(0)
+                    .phone(phone)
+                    .email(email)
+                    .phoneVerifiedTime(StringUtils.isNotBlank(phone) ? time : null)
+                    .nickname(Base36.encode(userId)) // 直接编码一个用户昵称。
+                    .userNo(Base62.encode(userId))   // 直接编码一个用户NO。
+                    .createTime(time)
+                    .updateTime(time)
                     .build();
+
+            userAuthMapper.insert(userAuth);
+            userInfoMapper.insert(userInfo);
 
         } else {
             userInfo = getUserInfo(userAuth.getUserId());

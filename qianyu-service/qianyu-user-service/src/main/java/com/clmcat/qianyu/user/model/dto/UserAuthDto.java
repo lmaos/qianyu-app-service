@@ -24,7 +24,20 @@ public class UserAuthDto {
     private String country;
 
     /**
-     * 头像URL
+     * 来自社交账户的头像URL
      */
-    private String avatar;
+    private String socialAvatar;
+    /**
+     * 来自第三方的昵称
+     */
+    private String socialNickname;
+    /**
+     * 来自社交账户查询到的手机号
+     */
+    private String socialPhone;
+    /**
+     * 来自社交账户的邮箱
+     */
+    private String socialEmail;
+
 }
