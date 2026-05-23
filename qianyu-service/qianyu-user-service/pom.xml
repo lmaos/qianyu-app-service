@@ -20,5 +20,9 @@
             <groupId>com.clmcat.app</groupId>
             <artifactId>qianyu-user-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.googlecode.libphonenumber</groupId>
+            <artifactId>libphonenumber</artifactId>
+        </dependency>
     </dependencies>
 </project>

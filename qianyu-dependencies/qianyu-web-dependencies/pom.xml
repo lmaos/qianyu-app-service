@@ -71,6 +71,18 @@
             <artifactId>mybatis-flex-processor</artifactId>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Caffeine 本地缓存 -->
+        <!-- Source: https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+        <!-- 只加这一个，Spring 内置 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

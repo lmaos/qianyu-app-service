@@ -1,6 +1,10 @@
 spring:
   application:
     name: qianyu-single-boot
+
+  profiles:
+    active: @spring.profiles.active@
+
   # 使用虚拟线程
   threads:
     virtual:
@@ -68,3 +72,7 @@ dubbo:
     address: N/A
     register-mode: all
     group: dubbo
+  provider:
+    filter: rpcResponseFilter
+  consumer:
+    filter: rpcUnpackFilter

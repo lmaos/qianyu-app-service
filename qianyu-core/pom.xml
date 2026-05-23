@@ -12,6 +12,36 @@
     <artifactId>qianyu-core</artifactId>
 
     <dependencies>
+        <!-- 开发环境内嵌 Redis -->
+        <dependency>
+            <groupId>com.github.kstyrc</groupId>
+            <artifactId>embedded-redis</artifactId>
+            <version>0.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
+        <!-- dubbo -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-spring-boot-starter</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.clmcat.framework</groupId>
+            <artifactId>clmcat-webmvc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-core-api</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
     </dependencies>
 </project>

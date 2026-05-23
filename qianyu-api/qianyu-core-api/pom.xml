@@ -9,12 +9,12 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qianyu-user-api</artifactId>
+    <artifactId>qianyu-core-api</artifactId>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.clmcat.app</groupId>
-            <artifactId>qianyu-core-api</artifactId>
-        </dependency>
-    </dependencies>
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
 </project>

@@ -2,6 +2,7 @@ package com.clmcat.qianyu.user.service;
 
 import com.clmcat.basics.commons.util.Base36;
 import com.clmcat.basics.commons.util.Base62;
+import com.clmcat.framework.webmvc.ResponseStatus;
 import com.clmcat.qianyu.user.api.UserLoginApi;
 import com.clmcat.qianyu.user.api.model.dto.*;
 import com.clmcat.qianyu.user.mapper.UserAuthMapper;
@@ -29,6 +30,9 @@ public class UserLoginServiceBiz implements UserLoginApi  {
     @Resource
     UserInfoMapper  userInfoMapper ;
 
+    @Resource
+    VerifyCodeServiceBiz verifyCodeServiceBiz;
+
 
 
 
@@ -43,6 +47,11 @@ public class UserLoginServiceBiz implements UserLoginApi  {
 
     @Override
     public LoginResultDto phoneLogin(PhoneLoginDto dto) {
+        // 登录失败, 手机号： +86-12345678911
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(LoginSupport.isValidTelephone(dto.getPhone()));
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(verifyCodeServiceBiz.isVerifiedByRedis("phone", dto.getPhone(), dto.getCode()));
+
+
         return LoginResultDto.builder()
                 .token("21345")
                 .userId(134)
@@ -68,7 +77,6 @@ public class UserLoginServiceBiz implements UserLoginApi  {
 
 
     public LoginResultVo phone(PhoneLoginDto dto) {
-
         LoginResultDto resultDto = phoneLogin(dto);
 
         return toLoginResultVo(resultDto);

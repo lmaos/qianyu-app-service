@@ -1,0 +1,2 @@
+rpcResponseFilter=com.clmcat.qianyu.core.rpc.RpcResponseFilter
+rpcUnpackFilter=com.clmcat.qianyu.core.rpc.RpcUnpackFilter
