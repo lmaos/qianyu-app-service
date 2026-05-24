@@ -14,6 +14,12 @@ public class VerifyCodeServiceBiz {
     RedisTemplate<String, String> redisTemplate;
 
 
+    public void saveVerifyCodeToRedis(String identityType, String identifier, String code, long expireTime) {
+        String verifyCodeKey = getVerifyCodeKey(identityType, identifier);
+        redisTemplate.opsForValue().set(verifyCodeKey, code, expireTime, TimeUnit.MILLISECONDS);
+    }
+
+
     public boolean isVerifiedByRedis(String identityType, String identifier, String code) {
 
         String verifyCodeKey = getVerifyCodeKey(identityType, identifier);
