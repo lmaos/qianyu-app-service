@@ -31,3 +31,31 @@ qianyu-{module}-boot: 模块化启动模块. 依赖单个Service模块， 启动
 
 
 ```
+
+### 模块包说明: 
+
+```X
+qianyu-api/
+├── qianyu-core-api/ # 公共 API（基础DTO、工具类、异常定义等）
+├── qianyu-user-api/ # 用户服务 API
+├── qianyu-social-api/ # 社交动态服务 API
+├── qianyu-live-api/ # 直播服务 API
+├── qianyu-gift-api/ # 礼物/虚拟资产服务 API
+├── qianyu-im-api/ # IM消息服务 API
+├── qianyu-mail-api/ # 商城服务 API
+├── qianyu-storage-api/ # 存储服务 API
+├── qianyu-payment-api/ # 支付服务 API
+├── qianyu-notification-api/ # 通知服务 API
+├── qianyu-review-api/ # 内容审核服务 API
+qianyu-service/
+├── qianyu-user-service/ # 用户服务实现
+├── qianyu-social-service/ # 社交动态服务实现
+├── qianyu-live-service/ # 直播服务实现
+├── qianyu-gift-service/ # 礼物服务实现
+├── qianyu-im-service/ # IM服务调用实现
+├── qianyu-mail-service/ # 商城服务实现
+├── qianyu-storage-service/ # 存储服务实现
+├── qianyu-payment-service/ # 支付服务实现
+├── qianyu-notification-service/# 通知服务实现
+└── qianyu-review-service/ # 内容审核服务实现
+```
