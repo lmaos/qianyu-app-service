@@ -35,9 +35,12 @@
         <dependencies>
             <dependency>
                 <groupId>com.clmcat.app</groupId>
-                <artifactId>qianyu-dependencies-service</artifactId>
+                <artifactId>qianyu-dependencies</artifactId>
                 <version>${project.qianyu.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
+
         </dependencies>
     </dependencyManagement>
 

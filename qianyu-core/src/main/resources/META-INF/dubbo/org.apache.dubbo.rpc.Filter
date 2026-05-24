@@ -1,2 +1,2 @@
-rpcResponseFilter=com.clmcat.qianyu.core.rpc.RpcResponseFilter
-rpcUnpackFilter=com.clmcat.qianyu.core.rpc.RpcUnpackFilter
+RpcApiExceptionFilter=com.clmcat.qianyu.core.rpc.RpcApiExceptionFilter
+rpcApiExceptionUnpackFilter=com.clmcat.qianyu.core.rpc.RpcApiExceptionUnpackFilter
