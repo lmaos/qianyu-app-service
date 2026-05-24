@@ -5,18 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.clmcat.app</groupId>
-        <artifactId>qianyu-service</artifactId>
+        <artifactId>qianyu-api</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qianyu-dependencies-service</artifactId>
-    <description>全部service依赖</description>
-    <packaging>pom</packaging>
+    <artifactId>qianyu-gift-api</artifactId>
     <dependencies>
         <dependency>
             <groupId>com.clmcat.app</groupId>
-            <artifactId>qianyu-user-service</artifactId>
-            <version>${project.qianyu.version}</version>
+            <artifactId>qianyu-core-api</artifactId>
         </dependency>
     </dependencies>
 </project>

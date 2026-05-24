@@ -16,7 +16,7 @@
         <!-- 导入全部的 service 依赖 -->
         <dependency>
             <groupId>com.clmcat.app</groupId>
-            <artifactId>qianyu-dependencies-service</artifactId>
+            <artifactId>qianyu-allservice-dependencies</artifactId>
         </dependency>
         <dependency>
             <groupId>com.clmcat.app</groupId>

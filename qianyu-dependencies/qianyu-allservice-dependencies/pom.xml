@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.clmcat.app</groupId>
+        <artifactId>qianyu-app-service</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>qianyu-allservice-dependencies</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-user-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-social-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-live-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-gift-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-im-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-mail-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-storage-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-payment-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-notification-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-review-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+
+        <!-- qianyu-api -->
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-api</artifactId>
+            <version>${project.qianyu.version}</version>
+            <scope>import</scope>
+            <type>pom</type>
+        </dependency>
+
+        <!-- 基础依赖 -->
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-dependencies</artifactId>
+            <version>${project.qianyu.version}</version>
+            <scope>import</scope>
+            <type>pom</type>
+        </dependency>
+    </dependencies>
+</project>

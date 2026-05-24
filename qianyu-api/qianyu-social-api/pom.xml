@@ -9,15 +9,8 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qianyu-dependencies-api</artifactId>
-    <packaging>pom</packaging>
-    <description>全部api依赖</description>
+    <artifactId>qianyu-social-api</artifactId>
     <dependencies>
-        <!-- 依赖全部的 API 们 -->
-        <dependency>
-            <groupId>com.clmcat.app</groupId>
-            <artifactId>qianyu-user-api</artifactId>
-        </dependency>
         <dependency>
             <groupId>com.clmcat.app</groupId>
             <artifactId>qianyu-core-api</artifactId>

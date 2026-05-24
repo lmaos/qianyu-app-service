@@ -23,6 +23,16 @@
                 <artifactId>qianyu-web-dependencies</artifactId>
                 <version>${project.qianyu.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-allapi-dependencies</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-allservice-dependencies</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

@@ -13,8 +13,16 @@
     <description>API接口定义模块</description>
     <modules>
         <module>qianyu-user-api</module>
-        <module>qianyu-dependencies-api</module>
         <module>qianyu-core-api</module>
+        <module>qianyu-social-api</module>
+        <module>qianyu-live-api</module>
+        <module>qianyu-gift-api</module>
+        <module>qianyu-im-api</module>
+        <module>qianyu-mail-api</module>
+        <module>qianyu-storage-api</module>
+        <module>qianyu-payment-api</module>
+        <module>qianyu-notification-api</module>
+        <module>qianyu-review-api</module>
     </modules>
 
     <dependencyManagement>
@@ -31,7 +39,47 @@
             </dependency>
             <dependency>
                 <groupId>com.clmcat.app</groupId>
-                <artifactId>qianyu-dependencies-api</artifactId>
+                <artifactId>qianyu-social-api</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-live-api</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-gift-api</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-im-api</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-mail-api</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-storage-api</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-payment-api</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-notification-api</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-review-api</artifactId>
                 <version>${project.qianyu.version}</version>
             </dependency>
         </dependencies>
