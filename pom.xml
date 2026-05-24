@@ -15,8 +15,6 @@
         <module>qianyu-service</module>
         <module>qianyu-boot</module>
         <module>qianyu-dependencies</module>
-        <module>qianyu-dependencies/qianyu-allapi-dependencies</module>
-        <module>qianyu-dependencies/qianyu-allservice-dependencies</module>
     </modules>
 
     <parent>
