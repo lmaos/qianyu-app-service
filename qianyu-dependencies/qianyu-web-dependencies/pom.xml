@@ -11,8 +11,6 @@
 
     <artifactId>qianyu-web-dependencies</artifactId>
 
-    <packaging>pom</packaging>
-
     <dependencies>
         <dependency>
             <groupId>com.clmcat.framework</groupId>
