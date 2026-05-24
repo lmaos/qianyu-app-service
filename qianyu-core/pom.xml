@@ -37,5 +37,22 @@
             <artifactId>qianyu-core-api</artifactId>
             <version>${project.qianyu.version}</version>
         </dependency>
+
+        <!-- JWT 核心依赖 (Java JWT 官方标准库 jjwt) -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- JWT 序列化支持 (必须，否则解析/生成报错) -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 </project>

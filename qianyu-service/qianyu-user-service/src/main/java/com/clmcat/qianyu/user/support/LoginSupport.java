@@ -13,9 +13,13 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LoginSupport {
-
+    /**
+     * 雪花算法基准时间， 项目上线后不可再修改
+     */
     public static final long BASE_TIME = 1779465600000L;
-
+    /**
+     * 雪花算法
+     */
     public static final CustomSnowflake LOGIN_USER_ID_SNOWFLAKE = SnowflakeCustomBuilder.builder()
             .add(0) // 首位 0
             .add("TimeStrategy", 42, TimeStrategy.millisecond(BASE_TIME))
@@ -57,5 +61,6 @@ public class LoginSupport {
             return false;
         }
     }
+
 
 }

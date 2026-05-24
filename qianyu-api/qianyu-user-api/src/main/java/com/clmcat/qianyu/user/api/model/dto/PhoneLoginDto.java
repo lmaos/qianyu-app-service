@@ -1,12 +1,18 @@
 package com.clmcat.qianyu.user.api.model.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serial;
 import java.io.Serializable;
 
 @Data
-public class PhoneLoginDto implements Serializable {
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
+public class PhoneLoginDto extends LoginDto implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
     /**
@@ -25,4 +31,9 @@ public class PhoneLoginDto implements Serializable {
      * 验证模式 手机号支持 短信 code, password + 图形验证 code
      */
     private AuthMode authMode;
+
+    /**
+     * 用户ID
+     */
+    private String clientIp;
 }

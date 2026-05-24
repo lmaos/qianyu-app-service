@@ -6,13 +6,12 @@ import com.clmcat.qianyu.user.api.model.dto.AccountLoginDto;
 import com.clmcat.qianyu.user.api.model.dto.EMailLoginDto;
 import com.clmcat.qianyu.user.api.model.dto.PhoneLoginDto;
 import com.clmcat.qianyu.user.api.model.dto.SocialLoginDto;
+import com.clmcat.qianyu.user.api.model.dto.SignerDto;
 import com.clmcat.qianyu.user.model.vo.LoginResultVo;
 import com.clmcat.qianyu.user.service.UserLoginServiceBiz;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestMapping;
-
-import java.util.Locale;
 
 @ApiController
 @RequestMapping("/api/user/login")
@@ -39,6 +38,17 @@ public class LoginUserController {
     public LoginResultVo account(@Params AccountLoginDto dto) {
         log.info("account:{}", dto);
         return userLoginServiceBiz.account(dto);
+    }
+
+
+    @RequestMapping("/signer")
+    public String signer(@Params SignerDto dto) {
+        return userLoginServiceBiz.signer(dto);
+    }
+
+    @RequestMapping("/verifier")
+    public SignerDto verifier(String token) {
+        return userLoginServiceBiz.verifier(token);
     }
 
 }

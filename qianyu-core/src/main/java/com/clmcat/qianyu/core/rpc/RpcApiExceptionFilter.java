@@ -72,7 +72,7 @@ public class RpcApiExceptionFilter implements Filter, Filter.Listener {
                     log.debug("API Exception 转结果封装。 {}.{}; {}", invoker.getInterface(), invocation.getMethodName(), fail);
                 }
             }
-
+            // appResponse.setException(new RpcException(status, message));
         } else if (ex instanceof RpcException rpcEx) {
             // 兼容 RPC Exception 透传
             appResponse.setAttachment("apiEx.name", "rpc");

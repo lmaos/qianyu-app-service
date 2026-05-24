@@ -12,10 +12,10 @@ import java.io.Serializable;
  * 登录成功返回的 TOKEN
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginResultDto implements Serializable {
+public class LoginResultDto extends LoginDto implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
