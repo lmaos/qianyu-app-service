@@ -6,6 +6,7 @@ import com.clmcat.basics.commons.snowflake.SnowflakeCustomBuilder;
 import com.clmcat.basics.commons.snowflake.strategy.MachineStrategy;
 import com.clmcat.basics.commons.snowflake.strategy.SequenceStrategy;
 import com.clmcat.basics.commons.snowflake.strategy.TimeStrategy;
+import com.clmcat.qianyu.core.snowflake.SnowflakeSupport;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
@@ -16,16 +17,17 @@ public class LoginSupport {
     /**
      * 雪花算法基准时间， 项目上线后不可再修改
      */
-    public static final long BASE_TIME = 1779465600000L;
+    public static final long BASE_TIME = SnowflakeSupport.BASE_TIME;
     /**
      * 雪花算法
      */
-    public static final CustomSnowflake LOGIN_USER_ID_SNOWFLAKE = SnowflakeCustomBuilder.builder()
-            .add(0) // 首位 0
-            .add("TimeStrategy", 42, TimeStrategy.millisecond(BASE_TIME))
-            .add("MachineStrategy", 10, MachineStrategy.autoByIp())
-            .add("SequenceStrategy", 11, SequenceStrategy.create(), "TimeStrategy")
-            .build();
+    public static final CustomSnowflake LOGIN_USER_ID_SNOWFLAKE = SnowflakeSupport.createSnowflake(42, 10, 11);
+//    public static final CustomSnowflake LOGIN_USER_ID_SNOWFLAKE = SnowflakeCustomBuilder.builder()
+//            .add(0) // 首位 0
+//            .add("TimeStrategy", 42, TimeStrategy.millisecond(BASE_TIME))
+//            .add("MachineStrategy", 10, MachineStrategy.autoByIp())
+//            .add("SequenceStrategy", 11, SequenceStrategy.create(), "TimeStrategy")
+//            .build();
 
     /**
      * 根据雪花算法解析登录用户ID中的时间戳
@@ -33,7 +35,7 @@ public class LoginSupport {
      * @return 时间戳
      */
     public static long parseTimeBySnowflake(long userId) {
-        return LOGIN_USER_ID_SNOWFLAKE.get("TimeStrategy", userId) + BASE_TIME;
+        return SnowflakeSupport.parseTimeBySnowflake(LOGIN_USER_ID_SNOWFLAKE, userId);
     }
 
     public static long allocUserId() {

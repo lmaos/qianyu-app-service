@@ -54,5 +54,17 @@
             <artifactId>jjwt-jackson</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.locationtech.jts</groupId>
+            <artifactId>jts-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+
+        <scope>provided</scope>   <!-- 可选，因为各服务模块自己会引入 MyBatis Flex，运行时已有 -->
+    </dependency>
     </dependencies>
 </project>

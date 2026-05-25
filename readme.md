@@ -6,7 +6,7 @@
 
 ```X
 qianyu-api: 对外暴露的接口
-qianyu-core: 公共层
+qianyu-core: 公共层，所有Service 依赖。
 qianyu-service: 业务模块
 qianyu-boot: 启动模块
 
@@ -60,4 +60,9 @@ qianyu-service/
 ├── qianyu-payment-service/ # 支付服务实现
 ├── qianyu-notification-service/# 通知服务实现
 └── qianyu-review-service/ # 内容审核服务实现
+```
+## 项目框架使用: 
+
+```X
+clmcat-framework: 轻量级微服务框架，提供基础设施和公共组件支持。
 ```

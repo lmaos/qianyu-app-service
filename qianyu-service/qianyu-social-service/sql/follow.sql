@@ -1,0 +1,27 @@
+-- 切换到自己需要的数据库
+
+use `qianyu`;
+
+DROP TABLE IF EXISTS `follow`;
+CREATE TABLE IF NOT EXISTS `follow` (
+    `id` BIGINT NOT NULL COMMENT '雪花主键',
+    `follower_id` BIGINT NOT NULL COMMENT '关注者ID',
+    `followee_id` BIGINT NOT NULL COMMENT '被关注者ID',
+    `client_time` BIGINT NOT NULL COMMENT '客户端时间戳(毫秒)',
+    `server_time` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '服务器UTC时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_follow` (`follower_id`, `followee_id`),
+    KEY `idx_follower_time` (`follower_id`, `server_time`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='关注表（记录谁关注了谁）';
+
+DROP TABLE IF EXISTS `follower`;
+CREATE TABLE IF NOT EXISTS `follower` (
+    `id` BIGINT NOT NULL COMMENT '雪花主键',
+    `followee_id` BIGINT NOT NULL COMMENT '被关注者ID（拥有粉丝的用户）',
+    `follower_id` BIGINT NOT NULL COMMENT '粉丝ID',
+    `client_time` BIGINT NOT NULL COMMENT '客户端时间戳(毫秒)',
+    `server_time` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '服务器UTC时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_follower` (`followee_id`, `follower_id`),
+    KEY `idx_followee_time` (`followee_id`, `server_time`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='粉丝表（记录用户的粉丝）';
