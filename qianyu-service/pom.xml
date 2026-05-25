@@ -17,7 +17,7 @@
         <module>qianyu-live-service</module>
         <module>qianyu-gift-service</module>
         <module>qianyu-im-service</module>
-        <module>qianyu-mail-service</module>
+        <module>qianyu-mall-service</module>
         <module>qianyu-storage-service</module>
         <module>qianyu-payment-service</module>
         <module>qianyu-notification-service</module>
@@ -65,7 +65,7 @@
             </dependency>
             <dependency>
                 <groupId>com.clmcat.app</groupId>
-                <artifactId>qianyu-mail-service</artifactId>
+                <artifactId>qianyu-mall-service</artifactId>
                 <version>${project.qianyu.version}</version>
             </dependency>
             <dependency>

@@ -5,16 +5,20 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.clmcat.app</groupId>
-        <artifactId>qianyu-api</artifactId>
+        <artifactId>qianyu-service</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qianyu-mail-api</artifactId>
+    <artifactId>qianyu-mall-service</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>com.clmcat.app</groupId>
-            <artifactId>qianyu-core-api</artifactId>
+            <artifactId>qianyu-web-dependencies</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-mall-api</artifactId>
         </dependency>
     </dependencies>
 

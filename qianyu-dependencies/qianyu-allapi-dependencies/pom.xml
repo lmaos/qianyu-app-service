@@ -44,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>com.clmcat.app</groupId>
-            <artifactId>qianyu-mail-api</artifactId>
+            <artifactId>qianyu-mall-api</artifactId>
             <version>${project.qianyu.version}</version>
         </dependency>
         <dependency>
