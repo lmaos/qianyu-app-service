@@ -1,8 +1,7 @@
 spring:
-  # spring-data-redis 相关配置
   data:
     redis:
-      host: localhost
+      host: ${REDIS_HOST:localhost}
       port: 6379
       password:  # 没有密码就空着
       database: 1

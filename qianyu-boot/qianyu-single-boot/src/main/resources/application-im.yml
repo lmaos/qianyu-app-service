@@ -1,0 +1,6 @@
+qianyu:
+  im:
+    tencent:
+      sdkAppId: ${IM_TENCENT_APPID}
+      secretKey: ${IM_TENCENT_SECRETKEY}
+      adminIdentifier: 10000

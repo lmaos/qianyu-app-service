@@ -1,0 +1,29 @@
+spring:
+  # 数据库相关配置
+  datasource:
+    url: ${DATASOURCE_URL:jdbc:mysql://127.0.0.1/qianyu?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DATABASE_USERNAME:root}
+    password: ${DATABASE_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # HikariCP 连接池配置（极简、稳定、生产级）
+    hikari:
+      pool-name: QIANYU-DB-POOL         # 连接池名字
+      minimum-idle: 10                  # 最小空闲连接
+      maximum-pool-size: 20              # 最大连接数（核心）
+      idle-timeout: 300000               # 空闲超时 5分钟
+      max-lifetime: 1800000              # 连接最大生命周期 30分钟
+      connection-timeout: 3000           # 获取连接超时 3秒
+      auto-commit: true
+  # mybatis-flex 配置
+  mybatis-flex:
+    configuration:
+      # 开启懒加载（核心）
+      lazy-loading-enabled: true
+      # 关闭积极加载（必须关，否则懒加载不生效）
+      aggressive-lazy-loading: false
+      # 启用方法级别的懒加载触发（推荐开启）
+      lazy-load-trigger-methods: equals,clone,hashCode,toString
+      # 下划线转驼峰
+      map-underscore-to-camel-case: true
+      # 控制台打印SQL（本地调试用）
+      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
