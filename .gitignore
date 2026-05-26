@@ -54,3 +54,15 @@ logs/
 **/dist/
 **/.mvn/wrapper/maven-wrapper.jar
 **/.github/
+
+
+# Ignore all files with -local in their name, but not if they are in the src directory
+**/application-local.yaml
+**/application-local.yml
+**/*-local.yaml
+**/*-local.yml
+**/*-local.md
+**/*-local.properties
+**/*-local.xml
+**/*-local.html
+
