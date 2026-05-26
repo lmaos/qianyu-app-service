@@ -52,8 +52,8 @@ spring:
       max-lifetime: 1800000              # 连接最大生命周期 30分钟
       connection-timeout: 3000           # 获取连接超时 3秒
       auto-commit: true
-# mybatis 配置
-mybatis:
+# mybatis-flex 配置
+mybatis-flex:
   configuration:
     # 开启懒加载（核心）
     lazy-loading-enabled: true
