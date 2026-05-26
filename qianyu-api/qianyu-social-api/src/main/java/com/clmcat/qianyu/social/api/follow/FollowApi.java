@@ -66,4 +66,12 @@ public interface FollowApi {
      */
     FollowCountDto getFollowCount(long userId);
 
+    /**
+     * 查询用户的联系人（好友）ID 列表。
+     *
+     * @param userId 用户ID；联系人从 follower 表按 followee_id=userId 且 is_friend=1 读取
+     * @return 好友用户ID列表
+     */
+    List<Long> getFriendIdsByUserId(long userId);
+
 }

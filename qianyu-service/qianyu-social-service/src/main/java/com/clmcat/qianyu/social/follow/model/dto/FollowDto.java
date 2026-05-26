@@ -15,4 +15,9 @@ public class FollowDto {
      * 关注了这个人
      */
     private Long followeeId;  // 被关注者，即“他”
+
+    /**
+     * 是否互关好友：0否，1是。
+     */
+    private Integer isFriend;
 }

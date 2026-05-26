@@ -18,6 +18,11 @@ public class FollowDto {
     private Long followeeId;
 
     /**
+     * 是否互关好友：0否，1是。
+     */
+    private Integer isFriend;
+
+    /**
      * 客户端时间戳
      */
     private Long clientTime;

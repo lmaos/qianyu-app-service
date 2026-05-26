@@ -24,6 +24,9 @@ public class Follower {
     @Column("follower_id")
     private Long followerId;
 
+    @Column("is_friend")
+    private Integer isFriend;
+
     @Column("client_time")
     private Long clientTime;
 

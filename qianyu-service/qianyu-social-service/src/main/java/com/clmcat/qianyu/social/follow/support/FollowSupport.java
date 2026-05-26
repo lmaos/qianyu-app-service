@@ -18,6 +18,8 @@ import java.util.Collection;
 import java.util.List;
 
 public class FollowSupport {
+    public static final int FRIEND_NO = 0;
+    public static final int FRIEND_YES = 1;
     public static final int DEFAULT_LIMIT = 20;
     public static final int MAX_LIMIT = 100;
 
@@ -41,6 +43,7 @@ public class FollowSupport {
                 .id(follow.getId())
                 .followerId(follow.getFollowerId())
                 .followeeId(follow.getFolloweeId())
+                .isFriend(follow.getIsFriend())
                 .clientTime(follow.getClientTime())
                 .build();
     }
@@ -53,6 +56,7 @@ public class FollowSupport {
                 .id(follower.getId())
                 .followerId(follower.getFollowerId())
                 .followeeId(follower.getFolloweeId())
+                .isFriend(follower.getIsFriend())
                 .clientTime(follower.getClientTime())
                 .build();
     }
@@ -92,6 +96,7 @@ public class FollowSupport {
         return FollowUserVo.builder()
                 .id(dto.getId())
                 .userId(dto.getFolloweeId())
+                .isFriend(dto.getIsFriend())
                 .clientTime(dto.getClientTime())
                 .build();
     }
@@ -103,6 +108,7 @@ public class FollowSupport {
         return FollowUserVo.builder()
                 .id(dto.getId())
                 .userId(dto.getFollowerId())
+                .isFriend(dto.getIsFriend())
                 .clientTime(dto.getClientTime())
                 .build();
     }

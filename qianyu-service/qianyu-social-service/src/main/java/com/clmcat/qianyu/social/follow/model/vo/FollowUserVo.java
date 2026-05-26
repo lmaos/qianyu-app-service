@@ -8,5 +8,6 @@ import lombok.Getter;
 public class FollowUserVo {
     private Long id;
     private Long userId;
+    private Integer isFriend;
     private Long clientTime;
 }
