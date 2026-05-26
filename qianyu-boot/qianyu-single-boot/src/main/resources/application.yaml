@@ -3,6 +3,8 @@ spring:
     name: qianyu-single-boot
   profiles:
     active: @spring.profiles.active@
+    group:
+      dev: jdbc,redis,sms,im,storage,login
   # 使用虚拟线程
   threads:
     virtual:
@@ -34,48 +36,12 @@ dubbo:
     address: N/A   # 不使用注册中心
 
 ---
-## 本地环境配置，包含最小化的配置，方便本地快速启动; 可通过 nacos 快速启动;
-spring:
-  config:
-    activate:
-      on-profile: local
-
----
 ## 开发环境配置，包含所有模块的配置，方便本地开发调试
 spring:
   config:
     activate:
       on-profile: dev
-  profiles:
-    include:
-    - jdbc
-    - redis
-    - sms
-    - im
-    - storage
-    - login
   cloud:
     nacos:
       config:
         enabled: off
-
----
-spring:
-  config:
-    activate:
-      on-profile: test
-  cloud:
-    nacos:
-      config:
-        namespace: qianyu-test
-        server-addr: ${NACOS_SERVER_ADDR}
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-  cloud:
-    nacos:
-      config:
-        namespace: qianyu-prod
-        server-addr: ${NACOS_SERVER_ADDR}
