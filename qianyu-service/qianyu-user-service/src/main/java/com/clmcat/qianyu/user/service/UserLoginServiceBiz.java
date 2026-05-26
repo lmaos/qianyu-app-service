@@ -60,8 +60,8 @@ public class UserLoginServiceBiz implements UserLoginApi  {
     @Override
     public LoginResultDto phoneLogin(PhoneLoginDto dto) {
         // 登录失败, 手机号： +86-12345678911
-        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(LoginSupport.isValidTelephone(dto.getPhone()));
-        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(verifyCodeServiceBiz.isVerifiedByRedis("phone", dto.getPhone(), dto.getCode()));
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!LoginSupport.isValidTelephone(dto.getPhone()));
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!verifyCodeServiceBiz.isVerifiedByRedis("phone", dto.getPhone(), dto.getCode()));
 
         UserAuthDto userAuthDto = UserAuthDto.builder()
                 .identifier(dto.getPhone())
