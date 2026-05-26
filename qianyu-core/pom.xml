@@ -24,7 +24,6 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <scope>provided</scope>
         </dependency>
-
         <!-- dubbo -->
         <dependency>
             <groupId>org.apache.dubbo</groupId>

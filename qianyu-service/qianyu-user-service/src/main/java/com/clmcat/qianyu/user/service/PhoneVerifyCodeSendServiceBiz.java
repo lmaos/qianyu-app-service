@@ -1,10 +1,11 @@
 package com.clmcat.qianyu.user.service;
 
-import ch.qos.logback.core.testUtil.RandomUtil;
 import com.clmcat.framework.webmvc.ResponseStatus;
 import com.clmcat.qianyu.user.model.dto.PhoneVerifyDto;
 import com.clmcat.qianyu.user.model.vo.PhoneVerifyVo;
 import com.clmcat.qianyu.user.support.LoginSupport;
+import com.clmcat.qianyu.user.support.sms.AliyunSmsProperties;
+import com.clmcat.qianyu.user.support.sms.AliyunSmsSender;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
@@ -17,8 +18,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class PhoneVerifyCodeSendServiceBiz {
 
+    private static final String PHONE_VERIFY_TEMPLATE_CODE = "SMS_256930197";
+
     @Resource
     VerifyCodeServiceBiz verifyCodeServiceBiz;
+
+    @Resource
+    AliyunSmsSender aliyunSmsSender;
+
+    @Resource
+    AliyunSmsProperties aliyunSmsProperties;
 
     /**
      * 发送手机验证码
@@ -27,13 +36,32 @@ public class PhoneVerifyCodeSendServiceBiz {
     public PhoneVerifyVo sendVerifyCode(PhoneVerifyDto dto) {
         String phone = dto.getPhone();
         ///  验证手机号。
-        ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("phone").assertThrowEx(LoginSupport.isValidTelephone(phone));
+        ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("phone").assertThrowEx(!phone.startsWith("+86"));
+        ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("phone").assertThrowEx(!LoginSupport.isValidTelephone(phone));
+        String smsPhone = LoginSupport.normalizeCnSmsPhone(phone);
+        ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("phone").assertThrowEx(smsPhone == null);
         ///  随机验证码
         String code = RandomUtils.secure().randomInt(100000, 999999) + "";
-        // 发送验证码， 这里省略了短信发送的逻辑， 直接把验证码存储到 Redis 中， 过期时间 5分钟
-        // TODO
+        String templateParam = "{\"code\":\"" + code + "\"}";
+        try {
+            aliyunSmsSender.send(smsPhone, aliyunSmsProperties.getSignName(), PHONE_VERIFY_TEMPLATE_CODE, templateParam);
+        } catch (IllegalStateException e) {
+            if (e.getMessage() != null && e.getMessage().contains("手机号码格式错误")) {
+                throw ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("phone").setMessage("手机号格式错误");
+            }
+            throw e;
+        }
         verifyCodeServiceBiz.saveVerifyCodeToRedis("phone", phone, code, 5 * 60 * 1000);
-        log.info("发送手机验证码， phone: {}, code: {}", phone, code);
-        return new PhoneVerifyVo();
+        log.info("发送手机验证码成功, phone: {}", maskPhone(phone));
+        PhoneVerifyVo vo = new PhoneVerifyVo();
+        vo.setNeedSecondVerify(false);
+        return vo;
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() <= 7) {
+            return phone;
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 }

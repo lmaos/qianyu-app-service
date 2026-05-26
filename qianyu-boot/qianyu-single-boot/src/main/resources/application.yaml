@@ -16,7 +16,9 @@ spring:
   cloud:
     nacos:
       config:
-        enabled: false # 未用到所以先禁用
+        server-addr: nacos.clmcat.com:8848
+        namespace: 00f45d09-cb6a-41d5-b9a7-1c49c14c6cae
+        file-extension: yaml
 
   # spring-data-redis 相关配置
   data:
@@ -69,14 +71,16 @@ dubbo:
     name: dubbo
     port: -1
   registry:
-    address: N/A
+    address: nacos://${spring.cloud.nacos.config.server-addr}
     register-mode: all
     group: dubbo
-  provider:
-    filter: rpcResponseFilter
+    parameters:
+      namespace: ${spring.cloud.nacos.config.namespace}
   consumer:
-    filter: rpcUnpackFilter
-
+    check: false  # 关闭所有服务消费者的启动时检查
+  application:
+    qos-port: 22223
+    qos-enable: true
 qianyu:
   sms:
     aliyun:

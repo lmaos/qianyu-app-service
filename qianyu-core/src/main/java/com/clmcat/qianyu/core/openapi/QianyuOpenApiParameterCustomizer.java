@@ -24,6 +24,9 @@ public class QianyuOpenApiParameterCustomizer implements ParameterCustomizer {
         }
         parameterModel.setRequired(params.required());
         parameterModel.setIn(mapScope(params.scope()));
+        if (StringUtils.hasText(params.description()) && !StringUtils.hasText(parameterModel.getDescription())) {
+            parameterModel.setDescription(params.description());
+        }
         if (!ValueConstants.DEFAULT_NONE.equals(params.defaultValue())) {
             parameterModel.setExample(params.defaultValue());
         }

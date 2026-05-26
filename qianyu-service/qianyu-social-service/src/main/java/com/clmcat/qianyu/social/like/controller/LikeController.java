@@ -10,7 +10,6 @@ import com.clmcat.qianyu.social.like.model.vo.LikeStatusVo;
 import com.clmcat.qianyu.social.like.service.LikeViewServiceBiz;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springdoc.core.annotations.ParameterObject;
@@ -46,7 +45,7 @@ public class LikeController {
      */
     @Operation(summary = "点赞作品", description = "参数说明：userId 为当前登录用户ID；dto.momentId 为要点赞的作品ID。")
     @PostMapping("/moment")
-    public boolean likeMoment(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "作品点赞参数") @Params LikeMomentTargetDto dto) {
+    public boolean likeMoment(@Parameter(hidden = true) @Token long userId, @Params(description = "作品点赞参数") LikeMomentTargetDto dto) {
         return likeViewServiceBiz.likeMoment(userId, dto);
     }
 
@@ -59,7 +58,7 @@ public class LikeController {
      */
     @Operation(summary = "取消点赞作品", description = "参数说明：userId 为当前登录用户ID；dto.momentId 为要取消点赞的作品ID。")
     @PostMapping("/moment/cancel")
-    public boolean cancelLikeMoment(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "取消作品点赞参数") @Params LikeMomentTargetDto dto) {
+    public boolean cancelLikeMoment(@Parameter(hidden = true) @Token long userId, @Params(description = "取消作品点赞参数") LikeMomentTargetDto dto) {
         return likeViewServiceBiz.cancelLikeMoment(userId, dto);
     }
 
@@ -85,7 +84,7 @@ public class LikeController {
      */
     @Operation(summary = "点赞评论", description = "参数说明：userId 为当前登录用户ID；dto.commentId 为要点赞的评论或回复ID。")
     @PostMapping("/comment")
-    public boolean likeComment(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "评论点赞参数") @Params LikeCommentTargetDto dto) {
+    public boolean likeComment(@Parameter(hidden = true) @Token long userId, @Params(description = "评论点赞参数") LikeCommentTargetDto dto) {
         return likeViewServiceBiz.likeComment(userId, dto);
     }
 
@@ -98,7 +97,7 @@ public class LikeController {
      */
     @Operation(summary = "取消点赞评论", description = "参数说明：userId 为当前登录用户ID；dto.commentId 为要取消点赞的评论或回复ID。")
     @PostMapping("/comment/cancel")
-    public boolean cancelLikeComment(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "取消评论点赞参数") @Params LikeCommentTargetDto dto) {
+    public boolean cancelLikeComment(@Parameter(hidden = true) @Token long userId, @Params(description = "取消评论点赞参数") LikeCommentTargetDto dto) {
         return likeViewServiceBiz.cancelLikeComment(userId, dto);
     }
 

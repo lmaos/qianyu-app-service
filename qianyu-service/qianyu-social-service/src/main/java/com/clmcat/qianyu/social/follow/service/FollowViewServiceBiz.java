@@ -4,6 +4,7 @@ import com.clmcat.qianyu.social.api.follow.model.dto.FollowCountDto;
 import com.clmcat.qianyu.social.api.follow.model.dto.FollowDto;
 import com.clmcat.qianyu.social.api.follow.model.dto.FollowRelationDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowListQueryDto;
+import com.clmcat.qianyu.social.follow.model.dto.FollowSelfListQueryDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowTargetDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowUserQueryDto;
 import com.clmcat.qianyu.social.follow.model.entity.status.Status;
@@ -94,6 +95,18 @@ public class FollowViewServiceBiz  {
     }
 
     /**
+     * 查询当前登录用户自己的关注列表。
+     *
+     * @param userId 当前登录用户ID
+     * @param dto 查询参数，包含 nextId、limit
+     * @return 关注列表分页 VO
+     */
+    public FollowPageVo getSelfFollowList(long userId, FollowSelfListQueryDto dto) {
+        Status.QUERY_USER_REQUIRED.assertThrowResEx(FollowSupport.isNullOrNonPositive(userId));
+        return getFollowList(newSelfFollowListQuery(userId, dto));
+    }
+
+    /**
      * 查询某个用户的粉丝列表。
      *
      * @param dto 查询参数，userId 表示被查询用户，nextId 为游标，limit 为分页大小
@@ -117,6 +130,18 @@ public class FollowViewServiceBiz  {
     }
 
     /**
+     * 查询当前登录用户自己的粉丝列表。
+     *
+     * @param userId 当前登录用户ID
+     * @param dto 查询参数，包含 nextId、limit
+     * @return 粉丝列表分页 VO
+     */
+    public FollowPageVo getSelfFollowerList(long userId, FollowSelfListQueryDto dto) {
+        Status.QUERY_USER_REQUIRED.assertThrowResEx(FollowSupport.isNullOrNonPositive(userId));
+        return getFollowerList(newSelfFollowListQuery(userId, dto));
+    }
+
+    /**
      * 查询某个用户的关注数与粉丝数。
      *
      * @param dto 查询参数，userId 表示被查询用户
@@ -130,9 +155,32 @@ public class FollowViewServiceBiz  {
         return FollowSupport.toFollowCountVo(countDto);
     }
 
+    /**
+     * 查询当前登录用户自己的关注数与粉丝数。
+     *
+     * @param userId 当前登录用户ID
+     * @return 数量 VO
+     */
+    public FollowCountVo getSelfFollowCount(long userId) {
+        Status.QUERY_USER_REQUIRED.assertThrowResEx(FollowSupport.isNullOrNonPositive(userId));
+        FollowUserQueryDto dto = new FollowUserQueryDto();
+        dto.setUserId(userId);
+        return getFollowCount(dto);
+    }
+
     private void verifyTarget(FollowDto followDto) {
         Status.FOLLOWER_REQUIRED.assertThrowResEx(followDto == null || FollowSupport.isNullOrNonPositive(followDto.getFollowerId()));
         Status.FOLLOWEE_REQUIRED.assertThrowResEx(followDto == null || FollowSupport.isNullOrNonPositive(followDto.getFolloweeId()));
         Status.FOLLOW_SELF_NOT_ALLOWED.assertThrowResEx(followDto.getFollowerId().equals(followDto.getFolloweeId()));
+    }
+
+    private FollowListQueryDto newSelfFollowListQuery(long userId, FollowSelfListQueryDto dto) {
+        FollowListQueryDto queryDto = new FollowListQueryDto();
+        queryDto.setUserId(userId);
+        if (dto != null) {
+            queryDto.setNextId(dto.getNextId());
+            queryDto.setLimit(dto.getLimit());
+        }
+        return queryDto;
     }
 }

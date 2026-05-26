@@ -54,29 +54,34 @@
     </build>
 
     <profiles>
-        <!-- 本地环境，不对外暴露的属性配置 -->
+
         <profile>
+            <!-- 本地环境，不对外暴露的属性配置 -->
             <id>local</id>
             <properties>
                 <spring.profiles.active>local</spring.profiles.active>
+                <nacos.namespace>qianyu-local</nacos.namespace>
             </properties>
         </profile>
         <profile>
             <id>dev</id>
             <properties>
                 <spring.profiles.active>dev</spring.profiles.active>
+                <nacos.namespace>qianyu-dev</nacos.namespace>
             </properties>
         </profile>
         <profile>
             <id>test</id>
             <properties>
                 <spring.profiles.active>test</spring.profiles.active>
+                <nacos.namespace>qianyu-test</nacos.namespace>
             </properties>
         </profile>
         <profile>
             <id>prod</id>
             <properties>
                 <spring.profiles.active>prod</spring.profiles.active>
+                <nacos.namespace>qianyu-prod</nacos.namespace>
             </properties>
         </profile>
     </profiles>

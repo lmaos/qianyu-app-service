@@ -13,7 +13,6 @@ import com.clmcat.qianyu.social.moment.model.vo.MomentVo;
 import com.clmcat.qianyu.social.moment.service.MomentServiceViewBiz;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springdoc.core.annotations.ParameterObject;
@@ -43,18 +42,6 @@ public class MomentController {
     private MomentServiceViewBiz momentServiceViewBiz;
 
     /**
-     * 登录态测试接口。
-     *
-     * @param userId 当前登录用户ID，由 Token 自动解析注入
-     * @return 测试文本
-     */
-    @Operation(summary = "登录态测试", description = "参数说明：userId 由登录 token 自动解析，用于快速验证当前登录态是否生效。")
-    @GetMapping("test")
-    public String test(@Parameter(hidden = true) @Token long userId) { // @Token 可以从Token获取当前的登录用户ID。
-        return "hello world， userId: " + userId;
-    }
-
-    /**
      * 发布动态。
      *
      * @param userId 当前登录用户ID，来自 Token
@@ -63,7 +50,7 @@ public class MomentController {
      */
     @Operation(summary = "发布动态", description = "参数说明：userId 为当前登录用户ID；dto 包含 content、latitude、longitude、country、status。")
     @PostMapping("/publish")
-    public MomentVo publish(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "动态发布参数") @Params MomentPublishDto dto) {
+    public MomentVo publish(@Parameter(hidden = true) @Token long userId, @Params(description = "动态发布参数") MomentPublishDto dto) {
         return momentServiceViewBiz.publish(userId, dto);
     }
 
@@ -114,7 +101,7 @@ public class MomentController {
      */
     @Operation(summary = "删除动态", description = "参数说明：userId 为当前登录用户ID，仅作者本人可删除；dto.momentId 为待删除动态ID。")
     @PostMapping("/delete")
-    public boolean delete(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "动态删除参数") @Params MomentIdDto dto) {
+    public boolean delete(@Parameter(hidden = true) @Token long userId, @Params(description = "动态删除参数") MomentIdDto dto) {
         return momentServiceViewBiz.deleteMoment(userId, dto);
     }
 

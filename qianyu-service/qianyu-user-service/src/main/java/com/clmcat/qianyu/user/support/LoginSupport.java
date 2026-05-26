@@ -64,5 +64,32 @@ public class LoginSupport {
         }
     }
 
+    /**
+     * 转为阿里云国内短信使用的 11 位手机号。
+     *
+     * @param telephone 带国家码的手机号，例如 +86-13800138000
+     * @return 11 位国内手机号；不合法时返回 null
+     */
+    public static String normalizeCnSmsPhone(String telephone) {
+        if (!isValidTelephone(telephone)) {
+            return null;
+        }
+        PhoneNumberUtil util = PhoneNumberUtil.getInstance();
+        try {
+            Phonenumber.PhoneNumber num = util.parse(telephone, null);
+            if (!util.isValidNumber(num) || num.getCountryCode() != 86) {
+                return null;
+            }
+            String nationalNumber = String.valueOf(num.getNationalNumber());
+            if (nationalNumber.length() != 11 || !nationalNumber.startsWith("1")) {
+                return null;
+            }
+            return nationalNumber;
+        } catch (NumberParseException e) {
+            log.debug("手机归一化失败, {}", telephone, e);
+            return null;
+        }
+    }
+
 
 }

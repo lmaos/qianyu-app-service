@@ -5,6 +5,7 @@ import com.clmcat.basics.commons.util.Base62;
 import com.clmcat.framework.webmvc.ResponseStatus;
 import com.clmcat.qianyu.core.login.LoginSigner;
 import com.clmcat.qianyu.core.login.LoginVerifier;
+import com.clmcat.qianyu.social.api.base.UserSocialCounterApi;
 import com.clmcat.qianyu.user.api.UserLoginApi;
 import com.clmcat.qianyu.user.api.model.dto.*;
 import com.clmcat.qianyu.user.mapper.UserAuthMapper;
@@ -20,6 +21,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 
@@ -43,6 +45,8 @@ public class UserLoginServiceBiz implements UserLoginApi  {
     @Resource
     LoginVerifier loginVerifier;
 
+    @DubboReference
+    UserSocialCounterApi userSocialCounterApi;
 
     @Override
     public LoginResultDto accountLogin(AccountLoginDto dto) {
@@ -188,6 +192,12 @@ public class UserLoginServiceBiz implements UserLoginApi  {
 
             userAuthMapper.insert(userAuth);
             userInfoMapper.insert(userInfo);
+
+            try {
+                userSocialCounterApi.init(userId);
+            } catch (Exception e) {
+                log.error("初始化用户社交计数器失败，userId={}", userId, e);
+            }
 
         } else {
             userInfo = getUserInfo(userAuth.getUserId());

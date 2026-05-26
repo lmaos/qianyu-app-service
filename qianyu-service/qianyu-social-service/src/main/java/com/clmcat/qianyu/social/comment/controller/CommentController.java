@@ -14,7 +14,6 @@ import com.clmcat.qianyu.social.comment.model.vo.CommentVo;
 import com.clmcat.qianyu.social.comment.service.CommentServiceViewBiz;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springdoc.core.annotations.ParameterObject;
@@ -38,6 +37,7 @@ import java.util.List;
 @Tag(name = "评论回复接口", description = "提供评论发布、评论详情、批量查询、作品评论分页、回复分页和删除能力。")
 @ApiController
 @RequestMapping("/api/social/comment")
+@LoginVerify
 public class CommentController {
     @Resource
     private CommentServiceViewBiz commentServiceViewBiz;
@@ -51,8 +51,7 @@ public class CommentController {
      */
     @Operation(summary = "发布评论或回复", description = "参数说明：userId 为当前登录用户ID；dto.momentId 为作品ID；顶级评论 parentCommentId/replyCommentId 传 0，回复时补对应评论ID。")
     @PostMapping("/publish")
-    @LoginVerify
-    public CommentVo publish(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "评论发布参数") @Params CommentPublishDto dto) {
+    public CommentVo publish(@Parameter(hidden = true) @Token long userId, @Params(description = "评论发布参数") CommentPublishDto dto) {
         return commentServiceViewBiz.publish(userId, dto);
     }
 
@@ -113,8 +112,7 @@ public class CommentController {
      */
     @Operation(summary = "删除评论", description = "参数说明：userId 为当前登录用户ID，仅作者本人可删除；dto.commentId 为待删除评论ID。")
     @PostMapping("/delete")
-    @LoginVerify
-    public boolean delete(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "评论删除参数") @Params CommentIdDto dto) {
+    public boolean delete(@Parameter(hidden = true) @Token long userId, @Params(description = "评论删除参数") CommentIdDto dto) {
         return commentServiceViewBiz.deleteComment(userId, dto);
     }
 }
