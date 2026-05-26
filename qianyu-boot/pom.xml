@@ -54,6 +54,13 @@
     </build>
 
     <profiles>
+        <!-- 本地环境，不对外暴露的属性配置 -->
+        <profile>
+            <id>local</id>
+            <properties>
+                <spring.profiles.active>local</spring.profiles.active>
+            </properties>
+        </profile>
         <profile>
             <id>dev</id>
             <properties>
