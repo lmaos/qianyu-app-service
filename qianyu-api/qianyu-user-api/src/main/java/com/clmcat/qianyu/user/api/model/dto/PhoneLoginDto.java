@@ -1,5 +1,4 @@
 package com.clmcat.qianyu.user.api.model.dto;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

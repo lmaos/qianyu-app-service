@@ -19,6 +19,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- dubbo -->
         <dependency>
             <groupId>org.apache.dubbo</groupId>

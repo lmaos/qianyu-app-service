@@ -10,9 +10,28 @@ import com.clmcat.qianyu.social.follow.model.vo.FollowCountVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowPageVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowRelationVo;
 import com.clmcat.qianyu.social.follow.service.FollowViewServiceBiz;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+/**
+ * 关注关系接口。
+ * <p>
+ * 当前类使用 {@link ApiController} 暴露关注、取关、关系查询、关注列表、粉丝列表和数量查询能力。
+ * <p>
+ * OpenAPI 页面地址（默认本地启动）：
+ * http://localhost:8080/swagger-ui/index.html
+ * <p>
+ * OpenAPI JSON 地址（HTTP API 分组）：
+ * http://localhost:8080/v3/api-docs/http-api
+ */
+@Tag(name = "关注关系接口", description = "提供关注、取关、关系查询、关注列表、粉丝列表和数量统计能力。")
 @ApiController
 @RequestMapping("/api/social/follow")
 public class FollowController {
@@ -26,9 +45,10 @@ public class FollowController {
      * @param dto 目标用户参数，userId 表示要关注的人
      * @return 是否处理成功
      */
-    @RequestMapping("/follow")
+    @Operation(summary = "关注用户", description = "参数说明：userId 为当前登录用户ID；dto.userId 为要关注的目标用户ID。")
+    @PostMapping("/follow")
     @LoginVerify
-    public boolean follow(@Token long userId, @Params FollowTargetDto dto) {
+    public boolean follow(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "关注目标参数") @Params FollowTargetDto dto) {
         return followViewServiceBiz.follow(userId, dto);
     }
 
@@ -39,9 +59,10 @@ public class FollowController {
      * @param dto 目标用户参数，userId 表示要取消关注的人
      * @return 是否处理成功
      */
-    @RequestMapping("/cancel")
+    @Operation(summary = "取消关注用户", description = "参数说明：userId 为当前登录用户ID；dto.userId 为要取消关注的目标用户ID。")
+    @PostMapping("/cancel")
     @LoginVerify
-    public boolean cancel(@Token long userId, @Params FollowTargetDto dto) {
+    public boolean cancel(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "取消关注目标参数") @Params FollowTargetDto dto) {
         return followViewServiceBiz.cancelFollow(userId, dto);
     }
 
@@ -52,9 +73,10 @@ public class FollowController {
      * @param dto 目标用户参数，userId 表示对方用户
      * @return 关系 VO
      */
-    @RequestMapping("/relation")
+    @Operation(summary = "查询关注关系", description = "参数说明：userId 为当前登录用户ID；dto.userId 为目标用户ID，返回是否关注、是否被关注、是否互关。")
+    @GetMapping("/relation")
     @LoginVerify
-    public FollowRelationVo relation(@Token long userId, @Params FollowTargetDto dto) {
+    public FollowRelationVo relation(@Parameter(hidden = true) @Token long userId, @ParameterObject @Params FollowTargetDto dto) {
         return followViewServiceBiz.getRelation(userId, dto);
     }
 
@@ -64,8 +86,9 @@ public class FollowController {
      * @param dto 查询参数，userId 为被查询用户，nextId 为游标，limit 为分页大小
      * @return 关注列表分页结果
      */
-    @RequestMapping("/followee/list")
-    public FollowPageVo followList(@Params FollowListQueryDto dto) {
+    @Operation(summary = "查询关注列表", description = "参数说明：dto.userId 为被查询用户ID；dto.nextId 为倒序游标；dto.limit 为分页大小。")
+    @GetMapping("/followee/list")
+    public FollowPageVo followList(@ParameterObject @Params FollowListQueryDto dto) {
         return followViewServiceBiz.getFollowList(dto);
     }
 
@@ -75,8 +98,9 @@ public class FollowController {
      * @param dto 查询参数，userId 为被查询用户，nextId 为游标，limit 为分页大小
      * @return 粉丝列表分页结果
      */
-    @RequestMapping("/follower/list")
-    public FollowPageVo followerList(@Params FollowListQueryDto dto) {
+    @Operation(summary = "查询粉丝列表", description = "参数说明：dto.userId 为被查询用户ID；dto.nextId 为倒序游标；dto.limit 为分页大小。")
+    @GetMapping("/follower/list")
+    public FollowPageVo followerList(@ParameterObject @Params FollowListQueryDto dto) {
         return followViewServiceBiz.getFollowerList(dto);
     }
 
@@ -86,8 +110,9 @@ public class FollowController {
      * @param dto 查询参数，userId 为被查询用户
      * @return 数量 VO
      */
-    @RequestMapping("/count")
-    public FollowCountVo count(@Params FollowTargetDto dto) {
+    @Operation(summary = "查询关注和粉丝数量", description = "参数说明：dto.userId 为被查询用户ID。")
+    @GetMapping("/count")
+    public FollowCountVo count(@ParameterObject @Params FollowTargetDto dto) {
         return followViewServiceBiz.getFollowCount(dto);
     }
 }
