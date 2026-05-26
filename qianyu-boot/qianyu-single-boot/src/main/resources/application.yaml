@@ -2,13 +2,20 @@ spring:
   application:
     name: qianyu-single-boot
   profiles:
+    # mvn compile -Plocal 会将 @spring.profiles.active@ 替换为 local
+    # 支持 -Pprod, -Ptest , -Plocal, -Pdev
     active: @spring.profiles.active@
     group:
+      # dev 环境不适用nacos, 直接引入各模块的配置文件，方便本地开发调试。其他环境使用nacos配置中心统一管理配置。
       dev: jdbc,redis,sms,im,storage,login
-  # 使用虚拟线程
-  threads:
-    virtual:
-      enabled: true
+  cloud:
+    nacos:
+      config:
+        # mvn compile -Plocal 会将 @nacos.namespace@ 替换为 qianyu-local
+        # 如果修改 在 qianyu-boot/pom.xml 中修改
+        namespace: @nacos.namespace@
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        group: qianyu-single-boot
   # 加载配置。nacos 配置中心相关配置
   config:
     import:
@@ -19,13 +26,10 @@ spring:
     - optional:nacos:application-im.yaml
     - optional:nacos:application-storage.yaml
     - optional:nacos:application-login.yaml
-  cloud:
-    nacos:
-      config:
-        namespace: @nacos.namespace@
-        server-addr: ${NACOS_SERVER_ADDR}
-        group: qianyu-single-boot
-
+  # 使用虚拟线程
+  threads:
+    virtual:
+      enabled: true
 
 # 单体服务不使用注册中心。
 dubbo:
@@ -36,7 +40,7 @@ dubbo:
     address: N/A   # 不使用注册中心
 
 ---
-## 开发环境配置，包含所有模块的配置，方便本地开发调试
+## DEV 环境配置，包含所有模块的配置， 不启动环境变量中的 nacos 配置中心相关配置，方便本地开发调试。
 spring:
   config:
     activate:
