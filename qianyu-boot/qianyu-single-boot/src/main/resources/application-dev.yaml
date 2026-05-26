@@ -15,6 +15,11 @@ spring:
           min-idle: 5
           max-wait: 5s
 qianyu:
+  im:
+    tencent:
+      sdkAppId: 1600143689
+      secretKey: 180dd281f165fa718e0e2a0a11109e0cdfb365ca46cbe6186b24923e3693fc28
+      adminIdentifier: 10000
   login:
     verifier:
       public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnd4VmswS9LCoFHEtnf3zqy4/t3TQzOs/C32HuCZGMOjzYSeVcedCqNi5mpklv9KIN500Y9wtKhFIDPT6U6HR1/tNwSgA/FstJO2IzSG+8RMYkvgkHw7emgWRaxS9RLNM380WLAUYpHO9MT3VCZAPeeHEw8RJhO2pBj/HG+B16W2pL42plYn04IPR85aS8nIhO2BC1O3GzeKSVc81yTUjhxNw9BPG55XqLhAnCVSEV1xAqHYFV96b6+TfjfUkG9/7gNHc6LJiJ0oTOI3OWJMgLJI+Yq+ah8pTKZN4/J1QzB+bLUPYO62IVjqKaCxM3fAev1i2lmNPyjgi5Na4qEcElQIDAQAB
