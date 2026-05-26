@@ -150,6 +150,28 @@ public class MomentServiceBiz implements MomentApi {
     }
 
     /**
+     * 增减作品点赞数。
+     *
+     * @param momentId 作品ID
+     * @param delta 增量，可为负数
+     * @return 更新结果
+     */
+    public boolean incrementMomentLikes(long momentId, long delta) {
+        return momentMapper.incrementLikes(momentId, delta) > 0;
+    }
+
+    /**
+     * 增减作品评论数。
+     *
+     * @param momentId 作品ID
+     * @param delta 增量，可为负数
+     * @return 更新结果
+     */
+    public boolean incrementMomentComments(long momentId, long delta) {
+        return momentMapper.incrementComments(momentId, delta) > 0;
+    }
+
+    /**
      * 验证MomentDto 参数
      */
     private void verifySave(MomentDto moment) throws ApiResultException {
