@@ -48,7 +48,7 @@ public class OpenApiAutoConfiguration {
                                 .type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.HEADER)
                                 .name("token")
-                                .description("Qianyu 登录 token，请放在请求头 token 中。")));
+                                .description("Qianyu 登录 token。凡是使用 @LoginVerify 或 @Token 的接口，调用时都需要在请求头携带 token；Swagger UI 调试时可点击右上角 Authorize 统一填写。")));
     }
 
     /**

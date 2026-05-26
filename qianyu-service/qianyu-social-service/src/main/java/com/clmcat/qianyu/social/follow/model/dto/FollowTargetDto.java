@@ -9,6 +9,6 @@ public class FollowTargetDto {
     /**
      * 目标用户ID
      */
-    @Schema(description = "目标用户ID")
-    private Long userId;
+    @Schema(description = "目标用户ID，用于关注、取消关注、关系查询等面向目标用户的接口")
+    private Long targetId;
 }

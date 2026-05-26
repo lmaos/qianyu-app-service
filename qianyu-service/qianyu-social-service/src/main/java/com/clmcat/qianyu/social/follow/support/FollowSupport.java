@@ -31,7 +31,7 @@ public class FollowSupport {
         }
         return FollowDto.builder()
                 .followerId(followerId)
-                .followeeId(dto.getUserId())
+                .followeeId(dto.getTargetId())
                 .build();
     }
 

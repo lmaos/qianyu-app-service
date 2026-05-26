@@ -5,6 +5,7 @@ import com.clmcat.qianyu.social.api.follow.model.dto.FollowDto;
 import com.clmcat.qianyu.social.api.follow.model.dto.FollowRelationDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowListQueryDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowTargetDto;
+import com.clmcat.qianyu.social.follow.model.dto.FollowUserQueryDto;
 import com.clmcat.qianyu.social.follow.model.entity.status.Status;
 import com.clmcat.qianyu.social.follow.model.vo.FollowCountVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowPageVo;
@@ -28,7 +29,7 @@ public class FollowViewServiceBiz  {
      * 当前用户发起关注。
      *
      * @param userId 当前登录用户ID
-     * @param dto 目标用户参数，userId 表示要关注的人
+     * @param dto 目标用户参数，targetId 表示要关注的人
      * @return 是否处理成功
      */
     public boolean follow(long userId, FollowTargetDto dto) {
@@ -42,7 +43,7 @@ public class FollowViewServiceBiz  {
      * 当前用户取消关注。
      *
      * @param userId 当前登录用户ID
-     * @param dto 目标用户参数，userId 表示要取消关注的人
+     * @param dto 目标用户参数，targetId 表示要取消关注的人
      * @return 是否处理成功
      */
     public boolean cancelFollow(long userId, FollowTargetDto dto) {
@@ -56,12 +57,12 @@ public class FollowViewServiceBiz  {
      * 查询当前用户与目标用户的关系。
      *
      * @param userId 当前登录用户ID
-     * @param dto 目标用户参数，userId 表示对方用户
+     * @param dto 目标用户参数，targetId 表示对方用户
      * @return 关系 VO
      */
     public FollowRelationVo getRelation(long userId, FollowTargetDto dto) {
         Status.FOLLOWER_REQUIRED.assertThrowResEx(FollowSupport.isNullOrNonPositive(userId));
-        long targetUserId = dto == null ? 0L : Objects.requireNonNullElse(dto.getUserId(), 0L);
+        long targetUserId = dto == null ? 0L : Objects.requireNonNullElse(dto.getTargetId(), 0L);
         Status.FOLLOWEE_REQUIRED.assertThrowResEx(FollowSupport.isNullOrNonPositive(targetUserId));
         Status.FOLLOW_SELF_NOT_ALLOWED.assertThrowResEx(userId == targetUserId);
 
@@ -121,7 +122,7 @@ public class FollowViewServiceBiz  {
      * @param dto 查询参数，userId 表示被查询用户
      * @return 数量 VO
      */
-    public FollowCountVo getFollowCount(FollowTargetDto dto) {
+    public FollowCountVo getFollowCount(FollowUserQueryDto dto) {
         long userId = dto == null ? 0L : Objects.requireNonNullElse(dto.getUserId(), 0L);
         Status.QUERY_USER_REQUIRED.assertThrowResEx(FollowSupport.isNullOrNonPositive(userId));
 

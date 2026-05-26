@@ -3,6 +3,8 @@ package com.clmcat.qianyu.core.openapi;
 import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Token;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.core.MethodParameter;
@@ -25,6 +27,8 @@ public class QianyuOpenApiOperationCustomizer implements OperationCustomizer {
     public Operation customize(Operation operation, HandlerMethod handlerMethod) {
         hideTokenParameters(operation, handlerMethod);
         adaptLoginVerify(operation, handlerMethod);
+        addTokenHeaderParameter(operation, handlerMethod);
+        appendTokenHeaderDescription(operation, handlerMethod);
         return operation;
     }
 
@@ -70,6 +74,59 @@ public class QianyuOpenApiOperationCustomizer implements OperationCustomizer {
             return;
         }
         operation.getParameters().removeIf(parameter -> hiddenParameterNames.contains(parameter.getName()));
+    }
+
+    private void appendTokenHeaderDescription(Operation operation, HandlerMethod handlerMethod) {
+        LoginVerify loginVerify = findLoginVerify(handlerMethod);
+        boolean hasTokenParameter = hasTokenParameter(handlerMethod);
+        if (loginVerify == null && !hasTokenParameter) {
+            return;
+        }
+        String tokenHeader = loginVerify != null && StringUtils.hasText(loginVerify.token()) ? loginVerify.token() : "token";
+        String authDescription = "鉴权说明：当前接口使用 @LoginVerify 或 @Token，请在请求头携带 " + tokenHeader + "；Swagger UI 调试时可点击右上角 Authorize 后统一填写。";
+        if (!StringUtils.hasText(operation.getDescription())) {
+            operation.setDescription(authDescription);
+            return;
+        }
+        if (!operation.getDescription().contains(authDescription)) {
+            operation.setDescription(operation.getDescription() + "<br/><br/>" + authDescription);
+        }
+    }
+
+    private void addTokenHeaderParameter(Operation operation, HandlerMethod handlerMethod) {
+        LoginVerify loginVerify = findLoginVerify(handlerMethod);
+        boolean hasTokenParameter = hasTokenParameter(handlerMethod);
+        if (loginVerify == null && !hasTokenParameter) {
+            return;
+        }
+        String tokenHeader = loginVerify != null && StringUtils.hasText(loginVerify.token()) ? loginVerify.token() : "token";
+        boolean required = hasTokenParameter || (loginVerify != null && loginVerify.mustLogin());
+        if (operation.getParameters() != null) {
+            for (Parameter parameter : operation.getParameters()) {
+                if ("header".equals(parameter.getIn()) && tokenHeader.equals(parameter.getName())) {
+                    parameter.setRequired(required);
+                    if (!StringUtils.hasText(parameter.getDescription())) {
+                        parameter.setDescription("登录 token，请放在请求头 " + tokenHeader + " 中。");
+                    }
+                    return;
+                }
+            }
+        }
+        operation.addParametersItem(new Parameter()
+                .in("header")
+                .name(tokenHeader)
+                .required(required)
+                .description("登录 token，请放在请求头 " + tokenHeader + " 中。")
+                .schema(new StringSchema()));
+    }
+
+    private boolean hasTokenParameter(HandlerMethod handlerMethod) {
+        for (MethodParameter methodParameter : handlerMethod.getMethodParameters()) {
+            if (methodParameter.hasParameterAnnotation(Token.class)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private LoginVerify findLoginVerify(HandlerMethod handlerMethod) {

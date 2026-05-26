@@ -6,6 +6,7 @@ import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.social.follow.model.dto.FollowListQueryDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowTargetDto;
+import com.clmcat.qianyu.social.follow.model.dto.FollowUserQueryDto;
 import com.clmcat.qianyu.social.follow.model.vo.FollowCountVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowPageVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowRelationVo;
@@ -42,10 +43,10 @@ public class FollowController {
      * 当前登录用户关注目标用户。
      *
      * @param userId 当前登录用户ID，来自 Token
-     * @param dto 目标用户参数，userId 表示要关注的人
+     * @param dto 目标用户参数，targetId 表示要关注的人
      * @return 是否处理成功
      */
-    @Operation(summary = "关注用户", description = "参数说明：userId 为当前登录用户ID；dto.userId 为要关注的目标用户ID。")
+    @Operation(summary = "关注用户", description = "参数说明：userId 为当前登录用户ID；dto.targetId 为要关注的目标用户ID。")
     @PostMapping("/follow")
     @LoginVerify
     public boolean follow(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "关注目标参数") @Params FollowTargetDto dto) {
@@ -56,10 +57,10 @@ public class FollowController {
      * 当前登录用户取消关注目标用户。
      *
      * @param userId 当前登录用户ID，来自 Token
-     * @param dto 目标用户参数，userId 表示要取消关注的人
+     * @param dto 目标用户参数，targetId 表示要取消关注的人
      * @return 是否处理成功
      */
-    @Operation(summary = "取消关注用户", description = "参数说明：userId 为当前登录用户ID；dto.userId 为要取消关注的目标用户ID。")
+    @Operation(summary = "取消关注用户", description = "参数说明：userId 为当前登录用户ID；dto.targetId 为要取消关注的目标用户ID。")
     @PostMapping("/cancel")
     @LoginVerify
     public boolean cancel(@Parameter(hidden = true) @Token long userId, @RequestBody(description = "取消关注目标参数") @Params FollowTargetDto dto) {
@@ -70,10 +71,10 @@ public class FollowController {
      * 查看当前登录用户与目标用户之间的关注关系。
      *
      * @param userId 当前登录用户ID，来自 Token
-     * @param dto 目标用户参数，userId 表示对方用户
+     * @param dto 目标用户参数，targetId 表示对方用户
      * @return 关系 VO
      */
-    @Operation(summary = "查询关注关系", description = "参数说明：userId 为当前登录用户ID；dto.userId 为目标用户ID，返回是否关注、是否被关注、是否互关。")
+    @Operation(summary = "查询关注关系", description = "参数说明：userId 为当前登录用户ID；dto.targetId 为目标用户ID，返回是否关注、是否被关注、是否互关。")
     @GetMapping("/relation")
     @LoginVerify
     public FollowRelationVo relation(@Parameter(hidden = true) @Token long userId, @ParameterObject @Params FollowTargetDto dto) {
@@ -112,7 +113,7 @@ public class FollowController {
      */
     @Operation(summary = "查询关注和粉丝数量", description = "参数说明：dto.userId 为被查询用户ID。")
     @GetMapping("/count")
-    public FollowCountVo count(@ParameterObject @Params FollowTargetDto dto) {
+    public FollowCountVo count(@ParameterObject @Params FollowUserQueryDto dto) {
         return followViewServiceBiz.getFollowCount(dto);
     }
 }
