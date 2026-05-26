@@ -29,10 +29,5 @@
             <artifactId>dysmsapi20170525</artifactId>
             <version>4.5.1</version>
         </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.84</version>
-        </dependency>
     </dependencies>
 </project>

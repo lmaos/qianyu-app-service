@@ -87,11 +87,12 @@ public class JwtRsaKit {
          * </pre>
          */
         public Claims parseToken(String token) {
-            return Jwts.parserBuilder()
-                    .setSigningKey(publicKey)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+
+            return Jwts.parser()
+                    .verifyWith(publicKey)
+//                    .setSigningKey(publicKey)
+                    .build().parseSignedClaims(token)
+                    .getPayload();
         }
     }
 
