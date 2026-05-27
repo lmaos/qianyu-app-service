@@ -9,28 +9,16 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qianyu-storage-service</artifactId>
+    <artifactId>qianyu-search-service</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>com.clmcat.app</groupId>
-            <artifactId>qianyu-web-dependencies</artifactId>
+            <artifactId>qianyu-search-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.clmcat.app</groupId>
-            <artifactId>qianyu-storage-api</artifactId>
-        </dependency>
-
-        <!-- 阿里云 OSS SDK -->
-        <dependency>
-            <groupId>com.aliyun.oss</groupId>
-            <artifactId>aliyun-sdk-oss</artifactId>
-        </dependency>
-
-        <!-- 腾讯云 COS SDK -->
-        <dependency>
-            <groupId>com.qcloud</groupId>
-            <artifactId>cos_api</artifactId>
+            <artifactId>qianyu-web-dependencies</artifactId>
         </dependency>
     </dependencies>
 

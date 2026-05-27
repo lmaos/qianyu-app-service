@@ -62,6 +62,11 @@
             <artifactId>qianyu-review-service</artifactId>
             <version>${project.qianyu.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-search-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
 
         <!-- qianyu-api -->
         <dependency>

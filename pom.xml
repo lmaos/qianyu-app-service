@@ -119,6 +119,20 @@
                 <version>20260522</version>
                 <scope>compile</scope>
             </dependency>
+
+            <dependency>
+                <groupId>com.aliyun.oss</groupId>
+                <artifactId>aliyun-sdk-oss</artifactId>
+                <version>3.18.5</version>
+                <scope>compile</scope>
+            </dependency>
+            <!-- Source: https://mvnrepository.com/artifact/com.qcloud/cos_api -->
+            <dependency>
+                <groupId>com.qcloud</groupId>
+                <artifactId>cos_api</artifactId>
+                <version>5.6.269</version>
+                <scope>compile</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
