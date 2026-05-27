@@ -4,6 +4,7 @@ import com.clmcat.framework.webmvc.ResponseStatus;
 import com.clmcat.qianyu.user.api.model.dto.RpcUserInfoDto;
 import com.clmcat.qianyu.user.model.dto.UserIdDto;
 import com.clmcat.qianyu.user.model.dto.UserIdsDto;
+import com.clmcat.qianyu.user.model.dto.UserInfoUpdateDto;
 import com.clmcat.qianyu.user.model.vo.UserInfoVo;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
@@ -58,6 +59,20 @@ public class UserViewServiceBiz {
     public UserInfoVo getSelfUserInfo(long userId) {
         ResponseStatus.P_VALUE_ERROR.assertThrowResEx(userId <= 0);
         return toUserInfoVo(userServiceBiz.getUserInfo(userId));
+    }
+
+    /**
+     * 修改当前登录用户自己的基础信息。
+     *
+     * @param userId 当前登录用户ID
+     * @param dto 聚合修改参数
+     * @return 修改后的当前登录用户信息
+     */
+    public UserInfoVo updateSelfUserInfo(long userId, UserInfoUpdateDto dto) {
+        ResponseStatus.P_VALUE_ERROR.assertThrowResEx(userId <= 0);
+        RpcUserInfoDto userInfoDto = userServiceBiz.updateUserInfo(userId, dto);
+        userCacheServiceBiz.evictUserInfo(userId);
+        return toUserInfoVo(userInfoDto);
     }
 
     private List<Long> normalizeUserIds(UserIdsDto dto) {

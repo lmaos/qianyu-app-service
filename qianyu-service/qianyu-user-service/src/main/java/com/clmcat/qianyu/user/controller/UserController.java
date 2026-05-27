@@ -6,6 +6,7 @@ import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.user.model.dto.UserIdDto;
 import com.clmcat.qianyu.user.model.dto.UserIdsDto;
+import com.clmcat.qianyu.user.model.dto.UserInfoUpdateDto;
 import com.clmcat.qianyu.user.model.vo.UserInfoVo;
 import com.clmcat.qianyu.user.service.UserViewServiceBiz;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
@@ -98,6 +100,23 @@ public class UserController {
     @GetMapping("/user_info/self")
     public UserInfoVo getSelfUserInfo(@Parameter(hidden = true) @Token long userId) {
         return userViewServiceBiz.getSelfUserInfo(userId);
+    }
+
+    /**
+     * 修改当前登录用户自己的基础信息。
+     *
+     * @param userId 当前登录用户ID，由 Token 自动解析注入
+     * @param dto 聚合修改参数
+     * @return 修改后的当前登录用户基础信息
+     */
+    @Operation(
+            summary = "修改当前登录用户信息",
+            description = "参数说明：userId 由登录 token 自动解析；dto 为当前登录用户自己的聚合资料修改参数，当前支持 nickname、avatar、bio、gender、birthday、country、province、city。"
+    )
+    @PostMapping("/user_info/update")
+    public UserInfoVo updateSelfUserInfo(@Parameter(hidden = true) @Token long userId,
+                                         @Params(description = "当前登录用户个人资料聚合修改参数") UserInfoUpdateDto dto) {
+        return userViewServiceBiz.updateSelfUserInfo(userId, dto);
     }
 
 
