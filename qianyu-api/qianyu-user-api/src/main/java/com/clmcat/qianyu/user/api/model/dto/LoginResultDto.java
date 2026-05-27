@@ -28,4 +28,8 @@ public class LoginResultDto extends LoginDto implements Serializable {
      * 登录的用户ID
      */
     private long userId;
+    /*
+     * TOKEN 过期时间，单位毫秒
+     */
+    private long expireMs;
 }

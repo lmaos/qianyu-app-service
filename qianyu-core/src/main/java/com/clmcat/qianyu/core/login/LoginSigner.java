@@ -87,6 +87,14 @@ public class LoginSigner {
     }
 
     /**
+     * 获得默认配置的有效期
+     * @return 毫秒
+     */
+    public long getExpireMillis() {
+        return properties.getExpireMillis();
+    }
+
+    /**
      * 从对象中提取所有非 null 的 getter 属性值
      */
     private Map<String, Object> extractClaimsFromObject(Object obj) {
