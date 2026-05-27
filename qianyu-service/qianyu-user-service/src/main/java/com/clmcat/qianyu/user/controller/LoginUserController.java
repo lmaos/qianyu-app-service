@@ -1,18 +1,23 @@
 package com.clmcat.qianyu.user.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
+import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
+import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.user.api.model.dto.AccountLoginDto;
+import com.clmcat.qianyu.user.api.model.dto.AccountRegisterDto;
 import com.clmcat.qianyu.user.api.model.dto.EMailLoginDto;
 import com.clmcat.qianyu.user.api.model.dto.PhoneLoginDto;
 import com.clmcat.qianyu.user.api.model.dto.SocialLoginDto;
 import com.clmcat.qianyu.user.api.model.dto.SignerDto;
+import com.clmcat.qianyu.user.model.dto.PasswordBindDto;
 import com.clmcat.qianyu.user.model.dto.PhoneVerifyDto;
 import com.clmcat.qianyu.user.model.vo.LoginResultVo;
 import com.clmcat.qianyu.user.model.vo.PhoneVerifyVo;
 import com.clmcat.qianyu.user.service.PhoneVerifyCodeSendServiceBiz;
 import com.clmcat.qianyu.user.service.UserLoginServiceBiz;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -58,10 +63,10 @@ public class LoginUserController {
     /**
      * 手机号登录。
      *
-     * @param dto 登录参数，包含 phone、countryCode、code、authMode、clientIp
+     * @param dto 登录参数，包含 phone、countryCode、code、password、authMode、clientIp
      * @return 登录结果
      */
-    @Operation(summary = "手机号登录", description = "参数说明：phone 为手机号，countryCode 为国家区号，code 为短信验证码，authMode 为验证模式，clientIp 为客户端IP。")
+    @Operation(summary = "手机号登录", description = "参数说明：phone 为手机号；authMode=CODE 时校验 code；authMode=PASSWORD 时校验 password；countryCode 为国家区号；clientIp 为客户端IP。")
     @PostMapping("/phone")
     public LoginResultVo phone(@Params(description = "手机号登录参数") PhoneLoginDto dto) {
         return userLoginServiceBiz.phone(dto);
@@ -100,8 +105,34 @@ public class LoginUserController {
     @Operation(summary = "账号密码登录", description = "参数说明：username 为登录账号，password 为密码，code 为图形验证码，clientIp 为客户端IP。")
     @PostMapping("/account")
     public LoginResultVo account(@Params(description = "账号密码登录参数") AccountLoginDto dto) {
-        log.info("account:{}", dto);
         return userLoginServiceBiz.account(dto);
+    }
+
+    /**
+     * 账号密码注册。
+     *
+     * @param dto 注册参数，包含 username、password、code、clientIp
+     * @return 登录结果
+     */
+    @Operation(summary = "账号密码注册", description = "参数说明：username 为注册账号，password 为注册密码，code 为图形验证码，clientIp 为客户端IP。注册成功后直接返回登录结果。")
+    @PostMapping("/account/register")
+    public LoginResultVo accountRegister(@Params(description = "账号密码注册参数") AccountRegisterDto dto) {
+        return userLoginServiceBiz.register(dto);
+    }
+
+    /**
+     * 当前登录用户绑定通用密码。
+     *
+     * @param userId 当前登录用户ID，由 Token 自动解析注入
+     * @param dto 绑定参数，包含 password
+     * @return 是否处理成功
+     */
+    @Operation(summary = "绑定登录密码", description = "参数说明：userId 由登录 token 自动解析；dto.password 为要绑定的新密码。绑定成功后会更新当前用户ID下全部 user_auth 的 credential 字段。")
+    @PostMapping("/password/bind")
+    @LoginVerify
+    public boolean bindPassword(@Parameter(hidden = true) @Token long userId,
+                                @Params(description = "当前登录用户绑定通用密码参数") PasswordBindDto dto) {
+        return userLoginServiceBiz.bindPassword(userId, dto);
     }
 
 

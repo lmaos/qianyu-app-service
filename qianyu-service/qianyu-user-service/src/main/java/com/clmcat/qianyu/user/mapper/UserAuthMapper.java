@@ -5,6 +5,7 @@ import com.mybatisflex.core.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface UserAuthMapper extends BaseMapper<UserAuth> {
@@ -18,4 +19,14 @@ public interface UserAuthMapper extends BaseMapper<UserAuth> {
             """)
     UserAuth selectByIdentityTypeAndIdentifier(@Param("identityType") String identityType,
                                                @Param("identifier") String identifier);
+
+    @Update("""
+            UPDATE user_auth
+            SET credential = #{credential},
+                update_time = #{updateTime}
+            WHERE user_id = #{userId}
+            """)
+    int updateCredentialByUserId(@Param("userId") Long userId,
+                                 @Param("credential") String credential,
+                                 @Param("updateTime") Long updateTime);
 }

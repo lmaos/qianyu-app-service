@@ -2,6 +2,7 @@ package com.clmcat.qianyu.user.service;
 
 import com.clmcat.basics.commons.util.Base36;
 import com.clmcat.basics.commons.util.Base62;
+import com.clmcat.basics.commons.util.CodecUtils;
 import com.clmcat.framework.webmvc.ResponseStatus;
 import com.clmcat.qianyu.core.login.LoginSigner;
 import com.clmcat.qianyu.core.login.LoginVerifier;
@@ -11,13 +12,13 @@ import com.clmcat.qianyu.user.api.model.dto.*;
 import com.clmcat.qianyu.user.mapper.UserAuthMapper;
 import com.clmcat.qianyu.user.mapper.UserInfoMapper;
 import com.clmcat.qianyu.user.api.model.dto.SignerDto;
+import com.clmcat.qianyu.user.model.dto.PasswordBindDto;
 import com.clmcat.qianyu.user.model.dto.UserAuthDto;
 import com.clmcat.qianyu.user.model.dto.UserAuthResultDto;
 import com.clmcat.qianyu.user.model.entity.UserAuth;
 import com.clmcat.qianyu.user.model.entity.UserInfo;
 import com.clmcat.qianyu.user.model.vo.LoginResultVo;
 import com.clmcat.qianyu.user.support.LoginSupport;
-import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -25,10 +26,15 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 
+import java.util.Base64;
+
 @Slf4j
 @Service
 @DubboService
 public class UserLoginServiceBiz implements UserLoginApi  {
+    private static final String IDENTITY_TYPE_ACCOUNT = "account";
+    private static final String IDENTITY_TYPE_PHONE = "phone";
+    private static final String IDENTITY_TYPE_EMAIL = "email";
 
     @Resource
     UserAuthMapper  userAuthMapper ;
@@ -50,23 +56,70 @@ public class UserLoginServiceBiz implements UserLoginApi  {
 
     @Override
     public LoginResultDto accountLogin(AccountLoginDto dto) {
+        ResponseStatus.P_VALUE_ERROR.assertThrowResEx(dto == null);
+        String username = normalizeAccountIdentifier(dto.getUsername());
+        String password = dto.getPassword();
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(StringUtils.isAnyBlank(username, password));
 
-        return LoginResultDto.builder()
-                .token("21345")
-                .userId(134)
+        UserAuthDto userAuthDto = UserAuthDto.builder()
+                .identifier(username)
+                .identityType(IDENTITY_TYPE_ACCOUNT)
+                .country(country(dto))
                 .build();
+        UserAuth userAuth = getUserAuth(userAuthDto);
+        // 账户不存在，登录失败。
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(userAuth == null);
+        assert userAuth != null;
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(StringUtils.isBlank(userAuth.getCredential()));
+
+        String inputCredential = encodePassword(password);
+        // 密码不相等，登录失败。
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!inputCredential.equals(userAuth.getCredential()));
+
+        UserInfo userInfo = getUserInfo(userAuth.getUserId());
+        // 账户不存在。
+        ResponseStatus.R_ACCOUNT_NOT_EXIST.assertThrowResEx(userInfo == null);
+
+        return toLoginResultDto(UserAuthResultDto.builder()
+                .userAuth(userAuth)
+                .userInfo(userInfo)
+                .build());
+    }
+
+    @Override
+    public LoginResultDto accountRegister(AccountRegisterDto dto) {
+        ResponseStatus.P_VALUE_ERROR.assertThrowResEx(dto == null);
+        String username = normalizeAccountIdentifier(dto.getUsername());
+        String password = dto.getPassword();
+        verifyAccountIdentifier(username);
+        verifyBindPassword(password);
+
+        UserAuthDto userAuthDto = UserAuthDto.builder()
+                .identifier(username)
+                .identityType(IDENTITY_TYPE_ACCOUNT)
+                .credential(encodePassword(password))
+                .country(country(dto))
+                .build();
+        ResponseStatus.U_EXIST_ACCOUNT.assertThrowResEx(getUserAuth(userAuthDto) != null);
+        return toLoginResultDto(loginOrRegister(userAuthDto));
     }
 
     @Override
     public LoginResultDto phoneLogin(PhoneLoginDto dto) {
-        // 登录失败, 手机号： +86-12345678911
-//        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!LoginSupport.isValidTelephone(dto.getPhone()));
-//        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!verifyCodeServiceBiz.isVerifiedByRedis("phone", dto.getPhone(), dto.getCode()));
+        ResponseStatus.P_VALUE_ERROR.assertThrowResEx(dto == null);
+        String rawPhone = dto.getPhone();
+        String phone = normalizePhoneIdentifier(rawPhone);
+        AuthMode authMode = normalizeAuthMode(dto.getAuthMode());
+        ///  采用密码登录
+        if (AuthMode.PASSWORD.equals(authMode)) {
+            return phonePasswordLogin(phone, dto.getPassword());
+        }
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!verifyCodeServiceBiz.isVerifiedByRedis(IDENTITY_TYPE_PHONE, rawPhone, dto.getCode()));
 
         UserAuthDto userAuthDto = UserAuthDto.builder()
-                .identifier(dto.getPhone())
-                .identityType("phone")
-                .country("CN")
+                .identifier(phone)
+                .identityType(IDENTITY_TYPE_PHONE)
+                .country(country(dto))
                 .build();
 
         UserAuthResultDto userAuthResultDto = loginOrRegister(userAuthDto);
@@ -75,13 +128,13 @@ public class UserLoginServiceBiz implements UserLoginApi  {
 
     @Override
     public LoginResultDto emailLogin(EMailLoginDto dto) {
-
+        ///  右键 CODE 验证
         ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(verifyCodeServiceBiz.isVerifiedByRedis("email", dto.getEmail(), dto.getCode()));
 
         UserAuthDto userAuthDto = UserAuthDto.builder()
                 .identifier(dto.getEmail())
-                .identityType("email")
-                .country("CN")
+                .identityType(IDENTITY_TYPE_EMAIL)
+                .country(country(dto))
                 .build();
 
         UserAuthResultDto userAuthResultDto = loginOrRegister(userAuthDto);
@@ -92,10 +145,16 @@ public class UserLoginServiceBiz implements UserLoginApi  {
 
     @Override
     public LoginResultDto socialLogin(SocialLoginDto dto) {
-        return LoginResultDto.builder()
-                .token("21345")
-                .userId(134)
+
+        String identifier = null; // TODO 三方社交登录方法。 通过 code 获得 openId
+
+        UserAuthDto userAuthDto = UserAuthDto.builder()
+                .identifier(identifier)
+                .identityType(dto.getPlatform().name())
+                .country(country(dto))
                 .build();
+        UserAuthResultDto userAuthResultDto = loginOrRegister(userAuthDto);
+        return toLoginResultDto(userAuthResultDto);
     }
 
 
@@ -133,6 +192,29 @@ public class UserLoginServiceBiz implements UserLoginApi  {
         return toLoginResultVo(resultDto);
     }
 
+    /**
+     * 账户密码注册
+     */
+    public LoginResultVo register(AccountRegisterDto dto) {
+        LoginResultDto resultDto = accountRegister(dto);
+        return toLoginResultVo(resultDto);
+    }
+
+    /**
+     * 当前登录用户绑定通用密码
+     */
+    public boolean bindPassword(long userId, PasswordBindDto dto) {
+        ResponseStatus.P_VALUE_ERROR.assertThrowResEx(userId <= 0);
+        ResponseStatus.P_VALUE_ERROR.assertThrowResEx(dto == null);
+        verifyBindPassword(dto.getPassword());
+        ResponseStatus.R_ACCOUNT_NOT_EXIST.assertThrowResEx(getUserInfo(userId) == null);
+
+        long time = System.currentTimeMillis();
+        String credential = encodePassword(dto.getPassword());
+        ResponseStatus.R_NOEXIST_DATA.assertThrowResEx(userAuthMapper.updateCredentialByUserId(userId, credential, time) <= 0);
+        return true;
+    }
+
     LoginResultVo toLoginResultVo(LoginResultDto dto) {
         return LoginResultVo.builder()
                 .token(dto.getToken())
@@ -155,11 +237,11 @@ public class UserLoginServiceBiz implements UserLoginApi  {
             String phone = dto.getSocialPhone();
             String email = dto.getSocialEmail();
 
-            if ("phone".equals(identityType)) {
+            if (IDENTITY_TYPE_PHONE.equals(identityType)) {
                 phone = identifier;
             }
 
-            if ("email".equals(identityType)) {
+            if (IDENTITY_TYPE_EMAIL.equals(identityType)) {
                 email = identifier;
             }
 
@@ -211,6 +293,11 @@ public class UserLoginServiceBiz implements UserLoginApi  {
 
     }
 
+
+    String country(LoginDto dto) {
+        return "CN";
+    }
+
     /**
      * 授权信息 转为 登录结果
      * @param userAuthResultDto 授权信息
@@ -240,10 +327,10 @@ public class UserLoginServiceBiz implements UserLoginApi  {
      * @return 授权信息
      */
     public UserAuth getUserAuth(UserAuthDto dto) {
-        QueryWrapper queryWrapper = QueryWrapper.create();
-        queryWrapper.eq(UserAuth::getIdentityType, dto.getIdentityType())
-                .eq(UserAuth::getIdentifier, dto.getIdentifier());
-        return userAuthMapper.selectOneByQuery(queryWrapper);
+        if (dto == null || StringUtils.isAnyBlank(dto.getIdentityType(), dto.getIdentifier())) {
+            return null;
+        }
+        return userAuthMapper.selectByIdentityTypeAndIdentifier(dto.getIdentityType(), dto.getIdentifier());
     }
 
     /**
@@ -253,6 +340,48 @@ public class UserLoginServiceBiz implements UserLoginApi  {
      */
     public UserInfo getUserInfo(long userId) {
         return userInfoMapper.selectOneById(userId);
+    }
+
+    private void verifyAccountIdentifier(String username) {
+        ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("username").assertThrowEx(StringUtils.isBlank(username) || username.length() > 64);
+    }
+
+    private void verifyBindPassword(String password) {
+        ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("password").assertThrowEx(StringUtils.isBlank(password) || password.length() < 6 || password.length() > 64);
+    }
+
+    private String normalizeAccountIdentifier(String username) {
+        return StringUtils.trimToNull(username);
+    }
+
+    private String normalizePhoneIdentifier(String phone) {
+        String normalizedPhone = LoginSupport.normalizeCnSmsPhone(phone);
+        return normalizedPhone == null ? StringUtils.trimToNull(phone) : normalizedPhone;
+    }
+
+    private AuthMode normalizeAuthMode(AuthMode authMode) {
+        return authMode == null ? AuthMode.CODE : authMode;
+    }
+
+    private LoginResultDto phonePasswordLogin(String phone, String password) {
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(StringUtils.isAnyBlank(phone, password));
+        UserAuth userAuth = getUserAuth(UserAuthDto.builder()
+                .identifier(phone)
+                .identityType(IDENTITY_TYPE_PHONE)
+                .build());
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(userAuth == null || StringUtils.isBlank(userAuth.getCredential()));
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!encodePassword(password).equals(userAuth.getCredential()));
+
+        UserInfo userInfo = getUserInfo(userAuth.getUserId());
+        ResponseStatus.R_ACCOUNT_NOT_EXIST.assertThrowResEx(userInfo == null);
+        return toLoginResultDto(UserAuthResultDto.builder()
+                .userAuth(userAuth)
+                .userInfo(userInfo)
+                .build());
+    }
+
+    private String encodePassword(String password) {
+        return Base64.getEncoder().encodeToString(CodecUtils.SHA256.encrypt(password));
     }
 
     /**

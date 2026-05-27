@@ -6,6 +6,8 @@ public interface UserLoginApi {
 
     LoginResultDto accountLogin(AccountLoginDto dto);
 
+    LoginResultDto accountRegister(AccountRegisterDto dto);
+
     LoginResultDto phoneLogin(PhoneLoginDto dto);
 
     LoginResultDto emailLogin(EMailLoginDto dto);
