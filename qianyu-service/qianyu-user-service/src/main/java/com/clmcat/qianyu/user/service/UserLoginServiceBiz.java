@@ -226,7 +226,7 @@ public class UserLoginServiceBiz implements UserLoginApi  {
         signerDto.setUserId(userId);
 
         String token = signer(signerDto);
-        long expireMillis = loginSigner.getExpireMillis(); // 可以拿到过期时间， 也可以在 token 中写入过期时间， 这里就不写了， 直接用默认的过期时间。
+        long expireMillis = getSignerExpireMs(); // 可以拿到过期时间， 也可以在 token 中写入过期时间， 这里就不写了， 直接用默认的过期时间。
         return LoginResultDto.builder()
                 .token(token)
                 .userId(userId)
@@ -262,6 +262,9 @@ public class UserLoginServiceBiz implements UserLoginApi  {
      */
     public String signer(SignerDto dto) {
         return loginSigner.generateToken(dto);
+    }
+    public long getSignerExpireMs() {
+        return loginSigner.getExpireMillis();
     }
 
     /**
