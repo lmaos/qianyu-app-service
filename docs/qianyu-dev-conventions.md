@@ -327,3 +327,26 @@ public class UserController {
 - 公共 Web / OpenAPI / 通用适配逻辑尽量放 `qianyu-core`
 - 外部 Web 依赖尽量收敛到 `qianyu-web-dependencies`
 - 新增 API 接口时自动补接口说明与参数说明
+
+## 雪花算法使用: 
+```java
+com.clmcat.basics.commons.snowflake.CustomSnowflake snowflake =
+com.clmcat.qianyu.core.snowflake.SnowflakeSupport.createSnowflake(42, 10, 11);
+
+long id = snowflake.nextId();
+
+```
+
+
+
+createSnowflake(int timeStrategyBit, int machineStrategyBit, int sequenceStrategyBit)
+
+- timeStrategyBit：时间戳位数.
+- machineStrategyBit：机器位数.
+- sequenceStrategyBit：序列号位数.
+
+
+SnowflakeSupport.parseTimeBySnowflake(CustomSnowflake snowflake, long id)
+- 解析出 id 中的时间戳部分，返回一个 long 时间戳，id的时间。
+- 开发建议， 雪花ID的时间与入库 create_time 保持一致。
+- 时间游标分页: 可简化用 雪花id暂时分页。
