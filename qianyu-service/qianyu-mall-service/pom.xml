@@ -20,6 +20,10 @@
             <groupId>com.clmcat.app</groupId>
             <artifactId>qianyu-mall-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-user-api</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

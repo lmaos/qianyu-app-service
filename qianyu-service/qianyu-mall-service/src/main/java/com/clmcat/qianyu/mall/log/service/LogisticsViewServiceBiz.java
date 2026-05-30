@@ -1,0 +1,169 @@
+package com.clmcat.qianyu.mall.log.service;
+
+import com.clmcat.qianyu.mall.log.model.dto.LogisticsCreateDTO;
+import com.clmcat.qianyu.mall.log.model.dto.LogisticsPushDTO;
+import com.clmcat.qianyu.mall.log.model.dto.LogisticsQueryDTO;
+import com.clmcat.qianyu.mall.log.model.dto.LogisticsUpdateDTO;
+import com.clmcat.qianyu.mall.log.model.entity.LogDeliveryTrace;
+import com.clmcat.qianyu.mall.log.model.entity.LogShipping;
+import com.clmcat.qianyu.mall.log.model.entity.status.LogisticsStatus;
+import com.clmcat.qianyu.mall.log.model.vo.LogisticsDetailVO;
+import com.clmcat.qianyu.mall.log.support.LogisticsConvert;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class LogisticsViewServiceBiz {
+
+    @Resource
+    private LogisticsServiceBiz logisticsServiceBiz;
+
+    @Resource
+    private DeliveryTraceServiceBiz traceServiceBiz;
+
+    /**
+     * 根据订单 ID 查询物流
+     */
+    public LogisticsDetailVO queryByOrderId(long userId, LogisticsQueryDTO dto) {
+        Long orderId = dto == null ? null : dto.getOrderId();
+        LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(LogisticsConvert.isNullOrNonPositive(orderId));
+
+        List<LogShipping> shippings = logisticsServiceBiz.selectByOrderId(orderId);
+        LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(shippings == null || shippings.isEmpty());
+
+        LogShipping shipping = shippings.get(0);
+        List<LogDeliveryTrace> traces = traceServiceBiz.selectByShippingId(shipping.getId());
+        return LogisticsConvert.toDetailVO(shipping, traces);
+    }
+
+    /**
+     * 实时查询物流轨迹
+     */
+    public LogisticsDetailVO trackRealtime(long userId, LogisticsQueryDTO dto) {
+        Long logisticsId = dto == null ? null : dto.getLogisticsId();
+        LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(LogisticsConvert.isNullOrNonPositive(logisticsId));
+
+        LogShipping shipping = logisticsServiceBiz.selectOneById(logisticsId);
+        LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(shipping == null);
+
+        // TODO：替换真实接口 - 调用第三方物流 API 拉取最新轨迹
+        // 目前直接返回本地缓存的轨迹
+        List<LogDeliveryTrace> traces = traceServiceBiz.selectByShippingId(shipping.getId());
+
+        // 如果已签收，触发 OMS 订单自动确认收货
+        if (shipping.getStatus() != null && shipping.getStatus() == 2) {
+            // TODO：替换真实接口 - 触发 OMS 订单自动确认收货
+        }
+
+        return LogisticsConvert.toDetailVO(shipping, traces);
+    }
+
+    /**
+     * 创建物流单
+     */
+    public Long createLogistics(long userId, LogisticsCreateDTO dto) {
+        LogisticsStatus.LOG_LOGISTICS_NOT_BELONG_MERCHANT.assertThrowResEx(dto == null);
+        LogisticsStatus.LOG_LOGISTICS_NOT_BELONG_MERCHANT.assertThrowResEx(LogisticsConvert.isNullOrNonPositive(dto.getOrderId()));
+
+        // 检查是否已发货
+        List<LogShipping> existing = logisticsServiceBiz.selectByOrderId(dto.getOrderId());
+        LogisticsStatus.LOG_ORDER_ALREADY_SHIPPED.assertThrowResEx(existing != null && !existing.isEmpty());
+
+        // 校验物流编码
+        LogisticsStatus.LOG_LOGISTICS_CODE_INVALID.assertThrowResEx(dto.getLogisticsCode() == null || dto.getLogisticsCode().isEmpty());
+        LogisticsStatus.LOG_LOGISTICS_NO_INVALID.assertThrowResEx(dto.getLogisticsNo() == null || dto.getLogisticsNo().isEmpty());
+
+        long now = System.currentTimeMillis();
+        LogShipping shipping = new LogShipping();
+        shipping.setId(LogisticsConvert.LOG_ID_SNOWFLAKE.nextId());
+        shipping.setOrderId(dto.getOrderId());
+        shipping.setOrderItemId(dto.getOrderItemId());
+        shipping.setShippingNo(dto.getLogisticsNo());
+        shipping.setShippingCompany(dto.getLogisticsCode());
+        shipping.setShippingCompanyName(dto.getLogisticsCompany());
+        shipping.setStatus(0); // 已发货
+        shipping.setDeliveryTime(now);
+        shipping.setCreateTime(now);
+        shipping.setUpdateTime(now);
+        shipping.setDeleted(0);
+
+        logisticsServiceBiz.insertSelective(shipping);
+        return shipping.getId();
+    }
+
+    /**
+     * 更新物流
+     */
+    public void updateLogistics(long userId, LogisticsUpdateDTO dto) {
+        LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(dto == null);
+        LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(LogisticsConvert.isNullOrNonPositive(dto.getLogisticsId()));
+
+        LogShipping shipping = logisticsServiceBiz.selectOneById(dto.getLogisticsId());
+        LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(shipping == null);
+
+        // 已签收不可修改
+        LogisticsStatus.LOG_LOGISTICS_ALREADY_SIGNED.assertThrowResEx(
+                shipping.getStatus() != null && shipping.getStatus() == 2);
+
+        if (dto.getLogisticsCompany() != null) {
+            shipping.setShippingCompanyName(dto.getLogisticsCompany());
+        }
+        if (dto.getLogisticsCode() != null) {
+            shipping.setShippingCompany(dto.getLogisticsCode());
+        }
+        if (dto.getLogisticsNo() != null) {
+            shipping.setShippingNo(dto.getLogisticsNo());
+        }
+        shipping.setUpdateTime(System.currentTimeMillis());
+        logisticsServiceBiz.update(shipping);
+    }
+
+    /**
+     * 处理物流公司推送
+     */
+    public Boolean handlePush(LogisticsPushDTO dto) {
+        LogisticsStatus.LOG_SIGN_VERIFY_FAIL.assertThrowResEx(dto == null);
+        // TODO：替换真实接口 - 验证签名
+        // LogisticsStatus.LOG_SIGN_VERIFY_FAIL.assertThrowResEx(verifySignFailed);
+
+        LogisticsStatus.LOG_LOGISTICS_CODE_INVALID.assertThrowResEx(
+                dto.getLogisticsCode() == null || dto.getLogisticsNo() == null);
+
+        LogShipping shipping = logisticsServiceBiz.selectByCodeAndNo(dto.getLogisticsCode(), dto.getLogisticsNo());
+        LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(shipping == null);
+
+        // 更新物流状态（API status -> SQL status）
+        if (dto.getStatus() != null) {
+            shipping.setStatus(dto.getStatus());
+        }
+        shipping.setUpdateTime(System.currentTimeMillis());
+
+        // 如果已签收
+        if (shipping.getStatus() != null && shipping.getStatus() == 2) {
+            shipping.setReceiveTime(System.currentTimeMillis());
+            // TODO：替换真实接口 - 触发 OMS 订单自动确认收货
+        }
+        logisticsServiceBiz.update(shipping);
+
+        // 写入轨迹
+        if (dto.getTraces() != null) {
+            for (var traceDto : dto.getTraces()) {
+                LogDeliveryTrace trace = new LogDeliveryTrace();
+                trace.setId(LogisticsConvert.LOG_ID_SNOWFLAKE.nextId());
+                trace.setShippingId(shipping.getId());
+                trace.setDescription(traceDto.getContent());
+                trace.setLocation(traceDto.getLocation());
+                trace.setSource(1); // 第三方回调推送
+                trace.setCarrierCode(dto.getLogisticsCode());
+                trace.setCreateTime(System.currentTimeMillis());
+                // TODO：替换真实接口 - traceTime 解析
+                traceServiceBiz.insertTrace(trace);
+            }
+        }
+
+        return true;
+    }
+}
