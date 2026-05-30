@@ -8,6 +8,7 @@ import com.clmcat.qianyu.social.moment.model.dto.MomentIdsDto;
 import com.clmcat.qianyu.social.moment.model.dto.MomentPublishDto;
 import com.clmcat.qianyu.social.moment.model.entity.status.Status;
 import com.clmcat.qianyu.social.moment.model.vo.MomentAuthorPageVo;
+import com.clmcat.qianyu.social.moment.model.vo.MomentListVo;
 import com.clmcat.qianyu.social.moment.model.vo.MomentVo;
 import com.clmcat.qianyu.social.moment.support.MomentSupport;
 import jakarta.annotation.Resource;
@@ -71,13 +72,16 @@ public class MomentServiceViewBiz {
      * @param dto 查询参数，支持多个 momentId
      * @return 动态 VO 列表
      */
-    public List<MomentVo> getMomentList(MomentIdsDto dto) {
+    public MomentListVo getMomentList(MomentIdsDto dto) {
         List<Long> momentIds = MomentSupport.normalizeMomentIds(dto);
         if (momentIds.isEmpty()) {
-            return new ArrayList<>();
+            return MomentListVo.builder().build();
         }
 
-        return MomentSupport.toMomentVoList(momentServiceBiz.getMomentByIds(momentIds));
+        List<MomentVo> momentVoList = MomentSupport.toMomentVoList(momentServiceBiz.getMomentByIds(momentIds));
+        return MomentListVo.builder()
+                .datas(momentVoList)
+                .build();
     }
 
     /**
@@ -109,7 +113,7 @@ public class MomentServiceViewBiz {
                 .authorId(authorId)
                 .nextMomentId(nextMomentId)
                 .hasMore(hasMore)
-                .momentList(MomentSupport.toMomentVoList(momentDtos))
+                .datas(MomentSupport.toMomentVoList(momentDtos))
                 .build();
     }
 

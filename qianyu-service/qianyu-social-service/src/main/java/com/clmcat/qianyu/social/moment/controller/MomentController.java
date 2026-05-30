@@ -9,6 +9,7 @@ import com.clmcat.qianyu.social.moment.model.dto.MomentIdDto;
 import com.clmcat.qianyu.social.moment.model.dto.MomentIdsDto;
 import com.clmcat.qianyu.social.moment.model.dto.MomentPublishDto;
 import com.clmcat.qianyu.social.moment.model.vo.MomentAuthorPageVo;
+import com.clmcat.qianyu.social.moment.model.vo.MomentListVo;
 import com.clmcat.qianyu.social.moment.model.vo.MomentVo;
 import com.clmcat.qianyu.social.moment.service.MomentServiceViewBiz;
 import io.swagger.v3.oas.annotations.Operation;
@@ -75,7 +76,7 @@ public class MomentController {
      */
     @Operation(summary = "批量查询动态", description = "参数说明：dto.momentIds 适合 JSON 数组传参；dto.momentIdsText 兼容 query/form 的逗号分隔字符串。")
     @GetMapping("/list")
-    public List<MomentVo> list(@ParameterObject @Params MomentIdsDto dto) {
+    public MomentListVo list(@ParameterObject @Params MomentIdsDto dto) {
         return momentServiceViewBiz.getMomentList(dto);
     }
 
