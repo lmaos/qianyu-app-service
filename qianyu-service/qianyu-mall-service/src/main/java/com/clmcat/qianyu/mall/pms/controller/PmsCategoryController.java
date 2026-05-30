@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.util.List;
 import java.util.Map;
 
-@Tag(name = "C端商品分类/品牌", description = "分类树、品牌列表、SPU 列表")
+@Tag(name = "C端商品分类/品牌", description = "分类树、品牌列表、SPU 列表~")
 @ApiController
 @RequestMapping("/api/mall/pms")
 public class PmsCategoryController {
