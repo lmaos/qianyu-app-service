@@ -11,5 +11,5 @@ public class MomentAuthorPageVo {
     private Long authorId;
     private Long nextMomentId;
     private boolean hasMore;
-    private List<MomentVo> momentList;
+    private List<MomentVo> datas;
 }
