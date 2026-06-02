@@ -1,10 +1,13 @@
 package com.clmcat.qianyu.mall.rev.controller;
 
 import com.clmcat.framework.webmvc.anns.*;
+import com.clmcat.qianyu.mall.rev.model.dto.EvaluatePageQueryDTO;
 import com.clmcat.qianyu.mall.rev.model.dto.ReviewListQueryDTO;
 import com.clmcat.qianyu.mall.rev.model.dto.ReviewStatQueryDTO;
+import com.clmcat.qianyu.mall.rev.model.vo.EvaluatePageVO;
 import com.clmcat.qianyu.mall.rev.model.vo.ReviewItemVO;
 import com.clmcat.qianyu.mall.rev.model.vo.ReviewStatVO;
+import com.clmcat.qianyu.mall.rev.service.EvaluatePageInterface;
 import com.clmcat.qianyu.mall.rev.service.RevReviewStatViewServiceBiz;
 import com.clmcat.qianyu.mall.rev.service.RevReviewViewServiceBiz;
 import com.mybatisflex.core.paginate.Page;
@@ -25,6 +28,10 @@ public class RevPmsController {
     @Resource
     private RevReviewStatViewServiceBiz statViewServiceBiz;
 
+    @Resource
+    private EvaluatePageInterface evaluatePage;
+
+    // app.md §8.5 /api/mall/pms/rev/reviewList
     /**
      * 评价列表（商品评价）
      */
@@ -41,5 +48,20 @@ public class RevPmsController {
     @PostMapping("/reviewStat")
     public ReviewStatVO reviewStat(@Params ReviewStatQueryDTO dto) {
         return statViewServiceBiz.getReviewStat(dto.getSpuId());
+    }
+
+    // app.md §9 /api/mall/pms/rev/reviewPage
+    /**
+     * 评价详情页聚合（v2）— 商品信息 + 评价统计 + 首页评价列表
+     */
+    @Operation(summary = "评价详情页聚合", description = "一次返回商品名称、评价统计、评价分页列表")
+    @PostMapping("/reviewPage")
+    public EvaluatePageVO reviewPage(@Params EvaluatePageQueryDTO dto) {
+        Long spuId = dto != null ? dto.getSpuId() : null;
+        Integer score = dto != null ? dto.getScore() : null;
+        String sortField = dto != null ? dto.getSortField() : null;
+        int pageNum = dto != null && dto.getPageNum() != null ? dto.getPageNum() : 1;
+        int pageSize = dto != null && dto.getPageSize() != null ? dto.getPageSize() : 10;
+        return evaluatePage.query(spuId, score, sortField, pageNum, pageSize);
     }
 }

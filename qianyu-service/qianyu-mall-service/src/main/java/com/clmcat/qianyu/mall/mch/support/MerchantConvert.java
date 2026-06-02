@@ -2,11 +2,9 @@ package com.clmcat.qianyu.mall.mch.support;
 
 import com.clmcat.basics.commons.snowflake.CustomSnowflake;
 import com.clmcat.qianyu.core.snowflake.SnowflakeSupport;
-import com.clmcat.qianyu.mall.mch.model.entity.Merchant;
 import com.clmcat.qianyu.mall.mch.model.entity.MerchantAccount;
 import com.clmcat.qianyu.mall.mch.model.entity.MerchantFreightRule;
 import com.clmcat.qianyu.mall.mch.model.entity.MerchantFreightTemplate;
-import com.clmcat.qianyu.mall.mch.model.entity.MerchantStore;
 import com.clmcat.qianyu.mall.mch.model.entity.MerchantWithdrawal;
 import com.clmcat.qianyu.mall.mch.model.vo.AccountInfoVO;
 import com.clmcat.qianyu.mall.mch.model.vo.FreightRuleVO;

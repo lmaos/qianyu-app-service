@@ -5,7 +5,6 @@ import com.clmcat.qianyu.core.snowflake.SnowflakeSupport;
 import com.clmcat.qianyu.mall.rev.model.entity.RevReview;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 

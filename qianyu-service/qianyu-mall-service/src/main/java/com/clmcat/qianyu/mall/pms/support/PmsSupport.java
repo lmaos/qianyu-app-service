@@ -134,6 +134,9 @@ public class PmsSupport {
      */
     public void refreshMinPrice(Long spuId) {
         List<PmsSku> skuList = skuMapper.selectBySpuId(spuId);
+        if (skuList == null || skuList.isEmpty()) {
+            return;
+        }
         BigDecimal minPrice = skuList.stream()
                 .map(PmsSku::getPrice)
                 .filter(Objects::nonNull)

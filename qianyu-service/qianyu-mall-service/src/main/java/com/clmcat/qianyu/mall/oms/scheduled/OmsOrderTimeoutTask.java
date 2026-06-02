@@ -5,7 +5,7 @@ import com.clmcat.qianyu.mall.api.inv.model.dto.InvStockDto;
 import com.clmcat.qianyu.mall.oms.mapper.OmsOrderMapper;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsOrder;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsOrderItem;
-import com.clmcat.qianyu.mall.oms.service.OmsOrderServiceBiz;
+import com.clmcat.qianyu.mall.oms.rpc.OmsOrderApiImpl;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +26,7 @@ public class OmsOrderTimeoutTask {
     private OmsOrderMapper orderMapper;
 
     @Resource
-    private OmsOrderServiceBiz orderServiceBiz;
+    private OmsOrderApiImpl orderServiceBiz;
 
     @Resource
     private InvStockApi invStockApi;

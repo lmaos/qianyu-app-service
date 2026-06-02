@@ -4,7 +4,7 @@ import com.clmcat.framework.webmvc.anns.ApiController;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.qianyu.mall.pay.model.dto.RefundDTO;
 import com.clmcat.qianyu.mall.pay.model.vo.RefundResultVO;
-import com.clmcat.qianyu.mall.pay.service.PayRefundServiceBiz;
+import com.clmcat.qianyu.mall.pay.rpc.PayRefundApiImpl;
 import com.clmcat.qianyu.mall.pay.service.PayViewServiceBiz;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,7 +22,7 @@ public class PayRefundController {
     private PayViewServiceBiz payViewServiceBiz;
 
     @Resource
-    private PayRefundServiceBiz refundServiceBiz;
+    private PayRefundApiImpl refundServiceBiz;
 
     @Operation(summary = "微信支付异步通知")
     @PostMapping("/callback/wechat/payNotify")

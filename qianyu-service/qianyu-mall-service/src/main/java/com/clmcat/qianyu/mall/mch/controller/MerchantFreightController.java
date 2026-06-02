@@ -1,7 +1,6 @@
 package com.clmcat.qianyu.mall.mch.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
-import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.mch.model.dto.FreightTemplateCreateDTO;
@@ -28,6 +27,7 @@ public class MerchantFreightController {
     @Resource
     private MerchantFreightViewServiceBiz freightViewServiceBiz;
 
+    // app.md §12.2 /api/mall/merchant/mch/freightTemplateList
     /**
      * 运费模板列表
      */

@@ -3,6 +3,7 @@ package com.clmcat.qianyu.mall.pms.controller;
 import com.clmcat.framework.webmvc.anns.ApiController;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.qianyu.mall.pms.model.dto.BrandListDto;
+import com.clmcat.qianyu.mall.pms.model.dto.CategoryPageDto;
 import com.clmcat.qianyu.mall.pms.model.dto.SpuCategorySearchDto;
 import com.clmcat.qianyu.mall.pms.model.dto.SpuListDto;
 import com.clmcat.qianyu.mall.pms.model.vo.BrandVo;
@@ -10,7 +11,7 @@ import com.clmcat.qianyu.mall.pms.model.vo.CategoryPageVo;
 import com.clmcat.qianyu.mall.pms.model.vo.CategoryTreeVo;
 import com.clmcat.qianyu.mall.pms.model.vo.SpuListItemVo;
 import com.clmcat.qianyu.mall.pms.model.vo.SpuSimpleVo;
-import com.clmcat.qianyu.mall.pms.query.SpuQueryInterface;
+import com.clmcat.qianyu.mall.pms.service.SpuQueryInterface;
 import com.clmcat.qianyu.mall.pms.service.PmsCategoryViewBiz;
 import com.mybatisflex.core.paginate.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
-import java.util.Map;
 
 @Tag(name = "C端商品分类/品牌", description = "分类树、品牌列表、SPU 列表~")
 @ApiController
@@ -43,16 +43,14 @@ public class PmsCategoryController {
         return categoryViewBiz.getCategoryTree();
     }
 
+    // app.md §5 /api/mall/pms/categoryPage
     /**
      * 全部分类页（v2）— 按页面结构返回 L1→L2→L3
      */
     @Operation(summary = "全部分类页数据")
     @PostMapping("/categoryPage")
-    public CategoryPageVo categoryPage(@RequestBody(required = false) @Params Map<String, Object> params) {
-        Long categoryId = null;
-        if (params != null && params.get("categoryId") != null) {
-            categoryId = Long.valueOf(params.get("categoryId").toString());
-        }
+    public CategoryPageVo categoryPage(@RequestBody(required = false) @Params CategoryPageDto dto) {
+        Long categoryId = (dto != null && dto.getCategoryId() != null) ? dto.getCategoryId() : null;
         return categoryViewBiz.getCategoryPage(categoryId);
     }
 
@@ -74,18 +72,13 @@ public class PmsCategoryController {
         return categoryViewBiz.getSpuList(dto);
     }
 
+    // app.md §6 /api/mall/pms/categorySearch
     /**
      * 分类搜索商品列表（v2）— 最小字段集 + 排序 + 分页
      */
     @Operation(summary = "分类搜索商品列表")
     @PostMapping("/categorySearch")
     public Page<SpuListItemVo> categorySearch(@RequestBody @Params SpuCategorySearchDto dto) {
-        Long categoryId = dto != null ? dto.getCategoryId() : null;
-        String sortMode = dto != null ? dto.getSortMode() : null;
-        String priceDirection = dto != null ? dto.getPriceDirection() : null;
-        int pageNum = dto != null && dto.getPageNum() != null ? dto.getPageNum() : 1;
-        int pageSize = dto != null && dto.getPageSize() != null ? dto.getPageSize() : 10;
-
-        return spuQuery.queryByCategory(categoryId, sortMode, priceDirection, pageNum, pageSize);
+        return spuQuery.queryByCategory(dto);
     }
 }

@@ -11,5 +11,5 @@ public class FavTargetDTO {
     private Long targetId;
 
     @Schema(description = "收藏类型：1-商品, 2-店铺")
-    private Integer type;
+    private Integer targetType;
 }

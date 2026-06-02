@@ -21,6 +21,9 @@ public class SpuSimpleVO {
     @Schema(description = "价格（元）")
     private String price;
 
+    @Schema(description = "原价（元）")
+    private String originalPrice;
+
     @Schema(description = "销量")
     private Integer sales;
 }

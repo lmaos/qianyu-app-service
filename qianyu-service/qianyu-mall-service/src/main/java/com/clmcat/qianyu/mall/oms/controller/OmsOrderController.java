@@ -29,27 +29,38 @@ public class OmsOrderController {
         return orderViewServiceBiz.createOrder(userId, dto);
     }
 
+    // app.md §11.1 /api/mall/oms/orderList
     @Operation(summary = "订单列表")
     @PostMapping("/orderList")
     public Page<OrderSimpleVO> orderList(@Parameter(hidden = true) @Token long userId, @Params OrderQueryDTO dto) {
         return orderViewServiceBiz.orderList(userId, dto);
     }
 
+    // app.md §11.2 /api/mall/oms/orderDetail
     @Operation(summary = "订单详情")
     @PostMapping("/orderDetail")
     public OrderDetailVO orderDetail(@Parameter(hidden = true) @Token long userId, @Params OrderIdDTO dto) {
         return orderViewServiceBiz.orderDetail(userId, dto.getOrderId());
     }
 
+    // app.md §11.4 /api/mall/oms/orderCancel
     @Operation(summary = "取消订单")
     @PostMapping("/orderCancel")
     public void orderCancel(@Parameter(hidden = true) @Token long userId, @Params OrderCancelDTO dto) {
         orderViewServiceBiz.cancelOrder(userId, dto);
     }
 
+    // app.md §11.4 /api/mall/oms/orderReceive
     @Operation(summary = "确认收货")
     @PostMapping("/orderReceive")
     public void orderReceive(@Parameter(hidden = true) @Token long userId, @Params OrderIdDTO dto) {
         orderViewServiceBiz.receiveOrder(userId, dto.getOrderId());
+    }
+
+    // app.md §11.3 /api/mall/oms/orderDelete
+    @Operation(summary = "删除订单")
+    @PostMapping("/orderDelete")
+    public void orderDelete(@Parameter(hidden = true) @Token long userId, @Params OrderIdDTO dto) {
+        orderViewServiceBiz.deleteOrder(userId, dto.getOrderId());
     }
 }

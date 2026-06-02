@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.List;
 
 @DubboService
@@ -35,6 +36,7 @@ public class RevReviewStatServiceBiz {
                 .eq(RevReview::getSpuId, spuId)
                 .eq(RevReview::getStatus, 1);
         List<RevReview> reviews = reviewMapper.selectListByQuery(qw);
+        reviews = reviews != null ? reviews : Collections.emptyList();
 
         int totalCount = reviews.size();
         int goodCount = 0;

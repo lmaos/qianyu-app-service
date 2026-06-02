@@ -1,7 +1,6 @@
 package com.clmcat.qianyu.mall.his.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
-import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.his.model.dto.BrowseHistoryDeleteDTO;

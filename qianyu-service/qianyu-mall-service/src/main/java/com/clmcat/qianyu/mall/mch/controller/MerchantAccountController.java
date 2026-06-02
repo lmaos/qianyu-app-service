@@ -1,7 +1,6 @@
 package com.clmcat.qianyu.mall.mch.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
-import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.mch.model.dto.BillQueryDTO;
@@ -30,6 +29,7 @@ public class MerchantAccountController {
     @Resource
     private MerchantAccountViewServiceBiz accountViewServiceBiz;
 
+    // app.md §12.2 /api/mall/merchant/mch/accountInfo
     /**
      * 账户信息查询
      */

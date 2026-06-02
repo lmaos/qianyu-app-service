@@ -1,12 +1,12 @@
 package com.clmcat.qianyu.mall.mch.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
-import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.mch.model.dto.MerchantAuditDTO;
 import com.clmcat.qianyu.mall.mch.model.dto.MerchantSettleDTO;
 import com.clmcat.qianyu.mall.mch.model.dto.ShopInfoUpdateDTO;
+import com.clmcat.qianyu.mall.mch.model.vo.MerchantDashboardVO;
 import com.clmcat.qianyu.mall.mch.model.vo.SettleResultVO;
 import com.clmcat.qianyu.mall.mch.model.vo.ShopInfoVO;
 import com.clmcat.qianyu.mall.mch.service.MerchantViewServiceBiz;
@@ -26,6 +26,17 @@ public class MerchantMerchantController {
     @Resource
     private MerchantViewServiceBiz merchantViewServiceBiz;
 
+    // app.md §12 /api/mall/merchant/merchant/dashboard
+    /**
+     * 商家管理首页
+     */
+    @Operation(summary = "商家管理首页")
+    @PostMapping("/dashboard")
+    public MerchantDashboardVO dashboard(@Parameter(hidden = true) @Token long userId) {
+        return merchantViewServiceBiz.getDashboard(userId);
+    }
+
+    // app.md §12.2 /api/mall/merchant/merchant/settleApply
     /**
      * 商家入驻申请
      */
@@ -37,6 +48,7 @@ public class MerchantMerchantController {
         return merchantViewServiceBiz.settleApply(userId, dto);
     }
 
+    // app.md §12.2 /api/mall/merchant/merchant/settleResult
     /**
      * 入驻审核结果查询
      */
@@ -46,6 +58,7 @@ public class MerchantMerchantController {
         return merchantViewServiceBiz.getSettleResult(userId);
     }
 
+    // app.md §12.2 /api/mall/merchant/merchant/shopInfo
     /**
      * 店铺信息查询
      */
@@ -55,6 +68,7 @@ public class MerchantMerchantController {
         return merchantViewServiceBiz.getShopInfo(userId);
     }
 
+    // app.md §12.2 /api/mall/merchant/merchant/shopInfoUpdate
     /**
      * 店铺信息更新
      */
@@ -66,6 +80,7 @@ public class MerchantMerchantController {
         merchantViewServiceBiz.updateShopInfo(userId, dto);
     }
 
+    // app.md §12.2 /api/mall/merchant/merchant/settleAudit
     /**
      * 平台管理员 - 审核商家入驻
      */

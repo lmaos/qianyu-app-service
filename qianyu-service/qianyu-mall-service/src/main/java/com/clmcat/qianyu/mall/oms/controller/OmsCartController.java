@@ -22,6 +22,7 @@ public class OmsCartController {
     @Resource
     private OmsCartViewServiceBiz cartViewServiceBiz;
 
+    // app.md §8.6 /api/mall/oms/cartAdd
     @Operation(summary = "加入购物车")
     @PostMapping("/cartAdd")
     public Long cartAdd(@Parameter(hidden = true) @Token long userId, @Params CartAddDTO dto) {
@@ -40,6 +41,7 @@ public class OmsCartController {
         cartViewServiceBiz.deleteCart(userId, dto);
     }
 
+    // app.md §8.7 /api/mall/oms/cartList
     @Operation(summary = "购物车列表")
     @PostMapping("/cartList")
     public CartListVO cartList(@Parameter(hidden = true) @Token long userId) {

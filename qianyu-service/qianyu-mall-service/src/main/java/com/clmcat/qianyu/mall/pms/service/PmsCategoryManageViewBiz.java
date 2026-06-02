@@ -4,6 +4,7 @@ import com.clmcat.qianyu.mall.pms.model.dto.CategoryCreateDto;
 import com.clmcat.qianyu.mall.pms.model.dto.CategoryUpdateDto;
 import com.clmcat.qianyu.mall.pms.model.entity.PmsCategory;
 import com.clmcat.qianyu.mall.pms.model.entity.status.PmsStatus;
+import com.clmcat.qianyu.mall.pms.rpc.PmsCategoryApiImpl;
 import com.clmcat.qianyu.mall.pms.support.PmsSupport;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Service;
 public class PmsCategoryManageViewBiz {
 
     @Resource
-    private PmsCategoryServiceBiz categoryServiceBiz;
+    private PmsCategoryApiImpl categoryServiceBiz;
 
     @Resource
     private PmsSupport pmsSupport;

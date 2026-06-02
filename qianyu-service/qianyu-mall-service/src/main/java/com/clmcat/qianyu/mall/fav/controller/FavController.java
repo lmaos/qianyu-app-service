@@ -1,7 +1,6 @@
 package com.clmcat.qianyu.mall.fav.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
-import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.fav.model.dto.FavBatchCancelDTO;
@@ -27,6 +26,7 @@ public class FavController {
     @Resource
     private FavViewServiceBiz favViewServiceBiz;
 
+    // app.md §8.3 /api/mall/fav/favAdd
     /**
      * 添加收藏
      */
@@ -38,6 +38,7 @@ public class FavController {
         return favViewServiceBiz.addFav(userId, dto);
     }
 
+    // app.md §8.4 /api/mall/fav/favCancel
     /**
      * 取消收藏
      */
@@ -60,6 +61,7 @@ public class FavController {
         return favViewServiceBiz.getFavList(userId, dto);
     }
 
+    // app.md §8.2 /api/mall/fav/favStatus
     /**
      * 收藏状态查询
      */

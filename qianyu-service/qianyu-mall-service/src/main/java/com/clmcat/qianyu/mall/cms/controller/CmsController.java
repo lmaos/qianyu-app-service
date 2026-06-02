@@ -18,6 +18,7 @@ public class CmsController {
     @Resource
     private CmsViewBiz cmsViewBiz;
 
+    // app.md §2 /api/mall/cms/homePage
     /**
      * 首页商城聚合数据
      * 一次性返回 Tab 导航 + Banner + Zone 楼层，供首页商城 Tab 初始化使用

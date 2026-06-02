@@ -22,12 +22,14 @@ public class PayController {
     @Resource
     private PayViewServiceBiz payViewServiceBiz;
 
+    // app.md §11.4 /api/mall/pay/payApply
     @Operation(summary = "发起支付")
     @PostMapping("/payApply")
     public PayApplyVO payApply(@Parameter(hidden = true) @Token long userId, @Params PayApplyDTO dto) {
         return payViewServiceBiz.payApply(userId, dto);
     }
 
+    // app.md §11.4 /api/mall/pay/payResult
     @Operation(summary = "支付结果查询")
     @PostMapping("/payResult")
     public PayResultVO payResult(@Parameter(hidden = true) @Token long userId, @Params PayResultQueryDTO dto) {

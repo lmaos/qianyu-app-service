@@ -1,7 +1,6 @@
 package com.clmcat.qianyu.mall.pms.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
-import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.pms.model.dto.BrandCreateDto;
@@ -10,10 +9,12 @@ import com.clmcat.qianyu.mall.pms.model.dto.BrandUpdateDto;
 import com.clmcat.qianyu.mall.pms.model.dto.CategoryCreateDto;
 import com.clmcat.qianyu.mall.pms.model.dto.CategoryDeleteDto;
 import com.clmcat.qianyu.mall.pms.model.dto.CategoryUpdateDto;
+import com.clmcat.qianyu.mall.pms.model.dto.MerchantGoodsQueryDTO;
 import com.clmcat.qianyu.mall.pms.model.dto.SkuBatchUpdateDto;
 import com.clmcat.qianyu.mall.pms.model.dto.SpuCreateDto;
 import com.clmcat.qianyu.mall.pms.model.dto.SpuIdDto;
 import com.clmcat.qianyu.mall.pms.model.dto.SpuUpdateDto;
+import com.clmcat.qianyu.mall.pms.model.vo.MerchantGoodsPageVO;
 import com.clmcat.qianyu.mall.pms.service.PmsBrandManageViewBiz;
 import com.clmcat.qianyu.mall.pms.service.PmsCategoryManageViewBiz;
 import com.clmcat.qianyu.mall.pms.service.PmsMerchantViewBiz;
@@ -40,8 +41,18 @@ public class PmsMerchantController {
     @Resource
     private PmsBrandManageViewBiz brandManageViewBiz;
 
+    // app.md §13 /api/mall/merchant/pms/goodsPage
+    @Operation(summary = "商家商品管理页")
+    @PostMapping("/goodsPage")
+    public MerchantGoodsPageVO goodsPage(
+            @Parameter(hidden = true) @Token long userId,
+            @Params MerchantGoodsQueryDTO dto) {
+        return merchantViewBiz.getGoodsPage(userId, dto);
+    }
+
     // ==================== SPU 管理 ====================
 
+    // app.md §13.2 /api/mall/merchant/pms/spuCreate
     /**
      * 创建 SPU
      */
@@ -53,6 +64,7 @@ public class PmsMerchantController {
         return merchantViewBiz.createSpu(userId, dto);
     }
 
+    // app.md §13.2 /api/mall/merchant/pms/spuUpdate
     /**
      * 编辑 SPU
      */
@@ -64,6 +76,7 @@ public class PmsMerchantController {
         merchantViewBiz.updateSpu(userId, dto);
     }
 
+    // app.md §13.2 /api/mall/merchant/pms/spuListOn
     /**
      * SPU 上架
      */
@@ -75,6 +88,7 @@ public class PmsMerchantController {
         merchantViewBiz.listOnSpu(userId, dto.getSpuId());
     }
 
+    // app.md §13.2 /api/mall/merchant/pms/spuListOff
     /**
      * SPU 下架
      */
@@ -86,6 +100,7 @@ public class PmsMerchantController {
         merchantViewBiz.listOffSpu(userId, dto.getSpuId());
     }
 
+    // app.md §13.2 /api/mall/merchant/pms/skuBatchUpdate
     /**
      * SKU 批量更新（库存/价格）
      */

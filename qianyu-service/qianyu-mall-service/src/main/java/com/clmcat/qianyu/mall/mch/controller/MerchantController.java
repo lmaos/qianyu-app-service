@@ -4,8 +4,10 @@ import com.clmcat.framework.webmvc.anns.ApiController;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.qianyu.mall.mch.model.dto.ShopHomeQueryDTO;
 import com.clmcat.qianyu.mall.mch.model.dto.ShopProductQueryDTO;
+import com.clmcat.qianyu.mall.mch.model.dto.StoreHomeQueryDTO;
 import com.clmcat.qianyu.mall.mch.model.vo.ShopHomeVO;
 import com.clmcat.qianyu.mall.mch.model.vo.SpuSimpleVO;
+import com.clmcat.qianyu.mall.mch.model.vo.StoreHomeVO;
 import com.clmcat.qianyu.mall.mch.service.MerchantViewServiceBiz;
 import com.mybatisflex.core.paginate.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +33,7 @@ public class MerchantController {
         return merchantViewServiceBiz.getShopHome(dto.getMerchantId());
     }
 
+    // app.md §10 /api/mall/mch/shopProductList
     /**
      * 店铺商品列表
      */
@@ -38,5 +41,15 @@ public class MerchantController {
     @PostMapping("/shopProductList")
     public Page<SpuSimpleVO> shopProductList(@Params ShopProductQueryDTO dto) {
         return merchantViewServiceBiz.getShopProductList(dto);
+    }
+
+    // app.md §10 /api/mall/mch/storeHome
+    /**
+     * 店铺首页聚合（v2）— 店铺信息 + 统计 + 热销/新品
+     */
+    @Operation(summary = "店铺首页聚合")
+    @PostMapping("/storeHome")
+    public StoreHomeVO storeHome(@Params StoreHomeQueryDTO dto) {
+        return merchantViewServiceBiz.getStoreHome(dto);
     }
 }

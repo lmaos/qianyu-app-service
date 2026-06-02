@@ -39,6 +39,7 @@ public class PmsSpuController {
         return spuViewBiz.searchSpu(dto);
     }
 
+    // app.md §8 /api/mall/pms/spuDetail
     /**
      * SPU 详情
      */
