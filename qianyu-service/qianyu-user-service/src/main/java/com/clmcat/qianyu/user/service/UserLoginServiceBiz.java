@@ -114,7 +114,7 @@ public class UserLoginServiceBiz implements UserLoginApi  {
         if (AuthMode.PASSWORD.equals(authMode)) {
             return phonePasswordLogin(phone, dto.getPassword());
         }
-        //ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!verifyCodeServiceBiz.isVerifiedByRedis(IDENTITY_TYPE_PHONE, rawPhone, dto.getCode()));
+        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!verifyCodeServiceBiz.isVerifiedByRedis(IDENTITY_TYPE_PHONE, rawPhone, dto.getCode()));
 
         UserAuthDto userAuthDto = UserAuthDto.builder()
                 .identifier(phone)
