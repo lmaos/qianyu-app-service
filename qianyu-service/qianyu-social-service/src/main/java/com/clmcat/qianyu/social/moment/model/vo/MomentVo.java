@@ -13,6 +13,9 @@ public class MomentVo {
     private double latitude;
     private double longitude;
     private String country;
+    private Long likes;
+    private Long comments;
+    private boolean hasLike;
     private Integer status;
     private Long createTime;
 }

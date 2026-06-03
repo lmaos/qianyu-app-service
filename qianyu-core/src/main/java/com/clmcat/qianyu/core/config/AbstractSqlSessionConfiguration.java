@@ -1,6 +1,7 @@
 package com.clmcat.qianyu.core.config;
 
 import lombok.Setter;
+import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 import org.springframework.beans.factory.SmartInitializingSingleton;
@@ -17,6 +18,7 @@ public class AbstractSqlSessionConfiguration implements SmartInitializingSinglet
     public void afterSingletonsInstantiated() {
         applicationContext.getBeansOfType(SqlSessionFactory.class).values().forEach(sqlSessionFactory -> {
             configSqlSessionFactoryBean(sqlSessionFactory);
+            configuration(sqlSessionFactory.getConfiguration());
             registerTypeHandler(sqlSessionFactory.getConfiguration().getTypeHandlerRegistry());
         });
     }
@@ -27,6 +29,10 @@ public class AbstractSqlSessionConfiguration implements SmartInitializingSinglet
     }
 
     protected void configSqlSessionFactoryBean(SqlSessionFactory sqlSessionFactory) {
+
+    }
+
+    protected void configuration(Configuration configuration) {
 
     }
 }
