@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qianyu Mall API 接口文档</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card-bg: #fff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e0e3eb;
+    --accent: #4a6cf7;
+    --accent-light: #eef1ff;
+    --green: #22c55e;
+    --green-bg: #f0fdf4;
+    --yellow: #eab308;
+    --yellow-bg: #fefce8;
+    --red: #ef4444;
+    --gray: #6b7280;
+    --gray-bg: #f3f4f6;
+    --module-colors: #4a6cf7,#7c3aed,#0891b2,#059669,#d97706,#dc2626,#db2777,#0d9488,#6366f1,#e11d48,#84cc16;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #fff; padding: 48px 32px 32px; text-align: center;
+  }
+  .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .header p { color: #a0aec0; font-size: 15px; max-width: 640px; margin: 0 auto; }
+  .header .badge-group { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .badge {
+    display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    background: rgba(255,255,255,0.12); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.08);
+  }
+  .badge.green { background: rgba(34,197,94,0.15); color: #86efac; border-color: rgba(34,197,94,0.2); }
+
+  /* Container */
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+
+  /* Summary cards */
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 32px;
+  }
+  .summary-card {
+    background: var(--card-bg); border-radius: 10px; padding: 16px; border: 1px solid var(--border);
+    transition: box-shadow 0.2s;
+  }
+  .summary-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .summary-card .count { font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+  .summary-card .label { font-size: 13px; color: var(--text-secondary); }
+
+  /* Conclusion */
+  .conclusion {
+    background: var(--green-bg); border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px 24px;
+    margin-bottom: 32px;
+  }
+  .conclusion h2 { color: #15803d; font-size: 18px; margin-bottom: 8px; }
+  .conclusion p { color: #166534; font-size: 14px; }
+  .conclusion ul { margin-top: 8px; padding-left: 20px; font-size: 14px; color: #166534; }
+  .conclusion ul li { margin-bottom: 4px; }
+
+  /* Module section */
+  .module { margin-bottom: 24px; }
+  .module-header {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px;
+    cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+    transition: box-shadow 0.2s;
+  }
+  .module-header:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .module-header .left { display: flex; align-items: center; gap: 12px; }
+  .module-header .dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .module-header h2 { font-size: 17px; font-weight: 600; }
+  .module-header .subtitle { font-size: 13px; color: var(--text-secondary); margin-left: 4px; }
+  .module-header .meta { font-size: 13px; color: var(--text-secondary); display: flex; gap: 12px; align-items: center; }
+  .module-header .meta .num { font-weight: 600; color: var(--accent); }
+  .module-header .arrow { font-size: 18px; color: var(--text-secondary); transition: transform 0.2s; }
+  .module-header.collapsed .arrow { transform: rotate(-90deg); }
+  .module-body { display: block; }
+  .module-header.collapsed + .module-body { display: none; }
+
+  /* API endpoint cards */
+  .api-card {
+    background: var(--card-bg); border: 1px solid var(--border); border-top: none;
+    padding: 16px 20px;
+  }
+  .api-card:first-of-type { border-radius: 0 0 8px 8px; border-top: 1px solid var(--border); }
+  .api-card:last-of-type { border-radius: 0 0 8px 8px; margin-bottom: 0; }
+  .api-card:only-of-type { border-radius: 0 0 8px 8px; }
+  .api-card:not(:last-of-type) { border-bottom: none; }
+  .api-card:hover { background: #fafbff; }
+
+  .api-card .api-line { display: flex; align-items: flex-start; gap: 12px; }
+  .api-card .method {
+    display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; min-width: 52px; text-align: center;
+  }
+  .method.post { background: #dbeafe; color: #2563eb; }
+  .method.delete { background: #fce4ec; color: #d32f2f; }
+
+  .api-card .path { font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 13px; color: var(--text); word-break: break-all; flex: 1; }
+  .api-card .path .param { color: #7c3aed; }
+  .api-card .path .tag { font-size: 11px; padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+  .tag.c { background: #dbeafe; color: #2563eb; }
+  .tag.b { background: #fef3c7; color: #b45309; }
+  .tag.i { background: #e0e7ff; color: #4338ca; }
+  .tag.cb { background: #fce7f3; color: #be185d; }
+  .tag.pub { background: #f3f4f6; color: #6b7280; }
+
+  .api-detail { margin-top: 10px; padding-left: 64px; font-size: 13px; color: var(--text-secondary); }
+  .api-detail .row { margin-bottom: 4px; display: flex; }
+  .api-detail .row .label { width: 72px; flex-shrink: 0; font-weight: 500; color: var(--gray); }
+  .api-detail .params-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+  .api-detail .params-table th {
+    text-align: left; font-weight: 500; color: var(--gray); border-bottom: 1px solid var(--border);
+    padding: 4px 8px; font-size: 12px;
+  }
+  .api-detail .params-table td { padding: 4px 8px; border-bottom: 1px solid #f0f0f0; }
+  .api-detail .params-table td.name { font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; color: #7c3aed; }
+  .api-detail .params-table td.type { font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; color: #0891b2; }
+  .api-detail .params-table td.required { text-align: center; }
+  .api-detail .params-table td.required.y { color: var(--red); }
+  .api-detail .params-table td.required.n { color: var(--gray); }
+  .api-detail .return-type { font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; color: #059669; word-break: break-all; }
+
+  .note-box {
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px;
+    margin-top: 8px; font-size: 13px; color: #92400e;
+  }
+
+  /* Tag nav */
+  .tag-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+  .tag-nav a {
+    display: inline-block; padding: 5px 14px; border-radius: 6px; font-size: 13px; text-decoration: none;
+    background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .tag-nav a:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+  /* Footer */
+  .footer { text-align: center; padding: 32px; color: var(--gray); font-size: 13px; }
+
+  @media (max-width: 768px) {
+    .api-detail { padding-left: 0; }
+    .api-card .api-line { flex-wrap: wrap; }
+    .summary-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🛍️ Qianyu Mall API 接口文档</h1>
+  <p>qianyu-mall-service — 共 72 个 API 端点，覆盖 11 个业务模块。C 端 19 个场景 + B 端 12 个场景全链路支持。</p>
+  <div class="badge-group">
+    <span class="badge green">✅ MVP 可接入</span>
+    <span class="badge">72 Endpoints</span>
+    <span class="badge">11 Modules</span>
+    <span class="badge">27 Controllers</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Conclusion -->
+  <div class="conclusion">
+    <h2>✅ 分析结论：API 完整度足够支撑 MVP 商城</h2>
+    <p>全链路覆盖：首页 → 商品浏览分类搜索 → 详情 → 购物车 → 下单 → 支付 → 订单管理 → 售后 → 物流 → 评价。B 端包含商家入驻、商品管理、订单处理、财务结算。</p>
+    <ul>
+      <li><strong>C 端 19 个场景</strong> — 首页、分类、搜索、详情、购物车、下单、支付、订单、售后、物流、地址、收藏、浏览历史、评价、店铺</li>
+      <li><strong>B 端 12 个场景</strong> — 入驻、仪表盘、店铺管理、商品CRUD、SKU管理、分类品牌管理、订单处理、售后审核、运费模板、库存、财务、评价管理</li>
+      <li><strong>注意点：</strong>优惠券管理 API 未在 mall-service 中暴露；用户登录需接入 <code>qianyu-user-service</code></li>
+    </ul>
+  </div>
+
+  <!-- Tag nav -->
+  <div class="tag-nav">
+    <a href="#pms">PMS 商品</a>
+    <a href="#oms">OMS 订单</a>
+    <a href="#mch">MCH 商家</a>
+    <a href="#pay">PAY 支付</a>
+    <a href="#log">LOG 物流</a>
+    <a href="#inv">INV 库存</a>
+    <a href="#rev">REV 评价</a>
+    <a href="#cms">CMS 内容</a>
+    <a href="#ads">ADS 地址</a>
+    <a href="#fav">FAV 收藏</a>
+    <a href="#his">HIS 历史</a>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-grid">
+    <div class="summary-card"><div class="count">12</div><div class="label">PMS 商品</div></div>
+    <div class="summary-card"><div class="count">14</div><div class="label">OMS 订单</div></div>
+    <div class="summary-card"><div class="count">15</div><div class="label">MCH 商家</div></div>
+    <div class="summary-card"><div class="count">6</div><div class="label">PAY 支付</div></div>
+    <div class="summary-card"><div class="count">5</div><div class="label">LOG 物流</div></div>
+    <div class="summary-card"><div class="count">6</div><div class="label">INV 库存</div></div>
+    <div class="summary-card"><div class="count">5</div><div class="label">REV 评价</div></div>
+    <div class="summary-card"><div class="count">1</div><div class="label">CMS 内容</div></div>
+    <div class="summary-card"><div class="count">7</div><div class="label">ADS 地址</div></div>
+    <div class="summary-card"><div class="count">6</div><div class="label">FAV 收藏</div></div>
+    <div class="summary-card"><div class="count">5</div><div class="label">HIS 历史</div></div>
+  </div>
+
+<script>
+document.querySelectorAll('.module-header').forEach(h => {
+  h.addEventListener('click', () => h.classList.toggle('collapsed'));
+});
+</script>
+
+<!-- ============================== -->
+<!-- PMS 商品管理 -->
+<!-- ============================== -->
+<section class="module" id="pms">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#4a6cf7"></span>
+      <h2>PMS — 商品管理</h2>
+      <span class="subtitle">Product Management System</span>
+    </div>
+    <div class="meta"><span class="num">12</span> APIs &middot; 3 Controllers</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/categoryTree<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>获取全部分类树（递归结构）</div>
+        <div class="row"><span class="label">参数</span>无</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">List&lt;CategoryTreeVo&gt;</span> — id, name, icon, imgId, sort, children(递归)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/categoryPage<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>分类页 — 一级分类列表 + 默认选中的分类ID</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">categoryId</span> (Long, 可选)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">CategoryPageVo</span> — firstCategoryList, initialFirstCategoryId</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/brandList<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>获取品牌列表（按分类筛选）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">categoryIds</span> (List&lt;Long&gt;), keyword (String, 可选)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">List&lt;BrandVo&gt;</span> — id, name, logo, description</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/spuList<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>按分类/商家获取 SPU 列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">categoryId</span>, merchantId, pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;SpuSimpleVo&gt;</span> — id, name, mainImage, price, originalPrice, sales, commentCount, avgScore...</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/categorySearch<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>分类内搜索商品（支持排序）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">categoryId</span>, sortMode (recommend/sales/price), priceDirection (asc/desc), pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;SpuListItemVo&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/spuSearch<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>全局商品搜索（关键词+筛选+排序）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">keyword</span>, categoryId, brandId, sortField, sortOrder, minPrice, maxPrice, pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;SpuSimpleVo&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/spuDetail<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>SPU 商品详情（含SKU列表、规格组）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">spuId</span> (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">SpuDetailVo</span> — 完整商品信息，含 skuList, specGroups, reviewStat, shopInfo</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/spuDetailBySku<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>通过 SKU ID 获取 SPU 详情</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">skuId</span> (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">SpuDetailVo</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/skuList<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>获取 SPU 下所有 SKU 列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">spuId</span> (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">List&lt;SkuItemVo&gt;</span> — id, skuName, specs, price, originalPrice, stock, image, isDefault...</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/goodsPage<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家商品列表页（含统计）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, filter (0=全部/1=在售/2=下架/3=库存预警), pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">MerchantGoodsPageVo</span> — summaryList(统计), goodsList(商品分页)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/spuCreate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家创建 SPU 商品（含SKU）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, SpuCreateDto (name, subTitle, categoryId, brandId, mainImage, images, description, keywords, unit, freightTemplateId, skuList)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Long</span> — SPU ID</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/spuUpdate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家编辑 SPU</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, SpuUpdateDto</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/spuListOn<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商品上架</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, spuId (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/spuListOff<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商品下架</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, spuId (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/skuBatchUpdate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>SKU 批量更新（价格/库存/规格）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, spuId, items (List&lt;SkuUpdateItem&gt;)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/categoryCreate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>创建分类</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, CategoryCreateDto</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Long</span> — 分类ID</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/categoryUpdate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>编辑分类</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, CategoryUpdateDto</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method delete">DELETE</span>
+        <span class="path">/api/mall/merchant/pms/categoryDelete<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>删除分类</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, CategoryDeleteDto</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/brandCreate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>创建品牌</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, BrandCreateDto</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Long</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/pms/brandUpdate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>编辑品牌</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, BrandUpdateDto</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method delete">DELETE</span>
+        <span class="path">/api/mall/merchant/pms/brandDelete<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>删除品牌</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, BrandDeleteDto</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- OMS 订单管理 -->
+<!-- ============================== -->
+<section class="module" id="oms">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#7c3aed"></span>
+      <h2>OMS — 订单管理</h2>
+      <span class="subtitle">Order Management System</span>
+    </div>
+    <div class="meta"><span class="num">14</span> APIs &middot; 4 Controllers</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/orderCreate<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>创建订单（核心下单接口）</div>
+        <div class="row">
+          <span class="label">参数</span>
+          <table class="params-table">
+            <tr><th>参数</th><th>类型</th><th>说明</th></tr>
+            <tr><td class="name">@Token</td><td class="type">long</td><td>userId (登录用户)</td></tr>
+            <tr><td class="name">addressId</td><td class="type">Long</td><td>收货地址ID</td></tr>
+            <tr><td class="name">items</td><td class="type">List&lt;OrderItemDTO&gt;</td><td>skuId + quantity</td></tr>
+            <tr><td class="name">couponUserId</td><td class="type">Long</td><td>用户优惠券ID (可选)</td></tr>
+            <tr><td class="name">remark</td><td class="type">String</td><td>订单备注 (可选)</td></tr>
+            <tr><td class="name">buyerIp</td><td class="type">String</td><td>内部获取 (IP scope)</td></tr>
+          </table>
+        </div>
+        <div class="row"><span class="label">返回</span><span class="return-type">OrderCreateVo</span> — orderSn, orderId, totalAmount, freightAmount, discountAmount, couponAmount, payAmount, totalQuantity</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/orderList<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>用户订单列表</div>
+        <div class="row">
+          <span class="label">参数</span>
+          <table class="params-table">
+            <tr><th>参数</th><th>类型</th><th>说明</th></tr>
+            <tr><td class="name">@Token</td><td class="type">long</td><td>userId</td></tr>
+            <tr><td class="name">status</td><td class="type">int</td><td>0=全部,1=未支付,2=待发货,3=待收货,4=已完成,5=售后,6=已取消</td></tr>
+            <tr><td class="name">orderSn</td><td class="type">String</td><td>精确搜索(可选)</td></tr>
+            <tr><td class="name">startTime/endTime</td><td class="type">String</td><td>时间范围(可选)</td></tr>
+            <tr><td class="name">pageNum/pageSize</td><td class="type">int</td><td>分页</td></tr>
+          </table>
+        </div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;OrderSimpleVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/orderDetail<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>订单详情</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">OrderDetailVO</span> — 完整订单信息，含商品、地址快照、支付信息、折扣明细</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/orderCancel<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>取消订单</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId (Long), reason (String)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/orderReceive<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>确认收货</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/orderDelete<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>删除订单（逻辑删除）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/cartAdd<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>添加购物车</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, spuId, skuId, quantity</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Long</span> — 购物车项ID</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/cartUpdate<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>更新购物车数量</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, cartItemId, quantity</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/cartDelete<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>删除购物车项</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, cartItemIds (List&lt;Long&gt;)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/cartList<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>购物车列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">CartListVO</span> — list(CartItemVO), totalPrice, totalCount<br>
+        CartItemVO: id, skuId, spuId, spuName, skuImage, skuSpecs, price, quantity, stock, checked, merchantId, merchantName</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/aftersaleApply<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>申请售后</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId, orderItemId, type (1=退款/2=退货/3=换货/4=维修), reason, description, images(List&lt;String&gt;)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">AfterSaleCreateVO</span> — aftersaleId, aftersaleSn</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/aftersaleList<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>售后列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, status (0=全部,10=待审核,20=已通过,30=已拒绝,40=已发货,50=已完成,60=已取消), pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;AfterSaleSimpleVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/aftersaleDetail<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>售后详情</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, aftersaleId (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">AfterSaleDetailVO</span> — 含商品信息、退款金额、物流单号、操作日志</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/aftersaleCancel<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>取消售后申请</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, aftersaleId (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/oms/orderList<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家订单列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span> (→内部解析merchantId), OrderQueryDTO</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;OrderSimpleVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/oms/orderDetail<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家查看订单详情</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">OrderDetailVO</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/oms/orderShip<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家发货</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId, logisticsCompany (物流公司), logisticsNo (运单号)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/oms/aftersaleAudit<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家审核售后</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, aftersaleId, approved (Boolean), rejectReason (String), refundAmount</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- MCH 商家管理 -->
+<!-- ============================== -->
+<section class="module" id="mch">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#0891b2"></span>
+      <h2>MCH — 商家管理</h2>
+      <span class="subtitle">Merchant / Shop</span>
+    </div>
+    <div class="meta"><span class="num">15</span> APIs &middot; 5 Controllers</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/mch/shopHome<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>店铺首页（C端查看店铺）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">merchantId</span> (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">ShopHomeVO</span> — 店铺信息 + 热门/新品商品列表 + 评分</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/mch/shopProductList<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>店铺商品列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">merchantId</span>, categoryId, keyword, sortField(price/sales/createTime), sortOrder(asc/desc), pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;SpuSimpleVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/mch/storeHome<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>店铺首页聚合（门店版）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">merchantId</span>, hotLimit(default 6), newLimit(default 6)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">StoreHomeVO</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/merchant/dashboard<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家仪表盘数据</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">MerchantDashboardVO</span> — 审核状态 + 统计数据列表</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/merchant/settleApply<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家入驻申请</div>
+        <div class="row">
+          <span class="label">参数</span>
+          <table class="params-table">
+            <tr><th>参数</th><th>类型</th><th>说明</th></tr>
+            <tr><td class="name">@Token</td><td class="type">long</td><td>userId</td></tr>
+            <tr><td class="name">shopName</td><td class="type">String</td><td>店铺名称</td></tr>
+            <tr><td class="name">shopLogo</td><td class="type">String</td><td>店铺logo</td></tr>
+            <tr><td class="name">shopBanner</td><td class="type">String</td><td>店铺banner</td></tr>
+            <tr><td class="name">description</td><td class="type">String</td><td>店铺描述</td></tr>
+            <tr><td class="name">contactName/Phone/Email</td><td class="type">String</td><td>联系方式</td></tr>
+            <tr><td class="name">businessLicense</td><td class="type">String</td><td>营业执照</td></tr>
+            <tr><td class="name">legalPersonName/IdCard</td><td class="type">String</td><td>法人信息</td></tr>
+            <tr><td class="name">bankAccount等</td><td class="type">String</td><td>银行账户信息</td></tr>
+          </table>
+        </div>
+        <div class="row"><span class="label">返回</span><span class="return-type">SettleResultVO</span> — merchantId, applySn, status</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/merchant/settleResult<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>查询入驻审核结果</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">SettleResultVO</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/merchant/shopInfo<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>获取店铺信息</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">ShopInfoVO</span> — 完整店铺信息</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/merchant/shopInfoUpdate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>更新店铺信息</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, ShopInfoUpdateDTO</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/accountInfo<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家账户信息（余额/冻结等）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">AccountInfoVO</span> — balance, frozenAmount, totalIncome, totalWithdraw, totalRefund, totalCommission</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/billList<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>账单流水列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, type, status, startTime, endTime, pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;BillItemVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/settlementList<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>结算列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, SettlementQueryDTO (分页)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;SettlementItemVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/withdrawApply<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>申请提现</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, amount, bankName, bankAccount, accountName</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">String</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/withdrawList<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>提现记录列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, WithdrawQueryDTO (分页)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;WithdrawItemVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/freightTemplateList<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>运费模板列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">List&lt;FreightTemplateVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/freightTemplateDetail<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>运费模板详情</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, templateId</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">FreightTemplateDetailVO</span> — 含运费规则列表</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/freightTemplateCreate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>创建运费模板</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, name, billingType, freeShippingType, freeShippingValue, isDefault, rules</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Long</span> — 模板ID</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/freightTemplateUpdate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>编辑运费模板</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, FreightTemplateUpdateDTO</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/mch/freightTemplateDelete<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>删除运费模板</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, templateId</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- PAY 支付 -->
+<!-- ============================== -->
+<section class="module" id="pay">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#059669"></span>
+      <h2>PAY — 支付管理</h2>
+      <span class="subtitle">Payment</span>
+    </div>
+    <div class="meta"><span class="num">6</span> APIs &middot; 2 Controllers</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pay/payApply<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>发起支付（微信/支付宝/余额）</div>
+        <div class="row">
+          <span class="label">参数</span>
+          <table class="params-table">
+            <tr><th>参数</th><th>类型</th><th>说明</th></tr>
+            <tr><td class="name">@Token</td><td class="type">long</td><td>userId</td></tr>
+            <tr><td class="name">orderId</td><td class="type">Long</td><td>订单ID</td></tr>
+            <tr><td class="name">payChannel</td><td class="type">String</td><td>wechat / alipay / balance</td></tr>
+            <tr><td class="name">returnUrl</td><td class="type">String</td><td>支付后跳转 (可选)</td></tr>
+          </table>
+        </div>
+        <div class="row"><span class="label">返回</span><span class="return-type">PayApplyVO</span> — paySn + payParams(支付参数, 各渠道不同)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pay/payResult<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>查询支付结果</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, paySn (String 与 orderId 二选一) / orderId (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">PayResultVO</span> — status(PENDING/SUCCESS/FAILED/CLOSED), payChannel, payAmount, payTime</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/callback/wechat/payNotify<span class="tag cb">回调</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span><strong>微信支付异步回调</strong>（微信服务器通知支付结果）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">HttpServletRequest</span> (XML body)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">String</span> (XML 应答)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/callback/alipay/payNotify<span class="tag cb">回调</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span><strong>支付宝支付异步回调</strong></div>
+        <div class="row"><span class="label">参数</span><span class="return-type">HttpServletRequest</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">String</span> ("success"/"failure")</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/callback/wechat/refundNotify<span class="tag cb">回调</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>微信退款异步回调</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">HttpServletRequest</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">String</span> (XML)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/callback/alipay/refundNotify<span class="tag cb">回调</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>支付宝退款异步回调</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">HttpServletRequest</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">String</span> ("success")</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/internal/pay/refund<span class="tag i">内部</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>内部退款接口（服务间调用）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">paySn</span>, refundAmount, refundReason, outRefundNo</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">RefundResultVO</span> — refundSn, status(PROCESSING/SUCCESS/FAILED)</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- LOG 物流 -->
+<!-- ============================== -->
+<section class="module" id="log">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#d97706"></span>
+      <h2>LOG — 物流管理</h2>
+      <span class="subtitle">Logistics</span>
+    </div>
+    <div class="meta"><span class="num">5</span> APIs &middot; 3 Controllers</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/log/logisticsQuery<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>查询物流信息</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId / logisticsId</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">LogisticsDetailVO</span> — 物流公司 + 单号 + 状态 + 轨迹列表</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/log/logisticsTrack<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>查询物流轨迹</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId / logisticsId</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">LogisticsDetailVO</span> (含轨迹明细)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/log/logisticsCreate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家创建物流单（发货）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId, orderItemId, logisticsCompany, logisticsCode, logisticsNo, senderName/Phone/Address</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Long</span> — 物流单ID</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/log/logisticsUpdate<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>更新物流信息</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, logisticsId, logisticsCompany, logisticsCode, logisticsNo</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/callback/logistics/trackPush<span class="tag cb">回调</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>物流公司轨迹推送回调</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">logisticsCode</span>, logisticsNo, status, traces (List&lt;LogisticsTraceDTO&gt;), sign</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Boolean</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- INV 库存 -->
+<!-- ============================== -->
+<section class="module" id="inv">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#dc2626"></span>
+      <h2>INV — 库存管理</h2>
+      <span class="subtitle">Inventory</span>
+    </div>
+    <div class="meta"><span class="num">6</span> APIs &middot; 2 Controllers</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/internal/inv/stockLock<span class="tag i">内部</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>锁定库存（下单时调用，含防超卖）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">orderSn</span>, items (List&lt;skuId + quantity&gt;)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">StockLockResultVO</span> — success + failItems(库存不足项)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/internal/inv/stockConfirm<span class="tag i">内部</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>确认库存（支付成功时扣减）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">orderId</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/internal/inv/stockRelease<span class="tag i">内部</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>释放库存（取消订单/售后时）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">orderSn</span>, items (可选，List&lt;skuId + quantity&gt;)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/internal/inv/stockBatchQuery<span class="tag i">内部</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>批量查询库存（内部）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">skuIds</span> (List&lt;Long&gt;, max 100)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">List&lt;StockInfoVO&gt;</span> — skuId, total, available, locked</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/inv/stockAdjust<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家调整库存（手动增/减）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, skuId, adjustType(1=增加/2=减少), quantity(>0), reason</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">StockAdjustResultVO</span> — beforeStock, afterStock</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/inv/stockLog<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>库存变更日志</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, skuId, spuId, type, startTime, endTime, pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;StockLogItemVO&gt;</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- REV 评价 -->
+<!-- ============================== -->
+<section class="module" id="rev">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#db2777"></span>
+      <h2>REV — 评价管理</h2>
+      <span class="subtitle">Review</span>
+    </div>
+    <div class="meta"><span class="num">5</span> APIs &middot; 3 Controllers</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/rev/reviewList<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商品评价列表（C端浏览）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">spuId</span>, score(0=全部/1=差评/2=中评/3=好评/4=有图), sortField(createTime/score), pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;ReviewItemVO&gt;</span> — 含用户信息、评分、内容、图片、商家回复</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/rev/reviewStat<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>评价统计（好评率/各分数数量）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">spuId</span> (Long)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">ReviewStatVO</span> — totalCount, goodCount, mediumCount, badCount, hasImageCount, goodRate(如"98.50%"), avgScore</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/pms/rev/reviewPage<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>评价聚合页（评价统计+评价列表）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">spuId</span>, score, sortField, pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">EvaluatePageVO</span> — spuInfo + reviewStat + reviewList</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/rev/reviewSubmit<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>用户提交评价</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, orderId, items (List&lt;ReviewItemDTO: spuId, skuId, score, content, images, anonymous&gt;)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">ReviewSubmitResultVO</span> — reviewIds</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/oms/rev/myReviewList<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>我的评价列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;MyReviewItemVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/merchant/rev/reviewList<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家评价列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, spuId, score, hasReply, startTime, endTime, pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;ReviewItemVO&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/merchant/merchant/rev/reviewReply<span class="tag b">商家</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>商家回复评价</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, reviewId, content (max 200字)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- CMS 内容管理 -->
+<!-- ============================== -->
+<section class="module" id="cms">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#0d9488"></span>
+      <h2>CMS — 内容管理</h2>
+      <span class="subtitle">Content Management</span>
+    </div>
+    <div class="meta"><span class="num">1</span> API &middot; 1 Controller</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/cms/homePage<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>首页聚合数据（商城首页全部内容）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">Map&lt;String,Object&gt;</span> (可选，框架注入)</div>
+        <div class="row">
+          <span class="label">返回</span>
+          <span class="return-type">HomePageVo</span> — 完整首页结构：
+          <table class="params-table" style="margin-top:4px">
+            <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+            <tr><td class="name">tabList</td><td class="type">List&lt;HomeTabVo&gt;</td><td>Tab导航列表 (id, name, tabKey, categoryId, isDefault)</td></tr>
+            <tr><td class="name">defaultTabKey</td><td class="type">String</td><td>默认Tab</td></tr>
+            <tr><td class="name">bannerList</td><td class="type">List&lt;BannerVo&gt;</td><td>轮播图 (id, title, desc, actionText, tagText, image, linkType, linkValue)</td></tr>
+            <tr><td class="name">zoneList</td><td class="type">List&lt;ZoneVo&gt;</td><td>楼层区域 (id, title, tagText, moreText, layoutMode, productList)</td></tr>
+          </table>
+        </div>
+        <div class="note-box">✨ 一个 API 搞定首页全部内容。Tab/Banner 使用 volatile + @Scheduled 定时刷新缓存到内存。</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- ADS 收货地址 -->
+<!-- ============================== -->
+<section class="module" id="ads">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#6366f1"></span>
+      <h2>ADS — 收货地址</h2>
+      <span class="subtitle">Address</span>
+    </div>
+    <div class="meta"><span class="num">7</span> APIs &middot; 2 Controllers</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/ads/addressList<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>地址列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span></div>
+        <div class="row"><span class="label">返回</span><span class="return-type">List&lt;AddressItemVO&gt;</span> — id, name, phone, province, city, district, detail, isDefault, fullAddress</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/ads/addressDetail<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>地址详情</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, addressId</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">AddressItemVO</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/ads/addressCreate<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>新增地址</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, name, phone, provinceCode, cityCode, districtCode, detail, isDefault, tag</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Long</span> — 地址ID</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/ads/addressUpdate<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>编辑地址</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, AddressUpdateDTO</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method delete">DELETE</span>
+        <span class="path">/api/mall/ads/addressDelete<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>删除地址</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, addressId</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/ads/addressSetDefault<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>设为默认地址</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, addressId</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/ads/regionTree<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>省市区地区树</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">parentId</span> (Long, 可选/null=全部省份)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">List&lt;RegionNodeVO&gt;</span> — id, name, parentId, level（递归）</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- FAV 收藏 -->
+<!-- ============================== -->
+<section class="module" id="fav">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#e11d48"></span>
+      <h2>FAV — 收藏管理</h2>
+      <span class="subtitle">Favorites</span>
+    </div>
+    <div class="meta"><span class="num">6</span> APIs &middot; 1 Controller</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/fav/favAdd<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>添加收藏（商品/店铺）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, targetId, targetType (1=商品/2=店铺)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">FavActionResultVO</span> — favId, isFav</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/fav/favCancel<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>取消收藏</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, targetId, targetType</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">FavActionResultVO</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/fav/favList<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>收藏列表（分页）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, type (0=全部/1=商品/2=店铺), pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;FavItemVO&gt;</span> — 含商品/店铺详情</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/fav/favStatus<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>查询收藏状态（是否已收藏）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, targetId, targetType</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">FavStatusVO</span> — isFav, favId</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/fav/favBatchStatus<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>批量查询收藏状态</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, targets (List&lt;FavTargetDTO&gt;, max 50)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">FavBatchStatusResultVO</span> — list (批量状态)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/fav/favBatchCancel<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>批量取消收藏</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, favIds (List&lt;Long&gt;)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">FavBatchCancelResultVO</span> — count</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- HIS 浏览历史 -->
+<!-- ============================== -->
+<section class="module" id="his">
+  <div class="module-header">
+    <div class="left">
+      <span class="dot" style="background:#84cc16"></span>
+      <h2>HIS — 浏览历史</h2>
+      <span class="subtitle">History &amp; Search</span>
+    </div>
+    <div class="meta"><span class="num">5</span> APIs &middot; 2 Controllers</div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="module-body">
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/his/browseHistoryList<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>浏览历史列表</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, pageNum, pageSize</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">Page&lt;BrowseHistoryItemVO&gt;</span> — spuId, spuName, spuImage, price, currentPrice, onShelf, browseTime</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/his/browseRecord<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>记录浏览（查看商品详情时调用）</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, spuId</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/his/browseHistoryDelete<span class="tag c">用户</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>删除浏览历史</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">@Token userId</span>, ids (List&lt;Long&gt;), clearAll (Boolean)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">BrowseHistoryDeleteResultVO</span> — count</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/his/searchHotKeywords<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>搜索热词</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">limit</span> (int, 默认10/最大30)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">List&lt;HotKeywordVO&gt;</span> — keyword, heat</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-line">
+        <span class="method post">POST</span>
+        <span class="path">/api/mall/his/searchKeywordRecord<span class="tag pub">公开</span></span>
+      </div>
+      <div class="api-detail">
+        <div class="row"><span class="label">描述</span>记录搜索关键词</div>
+        <div class="row"><span class="label">参数</span><span class="return-type">keyword</span> (String, max 128)</div>
+        <div class="row"><span class="label">返回</span><span class="return-type">void</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  Generated from qianyu-mall-service &middot; 72 API endpoints &middot; 11 modules &middot; 27 controllers
+</div>
+
+<script>
+// Toggle collapse on module header click
+document.querySelectorAll('.module-header').forEach(function(h) {
+  h.addEventListener('click', function() {
+    this.classList.toggle('collapsed');
+  });
+});
+// Open all by default
+</script>
+
+</body>
+</html>
