@@ -11,7 +11,7 @@ public enum Status implements ResponseErrorStatus, Serializable {
     FOLLOWEE_REQUIRED(ResponseStatus.P_VALUE_ERROR.getStatus(), "被关注用户ID必填", "被关注用户ID必填"),
     QUERY_USER_REQUIRED(ResponseStatus.P_VALUE_ERROR.getStatus(), "查询用户ID必填", "查询用户ID必填"),
     FOLLOW_SELF_NOT_ALLOWED(ResponseStatus.P_VALUE_ERROR.getStatus(), "不能关注自己", "不能关注自己"),
-    FOLLOW_OPERATION_BUSY(ResponseStatus.R_FREQUENT_ACCESS.getStatus(), "关注操作处理中", "关注关系正在处理中，请稍后重试");
+    FOLLOW_OPERATION_BUSY(ResponseStatus.L_FREQUENT_ACCESS.getStatus(), "关注操作处理中", "关注关系正在处理中，请稍后重试");
 
     Status(Integer status, String message) {
         this.status = status;
