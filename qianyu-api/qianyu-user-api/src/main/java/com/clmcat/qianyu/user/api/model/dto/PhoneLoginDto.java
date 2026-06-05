@@ -18,10 +18,7 @@ public class PhoneLoginDto extends LoginDto implements Serializable {
      * 手机号
      */
     private String phone;
-    /**
-     * 国家代码 "+86"
-     */
-    private String countryCode;
+
     /**
      * 短信验证码
      */

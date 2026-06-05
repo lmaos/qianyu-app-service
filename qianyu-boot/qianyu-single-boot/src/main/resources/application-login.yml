@@ -9,3 +9,8 @@ qianyu:
       # 私钥文件路径， 如果指定了私钥文件路径，则上面的 private-key 配置将被忽略
       private-key-path:
 
+    # 微信登录配置
+    wechat:
+      app-id:
+      app-secret:
+

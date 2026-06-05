@@ -18,6 +18,7 @@ import com.clmcat.qianyu.user.model.dto.UserAuthResultDto;
 import com.clmcat.qianyu.user.model.entity.UserAuth;
 import com.clmcat.qianyu.user.model.entity.UserInfo;
 import com.clmcat.qianyu.user.model.vo.LoginResultVo;
+import com.clmcat.qianyu.user.model.vo.UserInfoVo;
 import com.clmcat.qianyu.user.support.LoginSupport;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +51,9 @@ public class UserLoginServiceBiz implements UserLoginApi  {
 
     @Resource
     LoginVerifier loginVerifier;
+
+    @Resource
+    WeChatLoginServiceBiz weChatLoginServiceBiz;
 
     @DubboReference
     UserSocialCounterApi userSocialCounterApi;
@@ -107,15 +111,23 @@ public class UserLoginServiceBiz implements UserLoginApi  {
     @Override
     public LoginResultDto phoneLogin(PhoneLoginDto dto) {
         ResponseStatus.P_VALUE_ERROR.assertThrowResEx(dto == null);
-        String rawPhone = dto.getPhone();
-        String phone = normalizePhoneIdentifier(rawPhone);
+        String phone = dto.getPhone();
         AuthMode authMode = normalizeAuthMode(dto.getAuthMode());
         ///  采用密码登录
         if (AuthMode.PASSWORD.equals(authMode)) {
             return phonePasswordLogin(phone, dto.getPassword());
         }
-        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!verifyCodeServiceBiz.isVerifiedByRedis(IDENTITY_TYPE_PHONE, rawPhone, dto.getCode()));
+        /// 验证手机号， 必须是 +XX-XXXXXXXXXXX 结构才允许通过
+        if (!LoginSupport.isValidTelephone(phone)) {
+            log.info("手机号登录失败，手机号格式不合法，phone={}", phone);
+            throw ResponseStatus.AUTH_LOGIN_FAIL.apiEx();
+        }
 
+        /// 验证码验证。 +86-13800138000 跳过验证 (isVerifiedByRedis 中 验证了测试手机号)
+        if (!verifyCodeServiceBiz.isVerifiedByRedis(IDENTITY_TYPE_PHONE, phone, dto.getCode())) {
+            log.info("手机号登录失败，验证码校验失败，phone={}, code={}", phone, dto.getCode());
+            throw ResponseStatus.AUTH_LOGIN_FAIL.apiEx();
+        }
         UserAuthDto userAuthDto = UserAuthDto.builder()
                 .identifier(phone)
                 .identityType(IDENTITY_TYPE_PHONE)
@@ -145,16 +157,17 @@ public class UserLoginServiceBiz implements UserLoginApi  {
 
     @Override
     public LoginResultDto socialLogin(SocialLoginDto dto) {
+        ResponseStatus.P_VALUE_ERROR.assertThrowResEx(dto == null);
+        ResponseStatus.P_VALUE_ERROR.assertThrowResEx(dto.getPlatform() == null);
 
-        String identifier = null; // TODO 三方社交登录方法。 通过 code 获得 openId
+        // 微信登录：用 code 换取 UserAuthDto，走通用登录/注册流程
+        if (AuthPlatform.WECHAT.equals(dto.getPlatform())) {
+            UserAuthDto authDto = weChatLoginServiceBiz.getWechatUserAuthDto(dto.getCode());
+            return toLoginResultDto(loginOrRegister(authDto));
+        }
 
-        UserAuthDto userAuthDto = UserAuthDto.builder()
-                .identifier(identifier)
-                .identityType(dto.getPlatform().name())
-                .country(country(dto))
-                .build();
-        UserAuthResultDto userAuthResultDto = loginOrRegister(userAuthDto);
-        return toLoginResultDto(userAuthResultDto);
+        // 其他社交平台暂未实现
+        throw ResponseStatus.R_NOT_SUPPORTED.apiEx().setMessage("暂不支持的社交登录平台: " + dto.getPlatform());
     }
 
 
@@ -180,8 +193,7 @@ public class UserLoginServiceBiz implements UserLoginApi  {
      * 社交账户登录
      */
     public LoginResultVo social(SocialLoginDto dto) {
-        LoginResultDto resultDto = socialLogin(dto);
-        return toLoginResultVo(resultDto);
+        return toLoginResultVo(socialLogin(dto));
     }
 
     /**
@@ -216,8 +228,34 @@ public class UserLoginServiceBiz implements UserLoginApi  {
     }
 
     LoginResultVo toLoginResultVo(LoginResultDto dto) {
+        UserInfo userInfo = getUserInfo(dto.getUserId());
+        UserInfoVo userInfoVo = null;
+        if (userInfo != null) {
+            userInfoVo = UserInfoVo.builder()
+                    .userNo(userInfo.getUserNo())
+                    .userId(userInfo.getUserId())
+                    .nickname(userInfo.getNickname())
+                    .avatar(userInfo.getAvatar())
+                    .bio(userInfo.getBio())
+                    .gender(userInfo.getGender())
+                    .birthday(userInfo.getBirthday())
+                    .age(userInfo.getAge())
+                    .phone(userInfo.getPhone())
+                    .phoneVerifiedTime(userInfo.getPhoneVerifiedTime())
+                    .email(userInfo.getEmail())
+                    .country(userInfo.getCountry())
+                    .province(userInfo.getProvince())
+                    .city(userInfo.getCity())
+                    .lastLoginTime(userInfo.getLastLoginTime())
+                    .status(userInfo.getStatus())
+                    .freezeEndTime(userInfo.getFreezeEndTime())
+                    .createTime(userInfo.getCreateTime())
+                    .updateTime(userInfo.getUpdateTime())
+                    .build();
+        }
         return LoginResultVo.builder()
                 .token(dto.getToken())
+                .userInfo(userInfoVo)
                 .build();
     }
 
@@ -370,7 +408,11 @@ public class UserLoginServiceBiz implements UserLoginApi  {
                 .identityType(IDENTITY_TYPE_PHONE)
                 .build());
         ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(userAuth == null || StringUtils.isBlank(userAuth.getCredential()));
-        ResponseStatus.AUTH_LOGIN_FAIL.assertThrowResEx(!encodePassword(password).equals(userAuth.getCredential()));
+        /// 测试手机号，直接通过就好了。
+        if (!LoginSupport.isTestPhone(phone) && !encodePassword(password).equals(userAuth.getCredential())) {
+            log.info("手机号登录失败，密码错误，phone={}", phone);
+            throw  ResponseStatus.AUTH_LOGIN_FAIL.apiEx();
+        }
 
         UserInfo userInfo = getUserInfo(userAuth.getUserId());
         ResponseStatus.R_ACCOUNT_NOT_EXIST.assertThrowResEx(userInfo == null);

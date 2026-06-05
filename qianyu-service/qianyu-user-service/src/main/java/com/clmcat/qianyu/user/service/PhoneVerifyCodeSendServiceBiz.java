@@ -34,6 +34,11 @@ public class PhoneVerifyCodeSendServiceBiz {
      * @param dto 手机号
      */
     public PhoneVerifyVo sendVerifyCode(PhoneVerifyDto dto) {
+        /// 测试手机，直接返回成功。（假手机，就是个测试号）
+        if (LoginSupport.isTestPhone(dto.getPhone())) {
+            return new PhoneVerifyVo();
+        }
+
         String phone = dto.getPhone();
         ///  验证手机号。
         ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("phone").assertThrowEx(!phone.startsWith("+86"));

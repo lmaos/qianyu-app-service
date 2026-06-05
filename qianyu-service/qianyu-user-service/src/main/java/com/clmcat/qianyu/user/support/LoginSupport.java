@@ -12,6 +12,8 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Set;
+
 @Slf4j
 public class LoginSupport {
     /**
@@ -28,6 +30,13 @@ public class LoginSupport {
 //            .add("MachineStrategy", 10, MachineStrategy.autoByIp())
 //            .add("SequenceStrategy", 11, SequenceStrategy.create(), "TimeStrategy")
 //            .build();
+
+    public static final Set<String> TEST_PHONES = Set.of("+86-13800138000", "+86-10000000000");
+
+
+    public static boolean  isTestPhone(String phone) {
+        return TEST_PHONES.contains(phone);
+    }
 
     /**
      * 根据雪花算法解析登录用户ID中的时间戳

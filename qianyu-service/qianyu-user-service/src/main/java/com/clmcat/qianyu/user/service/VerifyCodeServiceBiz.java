@@ -1,5 +1,7 @@
 package com.clmcat.qianyu.user.service;
 
+import com.clmcat.qianyu.user.model.vo.PhoneVerifyVo;
+import com.clmcat.qianyu.user.support.LoginSupport;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,10 @@ public class VerifyCodeServiceBiz {
 
 
     public boolean isVerifiedByRedis(String identityType, String identifier, String code) {
+        /// 测试手机号，直接通过验证即可。
+        if (LoginSupport.isTestPhone(identifier)) {
+            return true;
+        }
 
         String verifyCodeKey = getVerifyCodeKey(identityType, identifier);
 
