@@ -57,7 +57,7 @@ public class PhoneVerifyCodeSendServiceBiz {
             throw e;
         }
         verifyCodeServiceBiz.saveVerifyCodeToRedis("phone", phone, code, 5 * 60 * 1000);
-        log.info("发送手机验证码成功, phone: {}", maskPhone(phone));
+        log.info("发送手机验证码成功, phone: {}, code: {}", maskPhone(phone), code);
         PhoneVerifyVo vo = new PhoneVerifyVo();
         vo.setNeedSecondVerify(false);
         return vo;
