@@ -3,12 +3,14 @@ package com.clmcat.qianyu.user.service;
 import com.clmcat.qianyu.user.model.vo.PhoneVerifyVo;
 import com.clmcat.qianyu.user.support.LoginSupport;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 public class VerifyCodeServiceBiz {
 
@@ -64,4 +66,12 @@ public class VerifyCodeServiceBiz {
         return "VERIFY_CODE_" + identityType + "_" + identifier;
     }
 
+    public void deleteVerifyCodeToRedis(String identityType, String identifier) {
+        try {
+            String verifyCodeKey = getVerifyCodeKey(identityType, identifier);
+            redisTemplate.delete(Arrays.asList(verifyCodeKey, verifyCodeKey + ".incr", verifyCodeKey + ".status"));
+        } catch (Exception e) {
+            log.error("删除验证码 Redis 键失败, identityType={}, identifier={}", identityType, identifier, e);
+        }
+    }
 }

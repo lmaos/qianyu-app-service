@@ -49,14 +49,21 @@ public class PhoneVerifyCodeSendServiceBiz {
         String code = RandomUtils.secure().randomInt(100000, 999999) + "";
         String templateParam = "{\"code\":\"" + code + "\"}";
         try {
+            verifyCodeServiceBiz.saveVerifyCodeToRedis("phone", phone, code, 5 * 60 * 1000);
+        } catch (Exception e) {
+            log.error("redis请求失败", e);
+            throw ResponseStatus.F_SERVICE_UNAVAILABLE.apiEx("验证码发送失败，请稍后再试");
+        }
+        try {
             aliyunSmsSender.send(smsPhone, aliyunSmsProperties.getSignName(), PHONE_VERIFY_TEMPLATE_CODE, templateParam);
         } catch (IllegalStateException e) {
+            verifyCodeServiceBiz.deleteVerifyCodeToRedis("phone", phone);
             if (e.getMessage() != null && e.getMessage().contains("手机号码格式错误")) {
                 throw ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("phone").setMessage("手机号格式错误");
             }
-            throw e;
+            throw ResponseStatus.F_SERVICE_UNAVAILABLE.apiEx("验证码发送失败，请稍后再试");
         }
-        verifyCodeServiceBiz.saveVerifyCodeToRedis("phone", phone, code, 5 * 60 * 1000);
+
         log.info("发送手机验证码成功, phone: {}, code: {}", maskPhone(phone), code);
         PhoneVerifyVo vo = new PhoneVerifyVo();
         vo.setNeedSecondVerify(false);
