@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 腾讯云 IM Provider
@@ -35,6 +37,13 @@ public class TencentProvider implements IMProvider {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Random random = new Random();
+
+    /**
+     * 进程内已注册用户集合（用于 ensureUserRegistered 幂等）。
+     * 注册成功（含腾讯云返回 70001 账号已存在）后加入，下次直接跳过 REST 调用，
+     * 避免同一用户重复触发腾讯云 account_import 限频。
+     */
+    private final Set<String> registeredUserIds = ConcurrentHashMap.newKeySet();
 
     @Override
     public String sendMessage(MessageBody body) {
@@ -82,12 +91,19 @@ public class TencentProvider implements IMProvider {
 
     @Override
     public void ensureUserRegistered(long userId) {
+        String identifier = String.valueOf(userId);
+
+        // 幂等：已注册过的用户直接跳过，避免反复打腾讯云 account_import 触发 REST 限频
+        if (registeredUserIds.contains(identifier)) {
+            return;
+        }
+
         try {
             String adminUserSig = generateAdminUserSig();
             String url = buildApiUrl("v4/im_open_login_svc/account_import", adminUserSig);
 
             ObjectNode body = objectMapper.createObjectNode();
-            body.put("Identifier", String.valueOf(userId));
+            body.put("Identifier", identifier);
 
             Map<String, String> headers = new HashMap<>();
             headers.put("Content-Type", "application/json");
@@ -97,15 +113,22 @@ public class TencentProvider implements IMProvider {
 
             String actionStatus = json.path("ActionStatus").asText();
             int errorCode = json.path("ErrorCode").asInt(-1);
+            String errorInfo = json.path("ErrorInfo").asText("");
 
-            if (!"OK".equals(actionStatus) && errorCode != 70001) {
-                // 70001 = 账号已存在，视为成功
-                log.info("腾讯云 IM 用户注册: userId={} status={}", userId, actionStatus);
+            if ("OK".equals(actionStatus)) {
+                // 注册成功
+                registeredUserIds.add(identifier);
+                log.info("腾讯云 IM 用户注册成功: userId={}", userId);
+            } else if (errorCode == 70001) {
+                // 70001 = 账号已存在，腾讯云幂等返回，视为成功
+                registeredUserIds.add(identifier);
+                log.info("腾讯云 IM 用户已存在: userId={}", userId);
             } else {
-                log.info("腾讯云 IM 用户已存在或注册成功: userId={}", userId);
+                // 其他错误：记 warn 但不抛异常（用户没注册不会阻塞本次业务，后续 SDK 登录时再注册）
+                log.warn("腾讯云 IM 用户注册失败: userId={}, errorCode={}, errorInfo={}", userId, errorCode, errorInfo);
             }
         } catch (Exception e) {
-            log.warn("腾讯云 IM 用户注册失败（可能已存在）: userId={}, error={}", userId, e.getMessage());
+            log.warn("腾讯云 IM 用户注册异常（不影响业务）: userId={}, error={}", userId, e.getMessage());
         }
     }
 
