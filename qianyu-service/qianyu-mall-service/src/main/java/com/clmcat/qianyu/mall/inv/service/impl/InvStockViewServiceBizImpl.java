@@ -10,7 +10,9 @@ import com.clmcat.qianyu.mall.inv.model.vo.StockAdjustResultVO;
 import com.clmcat.qianyu.mall.inv.model.vo.StockInfoVO;
 import com.clmcat.qianyu.mall.inv.model.vo.StockLockFailItemVO;
 import com.clmcat.qianyu.mall.inv.model.vo.StockLockResultVO;
+import com.clmcat.qianyu.mall.inv.model.vo.StockPageItemVO;
 import com.clmcat.qianyu.mall.inv.support.InvSupport;
+import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -156,5 +158,37 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
                 .beforeStock(beforeStock)
                 .afterStock(beforeStock + delta)
                 .build();
+    }
+
+    /**
+     * B端商家库存分页查询
+     */
+    public Page<StockPageItemVO> stockPage(long userId, StockPageQueryDTO dto) {
+        int pageNum = dto != null && dto.getPageNum() != null && dto.getPageNum() > 0 ? dto.getPageNum() : 1;
+        int pageSize = dto != null && dto.getPageSize() != null && dto.getPageSize() > 0 ? dto.getPageSize() : 10;
+
+        QueryWrapper qw = QueryWrapper.create();
+        qw.orderBy("update_time DESC");
+
+        Page<InvStock> stockPage = stockServiceBiz.paginate(Page.of(pageNum, pageSize), qw);
+        if (stockPage == null || stockPage.getRecords() == null) {
+            return new Page<>(pageNum, pageSize);
+        }
+
+        List<StockPageItemVO> voList = new ArrayList<>();
+        for (InvStock stock : stockPage.getRecords()) {
+            voList.add(StockPageItemVO.builder()
+                    .id(stock.getId())
+                    .skuId(stock.getSkuId())
+                    .availableStock(stock.getAvailableStock())
+                    .lockedStock(stock.getLockedStock())
+                    .safetyStock(stock.getSafetyStock())
+                    .build());
+        }
+
+        Page<StockPageItemVO> result = new Page<>(pageNum, pageSize);
+        result.setRecords(voList);
+        result.setTotalRow(stockPage.getTotalRow());
+        return result;
     }
 }

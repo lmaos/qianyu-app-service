@@ -5,6 +5,7 @@ import com.clmcat.qianyu.mall.api.inv.model.dto.InvStockDto;
 import com.clmcat.qianyu.mall.inv.mapper.InvStockMapper;
 import com.clmcat.qianyu.mall.inv.model.entity.InvStock;
 import com.clmcat.qianyu.mall.inv.model.entity.status.InvStatus;
+import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -137,6 +138,10 @@ public class InvStockApiImpl implements InvStockApi {
 
     public int adjustStockInternal(Long id, int delta, Long version, long updateTime) {
         return stockMapper.adjustStock(id, delta, version, updateTime);
+    }
+
+    public Page<InvStock> paginate(Page<InvStock> page, QueryWrapper qw) {
+        return stockMapper.paginate(page, qw);
     }
 
     private InvStockDto toDto(InvStock stock) {

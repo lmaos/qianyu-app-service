@@ -20,4 +20,6 @@ public interface OmsAfterSaleViewServiceBiz {
 
     void auditAfterSale(Long merchantId, AfterSaleAuditDTO dto);
 
+    Page<AfterSaleSimpleVO> merchantAfterSaleList(Long merchantId, AfterSaleQueryDTO dto);
+
 }

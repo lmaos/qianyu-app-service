@@ -1,10 +1,13 @@
 package com.clmcat.qianyu.mall.log.service;
 
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsCreateDTO;
+import com.clmcat.qianyu.mall.log.model.dto.LogisticsListQueryDTO;
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsPushDTO;
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsQueryDTO;
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsUpdateDTO;
 import com.clmcat.qianyu.mall.log.model.vo.LogisticsDetailVO;
+import com.clmcat.qianyu.mall.log.model.vo.LogisticsListItemVO;
+import com.mybatisflex.core.paginate.Page;
 
 public interface LogisticsViewServiceBiz {
 
@@ -17,5 +20,7 @@ public interface LogisticsViewServiceBiz {
     void updateLogistics(long userId, LogisticsUpdateDTO dto);
 
     Boolean handlePush(LogisticsPushDTO dto);
+
+    Page<LogisticsListItemVO> logisticsList(long userId, LogisticsListQueryDTO dto);
 
 }

@@ -3,8 +3,10 @@ package com.clmcat.qianyu.mall.inv.controller;
 import com.clmcat.framework.webmvc.anns.*;
 import com.clmcat.qianyu.mall.inv.model.dto.StockAdjustDTO;
 import com.clmcat.qianyu.mall.inv.model.dto.StockLogQueryDTO;
+import com.clmcat.qianyu.mall.inv.model.dto.StockPageQueryDTO;
 import com.clmcat.qianyu.mall.inv.model.vo.StockAdjustResultVO;
 import com.clmcat.qianyu.mall.inv.model.vo.StockLogItemVO;
+import com.clmcat.qianyu.mall.inv.model.vo.StockPageItemVO;
 import com.clmcat.qianyu.mall.inv.service.InvStockLogViewServiceBiz;
 import com.clmcat.qianyu.mall.inv.service.InvStockViewServiceBiz;
 import com.mybatisflex.core.paginate.Page;
@@ -41,5 +43,13 @@ public class InvMerchantController {
             @Parameter(hidden = true) @Token long userId,
             @Params StockLogQueryDTO dto) {
         return stockLogViewServiceBiz.queryLog(userId, dto);
+    }
+
+    @Operation(summary = "库存分页查询")
+    @PostMapping("/stockPage")
+    public Page<StockPageItemVO> stockPage(
+            @Parameter(hidden = true) @Token long userId,
+            @Params StockPageQueryDTO dto) {
+        return stockViewServiceBiz.stockPage(userId, dto);
     }
 }

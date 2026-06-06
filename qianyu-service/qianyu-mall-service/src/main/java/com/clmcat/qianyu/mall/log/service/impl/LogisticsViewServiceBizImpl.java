@@ -3,6 +3,7 @@ package com.clmcat.qianyu.mall.log.service.impl;
 import com.clmcat.qianyu.mall.log.rpc.DeliveryTraceApiImpl;
 import com.clmcat.qianyu.mall.log.rpc.LogisticsApiImpl;
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsCreateDTO;
+import com.clmcat.qianyu.mall.log.model.dto.LogisticsListQueryDTO;
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsPushDTO;
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsQueryDTO;
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsUpdateDTO;
@@ -10,6 +11,9 @@ import com.clmcat.qianyu.mall.log.model.entity.LogDeliveryTrace;
 import com.clmcat.qianyu.mall.log.model.entity.LogShipping;
 import com.clmcat.qianyu.mall.log.model.entity.status.LogisticsStatus;
 import com.clmcat.qianyu.mall.log.model.vo.LogisticsDetailVO;
+import com.clmcat.qianyu.mall.log.model.vo.LogisticsListItemVO;
+import com.mybatisflex.core.paginate.Page;
+import com.mybatisflex.core.query.QueryWrapper;
 import com.clmcat.qianyu.mall.log.support.LogisticsConvert;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -167,5 +171,54 @@ public class LogisticsViewServiceBizImpl implements LogisticsViewServiceBiz {
         }
 
         return true;
+    }
+
+    /**
+     * B端商家物流列表
+     */
+    public Page<LogisticsListItemVO> logisticsList(long userId, LogisticsListQueryDTO dto) {
+        int pageNum = dto != null && dto.getPageNum() != null && dto.getPageNum() > 0 ? dto.getPageNum() : 1;
+        int pageSize = dto != null && dto.getPageSize() != null && dto.getPageSize() > 0 ? dto.getPageSize() : 10;
+
+        QueryWrapper qw = QueryWrapper.create();
+        if (dto != null && dto.getShippingNo() != null && !dto.getShippingNo().isEmpty()) {
+            qw.where("shipping_no LIKE ?", "%" + dto.getShippingNo() + "%");
+        }
+        qw.orderBy("create_time DESC");
+
+        Page<LogShipping> shippingPage = logisticsServiceBiz.paginate(Page.of(pageNum, pageSize), qw);
+        if (shippingPage == null || shippingPage.getRecords() == null) {
+            return new Page<>(pageNum, pageSize);
+        }
+
+        java.util.List<LogisticsListItemVO> voList = new java.util.ArrayList<>();
+        for (LogShipping s : shippingPage.getRecords()) {
+            voList.add(LogisticsListItemVO.builder()
+                    .id(s.getId())
+                    .orderId(s.getOrderId())
+                    .shippingNo(s.getShippingNo())
+                    .shippingCompanyName(s.getShippingCompanyName())
+                    .status(s.getStatus())
+                    .statusText(shippingStatusText(s.getStatus()))
+                    .deliveryTime(s.getDeliveryTime() != null ? String.valueOf(s.getDeliveryTime()) : null)
+                    .receiveTime(s.getReceiveTime() != null ? String.valueOf(s.getReceiveTime()) : null)
+                    .build());
+        }
+
+        Page<LogisticsListItemVO> result = new Page<>(pageNum, pageSize);
+        result.setRecords(voList);
+        result.setTotalRow(shippingPage.getTotalRow());
+        return result;
+    }
+
+    private String shippingStatusText(Integer status) {
+        if (status == null) return "";
+        return switch (status) {
+            case 0 -> "已发货";
+            case 1 -> "运输中";
+            case 2 -> "已签收";
+            case 3 -> "异常";
+            default -> "";
+        };
     }
 }

@@ -4,6 +4,7 @@ import com.clmcat.framework.webmvc.anns.*;
 import com.clmcat.qianyu.mall.api.mch.MerchantApi;
 import com.clmcat.qianyu.mall.api.mch.model.dto.MerchantDto;
 import com.clmcat.qianyu.mall.oms.model.dto.*;
+import com.clmcat.qianyu.mall.oms.model.vo.AfterSaleSimpleVO;
 import com.clmcat.qianyu.mall.oms.model.vo.OrderDetailVO;
 import com.clmcat.qianyu.mall.oms.model.vo.OrderSimpleVO;
 import com.clmcat.qianyu.mall.oms.service.OmsAfterSaleViewServiceBiz;
@@ -63,6 +64,15 @@ public class OmsMerchantOrderController {
     public void aftersaleAudit(@Parameter(hidden = true) @Token long userId, @Params AfterSaleAuditDTO dto) {
         Long merchantId = resolveMerchantId(userId);
         afterSaleViewServiceBiz.auditAfterSale(merchantId, dto);
+    }
+
+    @Operation(summary = "B端-售后列表")
+    @PostMapping("/aftersaleList")
+    public Page<AfterSaleSimpleVO> aftersaleList(
+            @Parameter(hidden = true) @Token long userId,
+            @Params AfterSaleQueryDTO dto) {
+        Long merchantId = resolveMerchantId(userId);
+        return afterSaleViewServiceBiz.merchantAfterSaleList(merchantId, dto);
     }
 
     private Long resolveMerchantId(Long userId) {

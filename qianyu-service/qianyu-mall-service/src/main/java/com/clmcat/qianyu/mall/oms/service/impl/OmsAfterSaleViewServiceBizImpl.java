@@ -147,6 +147,48 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
         afterSaleServiceBiz.updateAfterSale(afterSale);
     }
 
+    /**
+     * B端商家售后列表 — 按 merchantId 查询
+     */
+    public Page<AfterSaleSimpleVO> merchantAfterSaleList(Long merchantId, AfterSaleQueryDTO dto) {
+        int pageNum = dto.getPageNum() != null && dto.getPageNum() > 0 ? dto.getPageNum() : 1;
+        int pageSize = dto.getPageSize() != null && dto.getPageSize() > 0 ? dto.getPageSize() : 10;
+
+        QueryWrapper qw = QueryWrapper.create();
+        qw.where("merchant_id = ?", merchantId);
+        if (dto.getStatus() != null && dto.getStatus() > 0) {
+            qw.and("status = ?", dto.getStatus());
+        }
+        qw.orderBy("create_time DESC");
+
+        Page<OmsAfterSale> page = Page.of(pageNum, pageSize);
+        Page<OmsAfterSale> result = afterSaleServiceBiz.page(qw, page);
+
+        List<AfterSaleSimpleVO> voList = new ArrayList<>();
+        if (result != null && result.getRecords() != null) {
+            for (OmsAfterSale as : result.getRecords()) {
+                voList.add(AfterSaleSimpleVO.builder()
+                        .id(as.getId())
+                        .aftersaleSn("AS" + as.getId())
+                        .orderId(as.getOrderId())
+                        .type(as.getType())
+                        .typeText(typeText(as.getType()))
+                        .status(as.getStatus())
+                        .statusText(statusText(as.getStatus()))
+                        .refundAmount(as.getAmount() != null ? as.getAmount().toPlainString() : "0")
+                        .createTime(String.valueOf(as.getCreateTime()))
+                        .build());
+            }
+        }
+
+        Page<AfterSaleSimpleVO> voPage = new Page<>();
+        voPage.setRecords(voList);
+        voPage.setTotalRow(result != null ? result.getTotalRow() : 0);
+        voPage.setPageNumber(pageNum);
+        voPage.setPageSize(pageSize);
+        return voPage;
+    }
+
     private String typeText(Integer type) {
         if (type == null) return "";
         return switch (type) {

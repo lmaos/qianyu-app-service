@@ -4,8 +4,11 @@ import com.clmcat.framework.webmvc.anns.ApiController;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsCreateDTO;
+import com.clmcat.qianyu.mall.log.model.dto.LogisticsListQueryDTO;
 import com.clmcat.qianyu.mall.log.model.dto.LogisticsUpdateDTO;
+import com.clmcat.qianyu.mall.log.model.vo.LogisticsListItemVO;
 import com.clmcat.qianyu.mall.log.service.LogisticsViewServiceBiz;
+import com.mybatisflex.core.paginate.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,5 +45,16 @@ public class LogisticsMerchantController {
             @Parameter(hidden = true) @Token long userId,
             @Params LogisticsUpdateDTO dto) {
         logisticsViewServiceBiz.updateLogistics(userId, dto);
+    }
+
+    /**
+     * 物流列表 — 商家查询所有物流单
+     */
+    @Operation(summary = "物流列表")
+    @PostMapping("/logisticsList")
+    public Page<LogisticsListItemVO> logisticsList(
+            @Parameter(hidden = true) @Token long userId,
+            @Params LogisticsListQueryDTO dto) {
+        return logisticsViewServiceBiz.logisticsList(userId, dto);
     }
 }

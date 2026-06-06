@@ -4,6 +4,8 @@ import com.clmcat.qianyu.mall.api.log.LogisticsApi;
 import com.clmcat.qianyu.mall.api.log.model.dto.LogShippingDto;
 import com.clmcat.qianyu.mall.log.mapper.LogShippingMapper;
 import com.clmcat.qianyu.mall.log.model.entity.LogShipping;
+import com.mybatisflex.core.paginate.Page;
+import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
@@ -51,6 +53,10 @@ public class LogisticsApiImpl implements LogisticsApi {
 
     public void update(LogShipping shipping) {
         shippingMapper.update(shipping);
+    }
+
+    public Page<LogShipping> paginate(Page<LogShipping> page, QueryWrapper qw) {
+        return shippingMapper.paginate(page, qw);
     }
 
     private LogShippingDto toDto(LogShipping shipping) {
