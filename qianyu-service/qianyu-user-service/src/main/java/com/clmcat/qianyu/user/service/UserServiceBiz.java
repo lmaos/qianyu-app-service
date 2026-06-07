@@ -63,6 +63,23 @@ public class UserServiceBiz implements UserApi {
         return rpcUserInfoDtos;
     }
 
+    @Override
+    public RpcUserInfoDto getUserInfoByUserNo(String userNo) {
+        // 参数校验
+        ResponseStatus.P_VALUE_ERROR.assertThrowResEx(userNo == null);
+        String trimmed = userNo.trim();
+        ResponseStatus.P_VALUE_ERROR.apiEx().setErrplace("userNo").assertThrowEx(trimmed.isEmpty() || trimmed.length() > 64);
+
+        // 命中返回 1 条 / 未命中返回 null（UNIQUE KEY 兜底）
+        UserInfo userInfo = userInfoMapper.selectByUserNo(trimmed);
+        if (userInfo == null) {
+            return null;
+        }
+        RpcUserInfoDto rpcUserInfoDto = new RpcUserInfoDto();
+        BeanUtils.copyProperties(userInfo, rpcUserInfoDto);
+        return rpcUserInfoDto;
+    }
+
     public RpcUserInfoDto updateUserInfo(long userId, UserInfoUpdateDto dto) {
         ResponseStatus.P_VALUE_ERROR.assertThrowResEx(userId <= 0);
         verifyUpdateDto(dto);

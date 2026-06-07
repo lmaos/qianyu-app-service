@@ -7,6 +7,7 @@ import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.user.model.dto.UserIdDto;
 import com.clmcat.qianyu.user.model.dto.UserIdsDto;
 import com.clmcat.qianyu.user.model.dto.UserInfoUpdateDto;
+import com.clmcat.qianyu.user.model.dto.UserNoSearchDto;
 import com.clmcat.qianyu.user.model.vo.UserInfoVo;
 import com.clmcat.qianyu.user.service.UserViewServiceBiz;
 import io.swagger.v3.oas.annotations.Operation;
@@ -100,6 +101,23 @@ public class UserController {
     @GetMapping("/user_info/self")
     public UserInfoVo getSelfUserInfo(@Parameter(hidden = true) @Token long userId) {
         return userViewServiceBiz.getSelfUserInfo(userId);
+    }
+
+    /**
+     * 按 userNo 精确搜索用户（添加好友场景）。
+     *
+     * @param userId 当前登录用户ID，由 Token 自动解析注入
+     * @param dto 查询参数，userNo 为用户外显 ID（全局唯一）
+     * @return 用户信息；查不到返回 null
+     */
+    @Operation(
+            summary = "按 userNo 搜索用户",
+            description = "参数说明：userId 由登录 token 自动解析；dto.userNo 为用户外显ID（用于添加好友等场景的精确搜索）。userNo 全局唯一，未命中返回 null。返回他人资料时使用 1-2 分钟本地缓存。"
+    )
+    @GetMapping("/user_info/search")
+    public UserInfoVo getUserInfoByUserNo(@Parameter(hidden = true) @Token long userId,
+                                         @ParameterObject @Params UserNoSearchDto dto) {
+        return userViewServiceBiz.getUserInfoByUserNo(userId, dto);
     }
 
     /**

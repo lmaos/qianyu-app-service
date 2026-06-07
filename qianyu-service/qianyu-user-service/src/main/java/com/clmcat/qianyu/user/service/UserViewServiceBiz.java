@@ -5,6 +5,7 @@ import com.clmcat.qianyu.user.api.model.dto.RpcUserInfoDto;
 import com.clmcat.qianyu.user.model.dto.UserIdDto;
 import com.clmcat.qianyu.user.model.dto.UserIdsDto;
 import com.clmcat.qianyu.user.model.dto.UserInfoUpdateDto;
+import com.clmcat.qianyu.user.model.dto.UserNoSearchDto;
 import com.clmcat.qianyu.user.model.vo.UserInfoVo;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
@@ -59,6 +60,22 @@ public class UserViewServiceBiz {
     public UserInfoVo getSelfUserInfo(long userId) {
         ResponseStatus.P_VALUE_ERROR.assertThrowResEx(userId <= 0);
         return toUserInfoVo(userServiceBiz.getUserInfo(userId));
+    }
+
+    /**
+     * 按 userNo 精确搜索用户（添加好友场景）。userNo 全局唯一，命中返回 1 条 / 未命中返回 null。
+     * 与 getUserInfo 区别：getUserInfo 按 userId 走缓存层；本接口按 userNo 走唯一索引直查，
+     * 不走缓存（搜索是低频操作，且 userNo 索引天然 O(1)）。
+     *
+     * @param viewerId 当前查看者ID（保留参数以备后续按 viewerId 做差异化公开资料裁剪，当前未用）
+     * @param dto 查询参数，userNo 为用户外显 ID
+     * @return 用户信息 VO；查不到返回 null
+     */
+    public UserInfoVo getUserInfoByUserNo(long viewerId, UserNoSearchDto dto) {
+        if (dto == null || dto.getUserNo() == null) {
+            return null;
+        }
+        return toUserInfoVo(userServiceBiz.getUserInfoByUserNo(dto.getUserNo()));
     }
 
     /**

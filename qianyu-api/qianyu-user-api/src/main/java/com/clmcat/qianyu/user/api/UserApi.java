@@ -23,4 +23,13 @@ public interface UserApi {
      */
     List<RpcUserInfoDto> getUserInfoList(Collection<Long> userIds);
 
+    /**
+     * 按 userNo 精确查询用户。userNo 全局唯一（UNIQUE KEY uk_user_no），
+     * 最多返回 1 条；未命中返回 null。
+     *
+     * @param userNo 用户外显 ID
+     * @return 命中的用户信息；未命中返回 null
+     */
+    RpcUserInfoDto getUserInfoByUserNo(String userNo);
+
 }

@@ -4,6 +4,7 @@ import com.mybatisflex.core.BaseMapper;
 import com.clmcat.qianyu.user.model.entity.UserInfo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
@@ -34,4 +35,14 @@ public interface UserInfoMapper extends BaseMapper<UserInfo> {
             "WHERE user_id = #{userInfo.userId}" +
             "</script>")
     int updateByUserIdSelective(@Param("userInfo") UserInfo userInfo);
+
+    /**
+     * 按 userNo 精确查询用户。userNo 字段在表上有 UNIQUE KEY uk_user_no，
+     * 理论上最多返回 1 条；这里用 LIMIT 1 兜底，避免极端情况下 MyBatis-Flex 抛 TooManyResultsException。
+     *
+     * @param userNo 用户外显 ID（搜索、分享用的业务 ID）
+     * @return 命中的用户实体；未命中返回 null
+     */
+    @Select("SELECT * FROM user_info WHERE user_no = #{userNo} LIMIT 1")
+    UserInfo selectByUserNo(@Param("userNo") String userNo);
 }
