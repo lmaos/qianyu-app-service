@@ -93,9 +93,30 @@ public class PmsSpuApiImpl implements PmsSpuApi {
         return spuMapper.paginate(page, qw);
     }
 
+    /**
+     * SPU 分页列表（按分类/商家，仅上架状态）
+     *
+     * <p>实现要点：MyBatis-Flex 对 {@code @Select} 注解方法恒走 {@code selectOne}，
+     * 无法承载分页结果集。改用 {@link com.mybatisflex.core.BaseMapper#paginate}
+     * 配合动态 {@link QueryWrapper} 拼条件——分页 + 条件 + 排序都交给框架处理。
+     *
+     * <p>{@code merchantName} / {@code storeName} 不在本查询中 JOIN，由
+     * {@code PmsCategoryViewBizImpl} 在转 VO 时通过 {@code PmsSupport}
+     * 单独补全（避免在分页主查询里用 LEFT JOIN 拖慢大表）。
+     */
     public com.mybatisflex.core.paginate.Page<PmsSpu> selectSpuList(
             com.mybatisflex.core.paginate.Page<PmsSpu> page, Long categoryId, Long merchantId) {
-        return spuMapper.selectSpuList(page, categoryId, merchantId);
+        QueryWrapper qw = QueryWrapper.create()
+                .where(PMS_SPU.STATUS.eq(1))
+                .and(PMS_SPU.DELETED.eq(0));
+        if (categoryId != null) {
+            qw.and(PMS_SPU.CATEGORY_ID.eq(categoryId));
+        }
+        if (merchantId != null) {
+            qw.and(PMS_SPU.MERCHANT_ID.eq(merchantId));
+        }
+        qw.orderBy(PMS_SPU.SORT.asc(), PMS_SPU.CREATE_TIME.desc());
+        return spuMapper.paginate(page, qw);
     }
 
     public void insertSelective(PmsSpu spu) {

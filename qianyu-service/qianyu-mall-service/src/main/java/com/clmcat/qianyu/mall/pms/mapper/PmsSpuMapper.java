@@ -53,8 +53,17 @@ public interface PmsSpuMapper extends BaseMapper<PmsSpu> {
                              @Param("sortOrder") String sortOrder);
 
     /**
-     * SPU 列表（按分类/商家，仅上架状态）
+     * 【已废弃】SPU 列表（按分类/商家，仅上架状态）
+     *
+     * <p>不要直接调用本方法。{@code @Select} 注解方法在 MyBatis-Flex 中恒走
+     * {@code selectOne}，无法承载分页结果——{@code TooManyResultsException} 已被
+     * 实际接口验证。请改走 {@link #paginate(com.mybatisflex.core.paginate.Page, com.mybatisflex.core.query.QueryWrapper)}
+     * 配合 {@link com.mybatisflex.core.query.QueryWrapper} 动态拼条件，参见
+     * {@code PmsSpuApiImpl#selectSpuList}。
+     *
+     * <p>保留本方法仅为了不破坏可能的反射/单元测试；调用方应使用新实现。
      */
+    @Deprecated
     @Select("<script>" +
             "SELECT s.*, m.name AS merchant_name, st.name AS store_name " +
             "FROM pms_spu s " +
