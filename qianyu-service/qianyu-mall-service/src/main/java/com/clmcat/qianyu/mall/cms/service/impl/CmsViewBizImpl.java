@@ -9,6 +9,7 @@ import com.clmcat.qianyu.mall.cms.service.CmsZoneServiceBiz;
 import com.clmcat.qianyu.mall.cms.model.vo.BannerVo;
 import com.clmcat.qianyu.mall.cms.model.vo.HomePageVo;
 import com.clmcat.qianyu.mall.cms.model.vo.HomeTabVo;
+import com.clmcat.qianyu.mall.cms.model.vo.TabZoneListVo;
 import com.clmcat.qianyu.mall.cms.model.vo.ZoneVo;
 import com.clmcat.qianyu.mall.pms.mapper.PmsSpuMapper;
 import com.clmcat.qianyu.mall.pms.model.entity.PmsSpu;
@@ -134,10 +135,42 @@ public class CmsViewBizImpl implements CmsViewBiz {
         }
 
         // 3. Zone 列表（带商品，实时查询）
+        List<ZoneVo> zoneVos = buildZonesVo(null);
+
+        return HomePageVo.builder()
+                .tabList(tabVos)
+                .defaultTabKey(defaultTabKey)
+                .bannerList(bannerVos)
+                .zoneList(zoneVos)
+                .build();
+    }
+
+    /**
+     * 单个 Tab 下的 Zone 列表
+     *
+     * <p>{@code categoryId} 为 0 / null 时返回 recommend 默认的 zoneList（与 homePage
+     * 一致）；非 0 时按该分类过滤 zone 内的商品。
+     *
+     * <p>TODO: 后续若 CMS 支持"分类专属运营位"，再按 {@code tabZoneConfig}
+     * 查该分类绑定的 zone 列表，而不是返回全量 zone。
+     */
+    @Override
+    public TabZoneListVo getTabZoneList(Long categoryId) {
+        List<ZoneVo> zoneVos = buildZonesVo(categoryId);
+        return TabZoneListVo.builder().zoneList(zoneVos).build();
+    }
+
+    /**
+     * 构造 ZoneVo 列表（带商品），统一 homePage 和 tabZoneList 的查询逻辑
+     *
+     * @param tabCategoryId 当前 Tab 关联的分类 ID；null/0 表示"recommend 默认"，
+     *                       此时退回原 homePage 行为（按 zone 自身的 categoryId 过滤商品）
+     */
+    private List<ZoneVo> buildZonesVo(Long tabCategoryId) {
         List<CmsZone> zones = zoneServiceBiz.selectAllEnabled();
         List<ZoneVo> zoneVos = new ArrayList<>();
         for (CmsZone z : zones) {
-            List<SpuSimpleVo> products = loadZoneProducts(z);
+            List<SpuSimpleVo> products = loadZoneProducts(z, tabCategoryId);
             zoneVos.add(ZoneVo.builder()
                     .id(z.getId())
                     .title(z.getTitle())
@@ -149,25 +182,26 @@ public class CmsViewBizImpl implements CmsViewBiz {
                     .productList(products)
                     .build());
         }
-
-        return HomePageVo.builder()
-                .tabList(tabVos)
-                .defaultTabKey(defaultTabKey)
-                .bannerList(bannerVos)
-                .zoneList(zoneVos)
-                .build();
+        return zoneVos;
     }
 
     /**
-     * 加载 Zone 关联的商品（按分类或全部，取销量前 N）
+     * 加载 Zone 关联的商品（按销量前 N）
+     *
+     * @param zone         当前 zone
+     * @param tabCategoryId 当前 Tab 的分类 ID；null/0 时用 zone 自身的 categoryId
      */
-    private List<SpuSimpleVo> loadZoneProducts(CmsZone zone) {
+    private List<SpuSimpleVo> loadZoneProducts(CmsZone zone, Long tabCategoryId) {
         int count = zone.getProductCount() != null ? zone.getProductCount() : 4;
 
         QueryWrapper qw = QueryWrapper.create()
                 .where(PMS_SPU.STATUS.eq(1));
 
-        if (zone.getCategoryId() != null) {
+        if (tabCategoryId != null && tabCategoryId > 0) {
+            // 具体 Tab → 强制按 Tab 分类过滤（覆盖 zone 自身的分类）
+            qw.and(PMS_SPU.CATEGORY_ID.eq(tabCategoryId));
+        } else if (zone.getCategoryId() != null) {
+            // recommend Tab → 用 zone 自身的分类（与 homePage 行为一致）
             qw.and(PMS_SPU.CATEGORY_ID.eq(zone.getCategoryId()));
         }
 
