@@ -57,9 +57,9 @@ public class MomentServiceBiz implements MomentApi {
     }
 
     @Override
-    public List<MomentDto> getMomentByIds(List<Long> momentIds) {
+    public MomentListDto getMomentByIds(List<Long> momentIds) {
         if (momentIds == null || momentIds.isEmpty()) {
-            return new ArrayList<>();
+            return MomentListDto.EMPTY;
         }
         LinkedHashSet<Long> normalizedIds = new LinkedHashSet<>();
         for (Long momentId : momentIds) {
@@ -68,12 +68,12 @@ public class MomentServiceBiz implements MomentApi {
             }
         }
         if (normalizedIds.isEmpty()) {
-            return new ArrayList<>();
+            return MomentListDto.EMPTY;
         }
         List<Moment> moments = momentMapper.selectListByIds(normalizedIds);
 
         if (moments == null || moments.isEmpty()) {
-            return new ArrayList<>();
+            return MomentListDto.EMPTY;
         }
 
         Map<Long, MomentDto> momentMap = new HashMap<>();
@@ -88,22 +88,13 @@ public class MomentServiceBiz implements MomentApi {
                 result.add(momentDto);
             }
         }
-        return result;
+        return MomentListDto.builder().moments(result).build();
     }
 
     @Override
-    public List<MomentDto> getMomentByAuthorId(String authorId, long nextMomentId, int limit) {
-        long parsedAuthorId = NumberUtils.toLong(authorId, 0L);
-        if (parsedAuthorId <= 0) {
-            return new ArrayList<>();
-        }
-        return getMomentByAuthorId(parsedAuthorId, nextMomentId, limit);
-    }
-
-    @Override
-    public List<MomentDto> getMomentByAuthorId(long authorId, long nextMomentId, int limit) {
+    public MomentListDto getMomentByAuthorId(long authorId, long nextMomentId, int limit) {
         if (authorId <= 0 || limit <= 0) {
-            return new ArrayList<>();
+            return MomentListDto.EMPTY;
         }
 
         QueryWrapper queryWrapper = QueryWrapper.create();
@@ -114,15 +105,16 @@ public class MomentServiceBiz implements MomentApi {
 
         List<Moment> moments = momentMapper.selectListByQuery(queryWrapper);
         if (moments == null || moments.isEmpty()) {
-            return new ArrayList<>();
+            return MomentListDto.EMPTY;
         }
-        return MomentSupport.toMomentDtoList(moments);
+        List<MomentDto> list = MomentSupport.toMomentDtoList(moments);
+        return MomentListDto.builder().moments(list).last(moments.getFirst().getMomentId()).build();
     }
 
     @Override
-    public List<Long> getMomentIdsByAuthorId(long authorId, long nextMomentId, int limit) {
+    public MomentIdListDto getMomentIdsByAuthorId(long authorId, long nextMomentId, int limit) {
         if (authorId <= 0 || limit <= 0) {
-            return new ArrayList<>();
+            return MomentIdListDto.EMPTY;
         }
         QueryWrapper queryWrapper = QueryWrapper.create();
         queryWrapper.eq(Moment::getAuthorId, authorId);
@@ -131,7 +123,8 @@ public class MomentServiceBiz implements MomentApi {
         queryWrapper.select(Moment::getMomentId);
         queryWrapper.limit(limit);
 
-        return momentMapper.selectObjectListByQueryAs(queryWrapper, Long.class);
+        List<Long> longs = momentMapper.selectObjectListByQueryAs(queryWrapper, Long.class);
+        return MomentIdListDto.builder().momentIds(longs).build();
     }
 
     @Override

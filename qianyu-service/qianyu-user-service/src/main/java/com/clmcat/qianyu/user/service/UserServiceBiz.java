@@ -2,6 +2,7 @@ package com.clmcat.qianyu.user.service;
 
 import com.clmcat.framework.webmvc.ResponseStatus;
 import com.clmcat.qianyu.user.api.UserApi;
+import com.clmcat.qianyu.user.api.model.dto.PpcUserInfoListDto;
 import com.clmcat.qianyu.user.api.model.dto.RpcUserInfoDto;
 import com.clmcat.qianyu.user.mapper.UserInfoMapper;
 import com.clmcat.qianyu.user.model.dto.UserInfoUpdateDto;
@@ -39,13 +40,13 @@ public class UserServiceBiz implements UserApi {
     }
 
     @Override
-    public List<RpcUserInfoDto> getUserInfoList(Collection<Long> userIds) {
+    public PpcUserInfoListDto getUserInfoList(Collection<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {
-            return new ArrayList<>();
+            return PpcUserInfoListDto.EMPTY;
         }
         List<UserInfo> userInfos = userInfoMapper.selectListByIds(userIds);
         if (userInfos == null){
-            return new ArrayList<>();
+            return PpcUserInfoListDto.EMPTY;
         }
         Map<Long, RpcUserInfoDto> userInfoMap = new LinkedHashMap<>();
         for (UserInfo userInfo : userInfos) {
@@ -60,7 +61,7 @@ public class UserServiceBiz implements UserApi {
                 rpcUserInfoDtos.add(rpcUserInfoDto);
             }
         }
-        return rpcUserInfoDtos;
+        return PpcUserInfoListDto.builder().users(rpcUserInfoDtos).build();
     }
 
     @Override

@@ -73,7 +73,7 @@ public class MomentServiceCacheBiz {
      */
     public List<MomentDto> getMomentByAuthorId(long viewerId, long authorId, long nextMomentId, int limit) {
         if (Objects.equals(viewerId, authorId)) {
-            return momentServiceBiz.getMomentByAuthorId(authorId, nextMomentId, limit);
+            return momentServiceBiz.getMomentByAuthorId(authorId, nextMomentId, limit).getMoments();
         }
 
         AuthorMomentListCacheKey cacheKey = new AuthorMomentListCacheKey(authorId, nextMomentId, limit);
@@ -82,7 +82,7 @@ public class MomentServiceCacheBiz {
             return new ArrayList<>(cachedMomentList);
         }
 
-        List<MomentDto> momentDtos = momentServiceBiz.getMomentByAuthorId(authorId, nextMomentId, limit);
+        List<MomentDto> momentDtos = momentServiceBiz.getMomentByAuthorId(authorId, nextMomentId, limit).getMoments();
         List<MomentDto> cacheValue = new ArrayList<>(momentDtos);
         authorMomentListCache.put(cacheKey, cacheValue);
 

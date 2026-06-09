@@ -1,6 +1,7 @@
 package com.clmcat.qianyu.social.api.comment;
 
 import com.clmcat.qianyu.social.api.comment.model.dto.CommentDto;
+import com.clmcat.qianyu.social.api.comment.model.dto.CommentListDto;
 
 import java.util.List;
 
@@ -30,7 +31,7 @@ public interface CommentApi {
      * @param commentIds 评论ID 集合
      * @return 评论 DTO 列表
      */
-    List<CommentDto> getCommentByIds(List<Long> commentIds);
+    CommentListDto getCommentByIds(List<Long> commentIds);
 
     /**
      * 查询作品下的一级评论列表。
@@ -40,7 +41,7 @@ public interface CommentApi {
      * @param limit 查询条数
      * @return 评论列表
      */
-    List<CommentDto> getCommentListByMomentId(long momentId, long nextCommentId, int limit);
+    CommentListDto getCommentListByMomentId(long momentId, long nextCommentId, int limit);
 
     /**
      * 查询一级评论下的二级回复列表。
@@ -50,7 +51,7 @@ public interface CommentApi {
      * @param limit 查询条数
      * @return 回复列表
      */
-    List<CommentDto> getReplyListByParentCommentId(long parentCommentId, long nextCommentId, int limit);
+    CommentListDto getReplyListByParentCommentId(long parentCommentId, long nextCommentId, int limit);
 
     /**
      * 删除评论（业务上为逻辑删除）。

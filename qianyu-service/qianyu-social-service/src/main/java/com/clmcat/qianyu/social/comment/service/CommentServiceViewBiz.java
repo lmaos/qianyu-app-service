@@ -62,7 +62,7 @@ public class CommentServiceViewBiz {
         if (commentIds.isEmpty()) {
             return new ArrayList<>();
         }
-        return CommentSupport.toCommentVoList(commentServiceBiz.getCommentByIds(commentIds));
+        return CommentSupport.toCommentVoList(commentServiceBiz.getCommentByIds(commentIds).getComments());
     }
 
     /**
@@ -77,7 +77,7 @@ public class CommentServiceViewBiz {
 
         int limit = CommentSupport.normalizeLimit(dto == null ? null : dto.getLimit());
         long nextCommentId = CommentSupport.normalizeCursorId(dto == null ? null : dto.getNextCommentId());
-        List<CommentDto> commentDtos = commentServiceBiz.getCommentListByMomentId(momentId, nextCommentId, limit + 1);
+        List<CommentDto> commentDtos = commentServiceBiz.getCommentListByMomentId(momentId, nextCommentId, limit + 1).getComments();
 
         boolean hasMore = commentDtos.size() > limit;
         if (hasMore) {
@@ -105,7 +105,7 @@ public class CommentServiceViewBiz {
 
         int limit = CommentSupport.normalizeLimit(dto == null ? null : dto.getLimit());
         long nextCommentId = CommentSupport.normalizeCursorId(dto == null ? null : dto.getNextCommentId());
-        List<CommentDto> commentDtos = commentServiceBiz.getReplyListByParentCommentId(parentCommentId, nextCommentId, limit + 1);
+        List<CommentDto> commentDtos = commentServiceBiz.getReplyListByParentCommentId(parentCommentId, nextCommentId, limit + 1).getComments();
 
         boolean hasMore = commentDtos.size() > limit;
         if (hasMore) {

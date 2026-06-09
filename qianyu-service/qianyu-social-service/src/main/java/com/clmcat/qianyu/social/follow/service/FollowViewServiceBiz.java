@@ -83,7 +83,7 @@ public class FollowViewServiceBiz  {
 
         int limit = FollowSupport.normalizeLimit(dto == null ? null : dto.getLimit());
         long nextId = FollowSupport.normalizeCursorId(dto == null ? null : dto.getNextId());
-        List<FollowDto> followDtos = followServiceBiz.getFollowListByFollowerId(userId, nextId, limit + 1);
+        List<FollowDto> followDtos = followServiceBiz.getFollowListByFollowerId(userId, nextId, limit + 1).getFollows();
 
         boolean hasMore = followDtos.size() > limit;
         if (hasMore) {
@@ -118,7 +118,7 @@ public class FollowViewServiceBiz  {
 
         int limit = FollowSupport.normalizeLimit(dto == null ? null : dto.getLimit());
         long nextId = FollowSupport.normalizeCursorId(dto == null ? null : dto.getNextId());
-        List<FollowDto> followDtos = followServiceBiz.getFollowerListByFolloweeId(userId, nextId, limit + 1);
+        List<FollowDto> followDtos = followServiceBiz.getFollowerListByFolloweeId(userId, nextId, limit + 1).getFollows();
 
         boolean hasMore = followDtos.size() > limit;
         if (hasMore) {

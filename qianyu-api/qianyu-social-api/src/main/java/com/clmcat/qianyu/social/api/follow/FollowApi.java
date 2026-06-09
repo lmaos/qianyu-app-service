@@ -2,6 +2,7 @@ package com.clmcat.qianyu.social.api.follow;
 
 import com.clmcat.qianyu.social.api.follow.model.dto.FollowDto;
 import com.clmcat.qianyu.social.api.follow.model.dto.FollowCountDto;
+import com.clmcat.qianyu.social.api.follow.model.dto.FollowListDto;
 import com.clmcat.qianyu.social.api.follow.model.dto.FollowRelationDto;
 
 import java.util.List;
@@ -46,7 +47,7 @@ public interface FollowApi {
      * @param limit 查询条数
      * @return 关注关系列表
      */
-    List<FollowDto> getFollowListByFollowerId(long followerId, long nextId, int limit);
+    FollowListDto getFollowListByFollowerId(long followerId, long nextId, int limit);
 
     /**
      * 查询用户的粉丝列表（谁关注了我）
@@ -56,7 +57,7 @@ public interface FollowApi {
      * @param limit 查询条数
      * @return 粉丝关系列表
      */
-    List<FollowDto> getFollowerListByFolloweeId(long followeeId, long nextId, int limit);
+    FollowListDto getFollowerListByFolloweeId(long followeeId, long nextId, int limit);
 
     /**
      * 查询用户关注/粉丝数量

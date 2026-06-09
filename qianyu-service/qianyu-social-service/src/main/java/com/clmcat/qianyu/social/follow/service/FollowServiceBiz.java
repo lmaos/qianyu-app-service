@@ -4,6 +4,7 @@ import com.clmcat.qianyu.social.api.base.model.dto.UserSocialCounterDto;
 import com.clmcat.qianyu.social.api.follow.FollowApi;
 import com.clmcat.qianyu.social.api.follow.model.dto.FollowCountDto;
 import com.clmcat.qianyu.social.api.follow.model.dto.FollowDto;
+import com.clmcat.qianyu.social.api.follow.model.dto.FollowListDto;
 import com.clmcat.qianyu.social.api.follow.model.dto.FollowRelationDto;
 import com.clmcat.qianyu.core.redis.RedisLock;
 import com.clmcat.qianyu.core.redis.RedisLockSupport;
@@ -195,9 +196,9 @@ public class FollowServiceBiz implements FollowApi {
      * @return 关注关系 DTO 列表
      */
     @Override
-    public List<FollowDto> getFollowListByFollowerId(long followerId, long nextId, int limit) {
+    public FollowListDto getFollowListByFollowerId(long followerId, long nextId, int limit) {
         if (followerId <= 0 || limit <= 0) {
-            return new ArrayList<>();
+            return FollowListDto.EMPTY;
         }
         QueryWrapper queryWrapper = QueryWrapper.create();
         queryWrapper.eq(Follow::getFollowerId, followerId);
@@ -205,7 +206,8 @@ public class FollowServiceBiz implements FollowApi {
         queryWrapper.orderBy(Follow::getId, false);
         queryWrapper.limit(limit);
         List<Follow> follows = followMapper.selectListByQuery(queryWrapper);
-        return FollowSupport.toFollowDtoListFromFollow(follows);
+        List<FollowDto> list = FollowSupport.toFollowDtoListFromFollow(follows);
+        return FollowListDto.builder().follows(list).build();
     }
 
     /**
@@ -217,9 +219,9 @@ public class FollowServiceBiz implements FollowApi {
      * @return 粉丝关系 DTO 列表
      */
     @Override
-    public List<FollowDto> getFollowerListByFolloweeId(long followeeId, long nextId, int limit) {
+    public FollowListDto getFollowerListByFolloweeId(long followeeId, long nextId, int limit) {
         if (followeeId <= 0 || limit <= 0) {
-            return new ArrayList<>();
+            return FollowListDto.EMPTY;
         }
         QueryWrapper queryWrapper = QueryWrapper.create();
         queryWrapper.eq(Follower::getFolloweeId, followeeId);
@@ -227,7 +229,8 @@ public class FollowServiceBiz implements FollowApi {
         queryWrapper.orderBy(Follower::getId, false);
         queryWrapper.limit(limit);
         List<Follower> followers = followerMapper.selectListByQuery(queryWrapper);
-        return FollowSupport.toFollowDtoListFromFollower(followers);
+        List<FollowDto> list = FollowSupport.toFollowDtoListFromFollower(followers);
+        return FollowListDto.builder().follows(list).build();
     }
 
     /**

@@ -78,7 +78,7 @@ public class MomentServiceViewBiz {
             return MomentListVo.builder().build();
         }
 
-        List<MomentVo> momentVoList = MomentSupport.toMomentVoList(momentServiceBiz.getMomentByIds(momentIds));
+        List<MomentVo> momentVoList = MomentSupport.toMomentVoList(momentServiceBiz.getMomentByIds(momentIds).getMoments());
         return MomentListVo.builder()
                 .datas(momentVoList)
                 .build();

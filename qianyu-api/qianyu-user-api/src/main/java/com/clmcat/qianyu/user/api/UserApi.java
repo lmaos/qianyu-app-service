@@ -1,5 +1,6 @@
 package com.clmcat.qianyu.user.api;
 
+import com.clmcat.qianyu.user.api.model.dto.PpcUserInfoListDto;
 import com.clmcat.qianyu.user.api.model.dto.RpcUserInfoDto;
 
 import java.util.Collection;
@@ -21,7 +22,7 @@ public interface UserApi {
      * @param userIds 用户ID 集合
      * @return 用户信息 集合
      */
-    List<RpcUserInfoDto> getUserInfoList(Collection<Long> userIds);
+    PpcUserInfoListDto getUserInfoList(Collection<Long> userIds);
 
     /**
      * 按 userNo 精确查询用户。userNo 全局唯一（UNIQUE KEY uk_user_no），

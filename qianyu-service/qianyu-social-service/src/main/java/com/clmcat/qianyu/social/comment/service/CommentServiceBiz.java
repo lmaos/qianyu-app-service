@@ -3,6 +3,7 @@ package com.clmcat.qianyu.social.comment.service;
 import com.clmcat.qianyu.social.api.base.model.dto.UserSocialCounterDto;
 import com.clmcat.qianyu.social.api.comment.CommentApi;
 import com.clmcat.qianyu.social.api.comment.model.dto.CommentDto;
+import com.clmcat.qianyu.social.api.comment.model.dto.CommentListDto;
 import com.clmcat.qianyu.social.api.moment.model.dto.MomentDto;
 import com.clmcat.qianyu.social.base.service.UserSocialCounterServiceBiz;
 import com.clmcat.qianyu.social.comment.mapper.CommentMapper;
@@ -98,9 +99,9 @@ public class CommentServiceBiz implements CommentApi {
      * @return 评论 DTO 列表
      */
     @Override
-    public List<CommentDto> getCommentByIds(List<Long> commentIds) {
+    public CommentListDto getCommentByIds(List<Long> commentIds) {
         if (commentIds == null || commentIds.isEmpty()) {
-            return new ArrayList<>();
+            return CommentListDto.EMPTY;
         }
         LinkedHashSet<Long> normalizedIds = new LinkedHashSet<>();
         for (Long commentId : commentIds) {
@@ -109,11 +110,11 @@ public class CommentServiceBiz implements CommentApi {
             }
         }
         if (normalizedIds.isEmpty()) {
-            return new ArrayList<>();
+            return CommentListDto.EMPTY;
         }
         List<Comment> comments = commentMapper.selectListByIds(normalizedIds);
         if (comments == null || comments.isEmpty()) {
-            return new ArrayList<>();
+            return CommentListDto.EMPTY;
         }
 
         Map<Long, CommentDto> commentMap = new HashMap<>();
@@ -128,7 +129,9 @@ public class CommentServiceBiz implements CommentApi {
                 result.add(dto);
             }
         }
-        return result;
+        return CommentListDto.builder()
+                .comments(result)
+                .build();
     }
 
     /**
@@ -140,9 +143,9 @@ public class CommentServiceBiz implements CommentApi {
      * @return 评论列表
      */
     @Override
-    public List<CommentDto> getCommentListByMomentId(long momentId, long nextCommentId, int limit) {
+    public CommentListDto getCommentListByMomentId(long momentId, long nextCommentId, int limit) {
         if (momentId <= 0 || limit <= 0) {
-            return new ArrayList<>();
+            return CommentListDto.EMPTY;
         }
         QueryWrapper queryWrapper = QueryWrapper.create();
         queryWrapper.eq(Comment::getMomentId, momentId);
@@ -150,7 +153,10 @@ public class CommentServiceBiz implements CommentApi {
         queryWrapper.lt(Comment::getCommentId, nextCommentId);
         queryWrapper.orderBy(Comment::getCommentId, false);
         queryWrapper.limit(limit);
-        return CommentSupport.toCommentDtoList(commentMapper.selectListByQuery(queryWrapper));
+        List<CommentDto> list = CommentSupport.toCommentDtoList(commentMapper.selectListByQuery(queryWrapper));
+        return CommentListDto.builder()
+                .comments(list)
+                .build();
     }
 
     /**
@@ -162,16 +168,19 @@ public class CommentServiceBiz implements CommentApi {
      * @return 回复列表
      */
     @Override
-    public List<CommentDto> getReplyListByParentCommentId(long parentCommentId, long nextCommentId, int limit) {
+    public CommentListDto getReplyListByParentCommentId(long parentCommentId, long nextCommentId, int limit) {
         if (parentCommentId <= 0 || limit <= 0) {
-            return new ArrayList<>();
+            return CommentListDto.EMPTY;
         }
         QueryWrapper queryWrapper = QueryWrapper.create();
         queryWrapper.eq(Comment::getParentCommentId, parentCommentId);
         queryWrapper.lt(Comment::getCommentId, nextCommentId);
         queryWrapper.orderBy(Comment::getCommentId, false);
         queryWrapper.limit(limit);
-        return CommentSupport.toCommentDtoList(commentMapper.selectListByQuery(queryWrapper));
+        List<CommentDto> list = CommentSupport.toCommentDtoList(commentMapper.selectListByQuery(queryWrapper));
+        return CommentListDto.builder()
+                .comments(list)
+                .build();
     }
 
     /**

@@ -95,7 +95,7 @@ public class UserCacheServiceBiz {
         }
 
         if (!missIds.isEmpty()) {
-            List<RpcUserInfoDto> loadedUserInfos = userServiceBiz.getUserInfoList(missIds);
+            List<RpcUserInfoDto> loadedUserInfos = userServiceBiz.getUserInfoList(missIds).getUsers();
             for (RpcUserInfoDto loadedUserInfo : loadedUserInfos) {
                 if (loadedUserInfo == null || loadedUserInfo.getUserId() == null) {
                     continue;

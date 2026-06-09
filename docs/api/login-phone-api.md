@@ -143,14 +143,12 @@ POST /api/user/login/phone
 | code | String | 条件必填 | — | 短信验证码。`authMode=CODE` 时必须 |
 | password | String | 条件必填 | — | 登录密码。`authMode=PASSWORD` 时必须 |
 | authMode | String | 否 | `CODE` | 验证模式：`CODE` — 短信验证码登录；`PASSWORD` — 密码登录 |
-| clientIp | String | 否 | — | 客户端 IP，用于安全审计 |
 
 ```json
 {
   "phone": "+86-13800000000",
   "code": "123456",
-  "authMode": "CODE",
-  "clientIp": "192.168.1.1"
+  "authMode": "CODE"
 }
 ```
 
@@ -160,8 +158,7 @@ POST /api/user/login/phone
 {
   "phone": "+86-13800000000",
   "password": "myPassword123",
-  "authMode": "PASSWORD",
-  "clientIp": "192.168.1.1"
+  "authMode": "PASSWORD"
 }
 ```
 
