@@ -2,12 +2,18 @@ package com.clmcat.qianyu.social.api.follow.model.dto;
 
 import lombok.*;
 
+import java.io.Serial;
+import java.io.Serializable;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @EqualsAndHashCode(of = {"followerId", "followeeId"})
-public class FollowDto {
+public class FollowDto implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
     /**
      * 关系记录编号（雪花）
      */

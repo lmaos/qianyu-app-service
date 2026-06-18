@@ -24,6 +24,7 @@
         <module>qianyu-notification-api</module>
         <module>qianyu-review-api</module>
         <module>qianyu-search-api</module>
+        <module>qianyu-center-api</module>
     </modules>
 
     <dependencyManagement>
@@ -86,6 +87,11 @@
             <dependency>
                 <groupId>com.clmcat.app</groupId>
                 <artifactId>qianyu-search-api</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-center-api</artifactId>
                 <version>${project.qianyu.version}</version>
             </dependency>
         </dependencies>

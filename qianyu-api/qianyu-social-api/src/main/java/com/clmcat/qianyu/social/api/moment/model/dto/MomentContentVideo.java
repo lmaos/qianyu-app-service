@@ -2,8 +2,13 @@ package com.clmcat.qianyu.social.api.moment.model.dto;
 
 import lombok.Data;
 
+import java.io.Serial;
+import java.io.Serializable;
+
 @Data
-public class MomentContentVideo {
+public class MomentContentVideo implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
     /**
      * 视频ID
      */

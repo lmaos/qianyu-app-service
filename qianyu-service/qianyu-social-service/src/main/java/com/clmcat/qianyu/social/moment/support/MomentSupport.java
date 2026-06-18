@@ -9,10 +9,6 @@ import com.clmcat.qianyu.social.moment.model.entity.Moment;
 import com.clmcat.qianyu.social.moment.model.vo.MomentVo;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,9 +29,7 @@ public class MomentSupport {
      */
     public static final CustomSnowflake MOMENT_ID_SNOWFLAKE = SnowflakeSupport.createSnowflake(42, 10, 11);
 
-    // 全局 Geometry 工厂（创建经纬度 Point）
-    private static final GeometryFactory GEOMETRY_FACTORY =
-            new GeometryFactory(new PrecisionModel(), 4326); // 4326 = GPS 坐标标准
+    // 全局 Geometry 工厂（创建经纬度 Point）- 已废弃，改为 latitude/longitude 双字段
 
     /**
      * 创建Moment， 并设置momentId
@@ -88,14 +82,9 @@ public class MomentSupport {
         moment.setCountry(dto.getCountry());
         moment.setContent(dto.getContent());
         moment.setCreateTime(dto.getCreateTime());
-        // 2. 经纬度 → 数据库 Point 类型
-        // 注意：Point 顺序是 (经度 longitude, 纬度 latitude)
-        if (dto.getLongitude() != 0.0 && dto.getLatitude() != 0.0) {
-            Point point = GEOMETRY_FACTORY.createPoint(
-                    new Coordinate(dto.getLongitude(), dto.getLatitude())
-            );
-            moment.setLocation(point);
-        }
+        // 2. 经纬度直接映射
+        moment.setLatitude(dto.getLatitude());
+        moment.setLongitude(dto.getLongitude());
         // 4. 计数字段默认 0（新增时）
         moment.setLikes(0L);
         moment.setComments(0L);
@@ -132,6 +121,8 @@ public class MomentSupport {
                 .country(dto.getCountry())
                 .status(dto.getStatus())
                 .createTime(dto.getCreateTime())
+                .likes(dto.getLikes() != null ? dto.getLikes() : 0L)
+                .comments(dto.getComments() != null ? dto.getComments() : 0L)
                 .build();
     }
 
@@ -164,12 +155,13 @@ public class MomentSupport {
         dto.setCountry(moment.getCountry());
         dto.setCreateTime(moment.getCreateTime());
 
-        // 2. 经纬度解析（从 Point 中拆出 longitude、latitude）
-        Point location = moment.getLocation();
-        if (location != null) {
-            dto.setLongitude(location.getX()); // 经度 = X
-            dto.setLatitude(location.getY());  // 纬度 = Y
-        }
+        // 2. 经纬度直接读取
+        dto.setLatitude(moment.getLatitude());
+        dto.setLongitude(moment.getLongitude());
+
+        // 3. 计数字段
+        dto.setLikes(moment.getLikes());
+        dto.setComments(moment.getComments());
 
         return dto;
     }

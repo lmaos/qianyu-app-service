@@ -112,6 +112,49 @@ public class MomentServiceBiz implements MomentApi {
     }
 
     @Override
+    public MomentListDto getRecentMoments(long cursor, int limit) {
+        if (limit <= 0) {
+            return MomentListDto.EMPTY;
+        }
+
+        long normalizedCursor = cursor <= 0 ? Long.MAX_VALUE : cursor;
+
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .lt(Moment::getMomentId, normalizedCursor)
+                .orderBy(Moment::getMomentId, false)
+                .limit(limit);
+
+        List<Moment> moments = momentMapper.selectListByQuery(queryWrapper);
+        if (moments == null || moments.isEmpty()) {
+            return MomentListDto.EMPTY;
+        }
+        List<MomentDto> list = MomentSupport.toMomentDtoList(moments);
+        return MomentListDto.builder().moments(list).last(moments.getLast().getMomentId()).build();
+    }
+
+    @Override
+    public MomentListDto getRecentMomentsByAuthorIds(List<Long> authorIds, long cursor, int limit) {
+        if (authorIds == null || authorIds.isEmpty() || limit <= 0) {
+            return MomentListDto.EMPTY;
+        }
+
+        long normalizedCursor = cursor <= 0 ? Long.MAX_VALUE : cursor;
+
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .in(Moment::getAuthorId, authorIds)
+                .lt(Moment::getMomentId, normalizedCursor)
+                .orderBy(Moment::getMomentId, false)
+                .limit(limit);
+
+        List<Moment> moments = momentMapper.selectListByQuery(queryWrapper);
+        if (moments == null || moments.isEmpty()) {
+            return MomentListDto.EMPTY;
+        }
+        List<MomentDto> list = MomentSupport.toMomentDtoList(moments);
+        return MomentListDto.builder().moments(list).last(moments.getLast().getMomentId()).build();
+    }
+
+    @Override
     public MomentIdListDto getMomentIdsByAuthorId(long authorId, long nextMomentId, int limit) {
         if (authorId <= 0 || limit <= 0) {
             return MomentIdListDto.EMPTY;

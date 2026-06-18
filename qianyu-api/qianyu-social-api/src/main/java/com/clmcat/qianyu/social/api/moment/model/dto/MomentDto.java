@@ -48,4 +48,14 @@ public class MomentDto implements Serializable {
      */
     protected Long createTime;
 
+    /**
+     * 点赞数（冗余）
+     */
+    protected Long likes;
+
+    /**
+     * 评论数（冗余）
+     */
+    protected Long comments;
+
 }

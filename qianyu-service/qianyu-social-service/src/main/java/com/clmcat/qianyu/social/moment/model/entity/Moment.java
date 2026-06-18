@@ -1,6 +1,5 @@
 package com.clmcat.qianyu.social.moment.model.entity;
 
-import com.clmcat.qianyu.core.geo.PointTypeHandler;
 import com.clmcat.qianyu.social.api.moment.model.dto.MomentContent;
 import com.clmcat.qianyu.social.moment.typehandler.MomentContentTypeHandler;
 import com.mybatisflex.annotation.Column;
@@ -8,7 +7,6 @@ import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
 import lombok.Data;
-import org.locationtech.jts.geom.Point;
 
 import java.time.LocalDateTime;
 
@@ -44,8 +42,11 @@ public class Moment {
     @Column(value = "shares", comment = "转发数冗余")
     private Long shares;
 
-    @Column(value = "location", typeHandler = PointTypeHandler.class, comment = "经纬度 (POINT)")
-    private Point location;
+    @Column(value = "latitude", comment = "纬度")
+    private double latitude;
+
+    @Column(value = "longitude", comment = "经度")
+    private double longitude;
 
     @Column(value = "country", comment = "国家代码（ISO 3166-1 alpha-2），如 CN, US")
     private String country;

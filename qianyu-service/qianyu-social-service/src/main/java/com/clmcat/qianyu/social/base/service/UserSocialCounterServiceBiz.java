@@ -38,4 +38,15 @@ public class UserSocialCounterServiceBiz implements UserSocialCounterApi {
     public void init(long userId) {
         userSocialCounterMapper.insertIfNotExist(userId);
     }
+
+    @Override
+    public UserSocialCounterDto getByUserId(long userId) {
+        UserSocialCounter entity = userSocialCounterMapper.selectOneById(userId);
+        if (entity == null) {
+            return null;
+        }
+        UserSocialCounterDto dto = new UserSocialCounterDto();
+        BeanUtils.copyProperties(entity, dto);
+        return dto;
+    }
 }

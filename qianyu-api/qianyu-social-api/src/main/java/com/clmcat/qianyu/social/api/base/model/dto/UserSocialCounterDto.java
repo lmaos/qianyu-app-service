@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
+import java.io.Serializable;
+
 /**
  * 用户社交统计数据传输对象
  */
@@ -12,7 +15,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder(toBuilder = true)
-public class UserSocialCounterDto {
+public class UserSocialCounterDto implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     /** 用户ID */
     private Long userId;

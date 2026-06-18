@@ -23,6 +23,7 @@
         <module>qianyu-notification-service</module>
         <module>qianyu-review-service</module>
         <module>qianyu-search-service</module>
+        <module>qianyu-center-service</module>
     </modules>
 
     <dependencies>
@@ -92,6 +93,11 @@
             <dependency>
                 <groupId>com.clmcat.app</groupId>
                 <artifactId>qianyu-search-service</artifactId>
+                <version>${project.qianyu.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.clmcat.app</groupId>
+                <artifactId>qianyu-center-service</artifactId>
                 <version>${project.qianyu.version}</version>
             </dependency>
 

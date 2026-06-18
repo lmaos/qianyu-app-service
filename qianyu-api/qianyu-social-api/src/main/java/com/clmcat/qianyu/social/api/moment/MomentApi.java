@@ -13,6 +13,25 @@ public interface MomentApi {
      */
     boolean save(MomentDto moment);
 
+    /**
+     * 查询最新的动态列表，按 momentId 倒序游标分页（用于推荐 Feed）。
+     *
+     * @param cursor 游标 momentId，查询小于该值的数据；首次传 0 从最新开始
+     * @param limit 查询条数
+     * @return 动态列表
+     */
+    MomentListDto getRecentMoments(long cursor, int limit);
+
+    /**
+     * 查询指定作者列表的最新动态，按 momentId 倒序游标分页（用于关注 Feed）。
+     *
+     * @param authorIds 作者ID列表
+     * @param cursor 游标 momentId，查询小于该值的数据；首次传 0 从最新开始
+     * @param limit 查询条数
+     * @return 动态列表
+     */
+    MomentListDto getRecentMomentsByAuthorIds(List<Long> authorIds, long cursor, int limit);
+
     MomentDto getMomentById(long id);
 
     MomentListDto getMomentByIds(List<Long> ids);

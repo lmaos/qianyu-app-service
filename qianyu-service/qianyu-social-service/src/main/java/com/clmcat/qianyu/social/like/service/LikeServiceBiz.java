@@ -6,6 +6,7 @@ import com.clmcat.qianyu.social.api.like.LikeApi;
 import com.clmcat.qianyu.social.api.like.model.dto.CommentLikeDto;
 import com.clmcat.qianyu.social.api.like.model.dto.MomentLikeDto;
 import com.clmcat.qianyu.social.api.moment.model.dto.MomentDto;
+import com.clmcat.qianyu.social.api.moment.model.dto.MomentIdListDto;
 import com.clmcat.qianyu.social.base.service.UserSocialCounterServiceBiz;
 import com.clmcat.qianyu.social.comment.service.CommentServiceBiz;
 import com.clmcat.qianyu.social.comment.support.CommentSupport;
@@ -17,6 +18,8 @@ import com.clmcat.qianyu.social.like.model.entity.status.Status;
 import com.clmcat.qianyu.social.like.support.LikeSupport;
 import com.clmcat.qianyu.social.moment.service.MomentServiceBiz;
 import com.mybatisflex.core.query.QueryWrapper;
+import java.util.List;
+
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.dao.DuplicateKeyException;
@@ -52,7 +55,7 @@ public class LikeServiceBiz implements LikeApi {
         MomentLike momentLike = LikeSupport.newMomentLike(dto, momentDto);
 
         try {
-            if (momentLikeMapper.insert(momentLike) <= 0) {
+            if (momentLikeMapper.insertSelective(momentLike) <= 0) {
                 return false;
             }
         } catch (DuplicateKeyException e) {
@@ -135,7 +138,7 @@ public class LikeServiceBiz implements LikeApi {
         CommentLike commentLike = LikeSupport.newCommentLike(dto, commentDto);
 
         try {
-            if (commentLikeMapper.insert(commentLike) <= 0) {
+            if (commentLikeMapper.insertSelective(commentLike) <= 0) {
                 return false;
             }
         } catch (DuplicateKeyException e) {
@@ -192,6 +195,21 @@ public class LikeServiceBiz implements LikeApi {
             return false;
         }
         return findCommentLike(dto.getCommentId(), dto.getUserId()) != null;
+    }
+
+    @Override
+    public MomentIdListDto getLikedMomentIdsByUserId(long userId, long nextId, int limit) {
+        if (userId <= 0 || limit <= 0) {
+            return MomentIdListDto.EMPTY;
+        }
+        if (nextId <= 0) {
+            nextId = Long.MAX_VALUE;
+        }
+        List<Long> momentIds = momentLikeMapper.selectLikedMomentIdsByUserId(userId, nextId, limit);
+        if (momentIds == null || momentIds.isEmpty()) {
+            return MomentIdListDto.EMPTY;
+        }
+        return MomentIdListDto.builder().momentIds(momentIds).build();
     }
 
     private MomentLike findMomentLike(Long momentId, Long userId) {
