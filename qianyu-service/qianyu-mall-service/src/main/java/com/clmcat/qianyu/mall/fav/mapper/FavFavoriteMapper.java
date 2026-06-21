@@ -42,7 +42,7 @@ public interface FavFavoriteMapper extends BaseMapper<FavFavorite> {
             "SELECT * FROM fav_favorite WHERE user_id = #{userId} AND " +
             "(target_id, target_type) IN " +
             "<foreach collection='targets' item='t' open='(' separator=',' close=')'>" +
-            "(#{t.targetId}, #{t.type})" +
+            "(#{t.targetId}, #{t.targetType})" +
             "</foreach>" +
             "</script>")
     List<FavFavorite> selectBatchByTargets(@Param("userId") Long userId,

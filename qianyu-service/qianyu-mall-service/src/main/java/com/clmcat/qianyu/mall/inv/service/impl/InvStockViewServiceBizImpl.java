@@ -92,6 +92,9 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
      * 批量查询库存
      */
     public List<StockInfoVO> batchQuery(StockBatchQueryDTO dto) {
+        if (dto == null || dto.getSkuIds() == null || dto.getSkuIds().isEmpty()) {
+            return new ArrayList<>();
+        }
         InvStatus.INV_BATCH_QUERY_LIMIT_EXCEED.assertThrowResEx(dto.getSkuIds().size() > 100);
         List<StockInfoVO> result = new ArrayList<>();
         for (Long skuId : dto.getSkuIds()) {

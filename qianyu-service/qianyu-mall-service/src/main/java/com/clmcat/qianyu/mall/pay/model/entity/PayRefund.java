@@ -44,7 +44,7 @@ public class PayRefund {
     @Column(value = "transaction_id", comment = "第三方退款流水号")
     private String transactionId;
 
-    @Column(value = "callback_data", comment = "第三方退款回调原始数据JSON", typeHandler = JacksonTypeHandler.class)
+    @Column(value = "callback_data", comment = "第三方退款回调原始数据JSON")
     private String callbackData;
 
     @Column(value = "refund_time", comment = "退款完成时间（毫秒时间戳）")
