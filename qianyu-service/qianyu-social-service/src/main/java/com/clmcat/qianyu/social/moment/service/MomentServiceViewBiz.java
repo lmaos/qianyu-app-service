@@ -11,12 +11,18 @@ import com.clmcat.qianyu.social.moment.model.vo.MomentAuthorPageVo;
 import com.clmcat.qianyu.social.moment.model.vo.MomentListVo;
 import com.clmcat.qianyu.social.moment.model.vo.MomentVo;
 import com.clmcat.qianyu.social.moment.support.MomentSupport;
+import com.clmcat.qianyu.user.api.UserApi;
+import com.clmcat.qianyu.user.api.model.dto.PpcUserInfoListDto;
+import com.clmcat.qianyu.user.api.model.dto.RpcUserInfoDto;
 import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 查询输出 VO 对象的 Moment
@@ -32,6 +38,9 @@ public class MomentServiceViewBiz {
 
     @Resource
     MomentServiceCacheBiz momentServiceCacheBiz;
+
+    @DubboReference
+    private UserApi userApi;
 
     /**
      * 发布动态并返回 VO。
@@ -63,7 +72,9 @@ public class MomentServiceViewBiz {
 
         MomentDto momentDto = momentServiceCacheBiz.getMoment(viewerId, momentId);
         Status.MOMENT_NOT_FOUND.assertThrowResEx(momentDto == null);
-        return MomentSupport.toMomentVo(momentDto);
+
+        MomentVo vo = MomentSupport.toMomentVo(momentDto);
+        return enrichAuthorInfo(vo);
     }
 
     /**
@@ -78,7 +89,7 @@ public class MomentServiceViewBiz {
             return MomentListVo.builder().build();
         }
 
-        List<MomentVo> momentVoList = MomentSupport.toMomentVoList(momentServiceBiz.getMomentByIds(momentIds).getMoments());
+        List<MomentVo> momentVoList = enrichAuthorInfo(MomentSupport.toMomentVoList(momentServiceBiz.getMomentByIds(momentIds).getMoments()));
         return MomentListVo.builder()
                 .datas(momentVoList)
                 .build();
@@ -109,11 +120,13 @@ public class MomentServiceViewBiz {
             nextMomentId = momentDtos.get(momentDtos.size() - 1).getMomentId();
         }
 
+        List<MomentVo> momentVos = enrichAuthorInfo(MomentSupport.toMomentVoList(momentDtos));
+
         return MomentAuthorPageVo.builder()
                 .authorId(authorId)
                 .nextMomentId(nextMomentId)
                 .hasMore(hasMore)
-                .datas(MomentSupport.toMomentVoList(momentDtos))
+                .datas(momentVos)
                 .build();
     }
 
@@ -138,5 +151,81 @@ public class MomentServiceViewBiz {
         Status.MOMENT_DELETE_FAIL.assertThrowResEx(!deleted);
         momentServiceCacheBiz.evictMoment(momentId, authorId);
         return true;
+    }
+
+    // ========== 辅助方法 ==========
+
+    /**
+     * 填充单条 MomentVo 的作者昵称和头像。
+     */
+    private MomentVo enrichAuthorInfo(MomentVo vo) {
+        if (vo == null || vo.getAuthorId() == null) {
+            return vo;
+        }
+        List<MomentVo> result = enrichAuthorInfo(Collections.singletonList(vo));
+        return result.isEmpty() ? vo : result.get(0);
+    }
+
+    /**
+     * 批量填充 MomentVo 的作者昵称和头像，返回新列表。
+     * <p>
+     * 通过 UserApi 批量查询作者信息（userId → nickname/avatar），
+     * 避免 N+1 查询。
+     *
+     * @param momentVos 待填充的 MomentVo 列表
+     * @return 填充后的新列表
+     */
+    private List<MomentVo> enrichAuthorInfo(List<MomentVo> momentVos) {
+        if (momentVos == null || momentVos.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 1. 收集所有不重复的 authorId
+        List<Long> authorIds = momentVos.stream()
+                .filter(Objects::nonNull)
+                .map(MomentVo::getAuthorId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (authorIds.isEmpty()) {
+            return new ArrayList<>(momentVos);
+        }
+
+        // 2. 批量查询用户信息
+        java.util.Map<Long, RpcUserInfoDto> userMap;
+        try {
+            PpcUserInfoListDto userList = userApi.getUserInfoList(authorIds);
+            if (userList == null || userList.getUsers() == null) {
+                return new ArrayList<>(momentVos);
+            }
+            userMap = new java.util.HashMap<>(userList.getUsers().size());
+            for (RpcUserInfoDto user : userList.getUsers()) {
+                if (user != null && user.getUserId() != null) {
+                    userMap.put(user.getUserId(), user);
+                }
+            }
+        } catch (Exception e) {
+            return new ArrayList<>(momentVos);
+        }
+
+        // 3. 构建新列表（不修改入参）
+        List<MomentVo> result = new ArrayList<>(momentVos.size());
+        for (MomentVo vo : momentVos) {
+            if (vo == null || vo.getAuthorId() == null) {
+                result.add(vo);
+                continue;
+            }
+            RpcUserInfoDto userInfo = userMap.get(vo.getAuthorId());
+            if (userInfo != null) {
+                result.add(vo.toBuilder()
+                        .nickname(userInfo.getNickname())
+                        .avatar(userInfo.getAvatar())
+                        .build());
+            } else {
+                result.add(vo);
+            }
+        }
+        return result;
     }
 }

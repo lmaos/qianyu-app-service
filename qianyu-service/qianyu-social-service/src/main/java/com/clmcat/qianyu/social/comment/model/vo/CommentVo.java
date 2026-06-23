@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class CommentVo {
     private Long commentId;
     private Long momentId;
@@ -20,4 +20,13 @@ public class CommentVo {
     private Long likes;
     private Long replies;
     private Long clientTime;
+
+    /** 评论作者昵称 */
+    private String nickname;
+
+    /** 评论作者头像 URL */
+    private String avatar;
+
+    /** 当前用户是否已点赞 */
+    private boolean hasLike;
 }

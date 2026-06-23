@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class MomentVo {
     private Long momentId;
     private Long authorId;
@@ -18,4 +18,10 @@ public class MomentVo {
     private boolean hasLike;
     private Integer status;
     private Long createTime;
+
+    /** 作者昵称 */
+    private String nickname;
+
+    /** 作者头像 URL */
+    private String avatar;
 }

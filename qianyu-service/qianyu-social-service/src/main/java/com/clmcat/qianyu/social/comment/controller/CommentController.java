@@ -58,49 +58,53 @@ public class CommentController {
     /**
      * 查询单条评论详情。
      *
+     * @param userId 当前查看者ID，用于填充 hasLike
      * @param dto 查询参数，必须提供 commentId
      * @return 评论 VO
      */
-    @Operation(summary = "查询评论详情", description = "参数说明：dto.commentId 为评论ID。")
+    @Operation(summary = "查询评论详情", description = "参数说明：userId 为当前查看者ID；dto.commentId 为评论ID。")
     @GetMapping("/get")
-    public CommentVo get(@ParameterObject @Params CommentIdDto dto) {
-        return commentServiceViewBiz.getComment(dto);
+    public CommentVo get(@Parameter(hidden = true) @Token long userId, @ParameterObject @Params CommentIdDto dto) {
+        return commentServiceViewBiz.getComment(userId, dto);
     }
 
     /**
      * 批量查询评论。
      *
+     * @param userId 当前查看者ID，用于填充 hasLike
      * @param dto 查询参数，可通过 JSON commentIds 或逗号分隔字符串传入
      * @return 评论列表
      */
-    @Operation(summary = "批量查询评论", description = "参数说明：dto.commentIds 适合 JSON 数组；dto.commentIdsText 兼容 query/form 的逗号分隔字符串。")
+    @Operation(summary = "批量查询评论", description = "参数说明：userId 为当前查看者ID；dto.commentIds 适合 JSON 数组；dto.commentIdsText 兼容 query/form 的逗号分隔字符串。")
     @GetMapping("/list")
-    public List<CommentVo> list(@ParameterObject @Params CommentIdsDto dto) {
-        return commentServiceViewBiz.getCommentList(dto);
+    public List<CommentVo> list(@Parameter(hidden = true) @Token long userId, @ParameterObject @Params CommentIdsDto dto) {
+        return commentServiceViewBiz.getCommentList(userId, dto);
     }
 
     /**
      * 查询作品下的一级评论列表。
      *
+     * @param userId 当前查看者ID，用于填充 hasLike
      * @param dto 查询参数，包含 momentId、nextCommentId、limit
      * @return 评论分页 VO
      */
-    @Operation(summary = "查询作品一级评论列表", description = "参数说明：dto.momentId 为作品ID；dto.nextCommentId 为倒序游标；dto.limit 为分页大小。")
+    @Operation(summary = "查询作品一级评论列表", description = "参数说明：userId 为当前查看者ID；dto.momentId 为作品ID；dto.nextCommentId 为倒序游标；dto.limit 为分页大小。")
     @GetMapping("/moment/list")
-    public CommentPageVo momentList(@ParameterObject @Params CommentMomentQueryDto dto) {
-        return commentServiceViewBiz.getMomentCommentPage(dto);
+    public CommentPageVo momentList(@Parameter(hidden = true) @Token long userId, @ParameterObject @Params CommentMomentQueryDto dto) {
+        return commentServiceViewBiz.getMomentCommentPage(userId, dto);
     }
 
     /**
      * 查询一级评论下的二级回复列表。
      *
+     * @param userId 当前查看者ID，用于填充 hasLike
      * @param dto 查询参数，包含 parentCommentId、nextCommentId、limit
      * @return 回复分页 VO
      */
-    @Operation(summary = "查询一级评论下的回复列表", description = "参数说明：dto.parentCommentId 为一级评论ID；dto.nextCommentId 为倒序游标；dto.limit 为分页大小。")
+    @Operation(summary = "查询一级评论下的回复列表", description = "参数说明：userId 为当前查看者ID；dto.parentCommentId 为一级评论ID；dto.nextCommentId 为倒序游标；dto.limit 为分页大小。")
     @GetMapping("/reply/list")
-    public CommentPageVo replyList(@ParameterObject @Params CommentReplyQueryDto dto) {
-        return commentServiceViewBiz.getReplyCommentPage(dto);
+    public CommentPageVo replyList(@Parameter(hidden = true) @Token long userId, @ParameterObject @Params CommentReplyQueryDto dto) {
+        return commentServiceViewBiz.getReplyCommentPage(userId, dto);
     }
 
     /**

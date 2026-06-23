@@ -170,6 +170,8 @@ POST /api/social/moment/publish
 |------|------|------|
 | momentId | Long | 动态 ID（雪花算法生成） |
 | authorId | Long | 作者 ID |
+| nickname | String | 作者昵称 |
+| avatar | String | 作者头像 URL |
 | content | MomentContent | 发布的内容 |
 | latitude | double | 纬度 |
 | longitude | double | 经度 |

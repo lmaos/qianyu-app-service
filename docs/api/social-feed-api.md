@@ -956,6 +956,8 @@ POST /api/social/moment/delete
 |------|------|------|
 | momentId | Long | 动态 ID（雪花） |
 | authorId | Long | 作者 ID |
+| nickname | String | 作者昵称 |
+| avatar | String | 作者头像 URL |
 | content | MomentContent | 动态内容 |
 | latitude | double | 纬度 |
 | longitude | double | 经度 |
@@ -998,6 +1000,8 @@ POST /api/social/moment/delete
 | momentId | Long | 所属作品 ID |
 | momentAuthorId | Long | 作品作者 ID |
 | authorId | Long | 评论作者 ID |
+| nickname | String | 评论作者昵称 |
+| avatar | String | 评论作者头像 URL |
 | parentCommentId | Long | 父评论 ID（一级=0） |
 | replyCommentId | Long | 被回复评论 ID（一级=0） |
 | replyUserId | Long | 被回复用户 ID（一级=0） |

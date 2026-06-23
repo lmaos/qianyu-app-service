@@ -226,28 +226,38 @@ public class FeedServiceViewBiz {
     // ========== 辅助方法 ==========
 
     /**
-     * 构建 Feed 专用的 MomentVo 列表，填充 hasLike 字段。
+     * 构建 Feed 专用的 MomentVo 列表，填充 hasLike 及作者信息。
      */
     private List<MomentVo> buildFeedMomentVos(long userId, List<MomentDto> moments) {
         if (moments == null || moments.isEmpty()) {
             return Collections.emptyList();
         }
 
+        // 1. 批量查询作者信息（nickname + avatar）
+        List<Long> authorIds = moments.stream()
+                .filter(Objects::nonNull)
+                .map(MomentDto::getAuthorId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        java.util.Map<Long, RpcUserInfoDto> userMap = queryAuthorInfoMap(authorIds);
+
+        // 2. 构建 VO 列表
         List<MomentVo> vos = new ArrayList<>(moments.size());
         for (MomentDto dto : moments) {
             if (dto == null) {
                 continue;
             }
             boolean hasLike = checkHasLike(userId, dto.getMomentId());
-            vos.add(toFeedMomentVo(dto, hasLike));
+            vos.add(toFeedMomentVo(dto, hasLike, userMap.get(dto.getAuthorId())));
         }
         return vos;
     }
 
     /**
-     * 将 MomentDto 转换为 MomentVo，并设置 hasLike。
+     * 将 MomentDto 转换为 MomentVo，并设置 hasLike 及作者昵称头像。
      */
-    private MomentVo toFeedMomentVo(MomentDto dto, boolean hasLike) {
+    private MomentVo toFeedMomentVo(MomentDto dto, boolean hasLike, RpcUserInfoDto userInfo) {
         return MomentVo.builder()
                 .momentId(dto.getMomentId())
                 .authorId(dto.getAuthorId())
@@ -260,6 +270,8 @@ public class FeedServiceViewBiz {
                 .likes(dto.getLikes() != null ? dto.getLikes() : 0L)
                 .comments(dto.getComments() != null ? dto.getComments() : 0L)
                 .hasLike(hasLike)
+                .nickname(userInfo != null ? userInfo.getNickname() : null)
+                .avatar(userInfo != null ? userInfo.getAvatar() : null)
                 .build();
     }
 
