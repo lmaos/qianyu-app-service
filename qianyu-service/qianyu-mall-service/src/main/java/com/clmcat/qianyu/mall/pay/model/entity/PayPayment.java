@@ -53,7 +53,7 @@ public class PayPayment {
     @Column(value = "callback_status", comment = "回调处理状态：0=未收到 1=已处理 2=处理失败")
     private Integer callbackStatus;
 
-    @Column(value = "callback_data", comment = "第三方回调原始数据JSON", typeHandler = JacksonTypeHandler.class)
+    @Column(value = "callback_data", comment = "第三方回调原始数据JSON")
     private String callbackData;
 
     @Column(value = "pay_time", comment = "支付成功时间（毫秒时间戳）")

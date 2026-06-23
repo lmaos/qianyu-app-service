@@ -44,7 +44,7 @@ public class OmsAfterSale {
     @Column(value = "amount", comment = "退款金额（元）")
     private BigDecimal amount;
 
-    @Column(value = "images", comment = "凭证图片列表JSON", typeHandler = JacksonTypeHandler.class)
+    @Column(value = "images", comment = "凭证图片列表JSON")
     private String images;
 
     @Column(value = "status", comment = "售后状态: 10/20/30/40/50/60")

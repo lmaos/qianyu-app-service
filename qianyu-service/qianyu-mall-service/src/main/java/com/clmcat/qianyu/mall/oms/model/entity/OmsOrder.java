@@ -44,7 +44,7 @@ public class OmsOrder {
     @Column(value = "discount_amount", comment = "促销优惠金额（元）")
     private BigDecimal discountAmount;
 
-    @Column(value = "discount_detail", comment = "优惠明细JSON", typeHandler = JacksonTypeHandler.class)
+    @Column(value = "discount_detail", comment = "优惠明细JSON")
     private String discountDetail;
 
     @Column(value = "total_quantity", comment = "订单总商品件数")
@@ -74,7 +74,7 @@ public class OmsOrder {
     @Column(value = "merchant_remark", comment = "商家内部备注")
     private String merchantRemark;
 
-    @Column(value = "address_snapshot", comment = "收货地址快照JSON", typeHandler = JacksonTypeHandler.class)
+    @Column(value = "address_snapshot", comment = "收货地址快照JSON")
     private String addressSnapshot;
 
     @Column(value = "pay_time", comment = "支付时间（毫秒时间戳）")

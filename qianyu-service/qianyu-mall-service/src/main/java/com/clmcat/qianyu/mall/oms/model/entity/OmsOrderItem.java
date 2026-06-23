@@ -44,7 +44,7 @@ public class OmsOrderItem {
     @Column(value = "total_amount", comment = "行项目总金额（元）")
     private BigDecimal totalAmount;
 
-    @Column(value = "attributes", comment = "SKU 销售属性快照JSON", typeHandler = JacksonTypeHandler.class)
+    @Column(value = "attributes", comment = "SKU 销售属性快照JSON")
     private String attributes;
 
     @Column(value = "create_time", comment = "创建时间（毫秒时间戳）")

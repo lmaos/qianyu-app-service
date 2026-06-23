@@ -85,6 +85,9 @@ public class OmsCartViewServiceBizImpl implements OmsCartViewServiceBiz {
     }
 
     public void deleteCart(Long userId, CartDeleteDTO dto) {
+        if (dto == null || dto.getCartItemIds() == null || dto.getCartItemIds().isEmpty()) {
+            return;
+        }
         for (Long id : dto.getCartItemIds()) {
             OmsCart cart = cartServiceBiz.selectOneById(id);
             OmsStatus.OMS_CART_NOT_FOUND.assertThrowResEx(cart == null);
