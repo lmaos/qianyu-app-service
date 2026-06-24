@@ -5,9 +5,10 @@
 1. [通用说明](#1-通用说明)
 2. [发布动态](#2-发布动态)
 3. [查询动态详情](#3-查询动态详情)
-4. [删除动态](#4-删除动态)
-5. [公共错误码](#5-公共错误码)
-6. [附录：Content 内容结构](#6-附录content-内容结构)
+4. [按作者查询动态列表](#4-按作者查询动态列表)
+5. [删除动态](#5-删除动态)
+6. [公共错误码](#6-公共错误码)
+7. [附录：Content 内容结构](#7-附录content-内容结构)
 
 ---
 
@@ -343,15 +344,168 @@ GET /api/social/moment/list
 
 ---
 
-## 4. 删除动态
+## 4. 按作者查询动态列表
 
-### 4.1 接口定义
+按作者查询作品列表，支持全部查询和按类型过滤，使用 momentId 倒序游标分页。
+
+### 4.1 按作者查询全部动态
+
+```
+GET /api/social/moment/author/list
+```
+
+#### 请求参数
+
+**MomentAuthorQueryDto**（query 参数）
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| authorId | Long | 是 | 作者用户 ID |
+| momentId | Long | 否 | 倒序分页游标，首页不传 |
+| limit | Integer | 否 | 分页大小，默认 20，最大 100 |
+
+#### 响应参数
+
+**MomentAuthorPageVo**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| authorId | Long | 作者 ID |
+| nextMomentId | Long | 下一页游标（末条 momentId），`0` 表示无下一页 |
+| hasMore | boolean | 是否还有更多数据 |
+| datas | List\<[MomentVo](#74-momentvo)\> | 动态列表（含作者昵称、头像） |
+
+#### 响应示例
+
+```json
+{
+  "status": 0,
+  "state": "OK",
+  "content": {
+    "authorId": 2495058814603264,
+    "nextMomentId": 5257117397155800,
+    "hasMore": true,
+    "datas": [
+      {
+        "momentId": 5257117397155900,
+        "authorId": 2495058814603264,
+        "nickname": "用户A",
+        "avatar": "https://cdn.example.com/a.jpg",
+        "content": {
+          "type": "image",
+          "text": { "text": "今日份的快乐 ✨", "atIds": [] },
+          "image": [
+            { "imageId": "img_001", "imageUrl": "https://cdn.example.com/photo.jpg", "width": 1080, "height": 1080 }
+          ]
+        },
+        "latitude": 22.5431,
+        "longitude": 114.0579,
+        "country": "CN",
+        "likes": 42,
+        "comments": 7,
+        "hasLike": false,
+        "status": 0,
+        "createTime": 1718000000000
+      }
+    ]
+  },
+  "message": "OK"
+}
+```
+
+#### 缓存说明
+
+| 查询场景 | 策略 |
+|----------|------|
+| 查看自己的列表 | 直接查 DB，不走缓存 |
+| 查看他人列表 | 30 秒 Caffeine 本地缓存，命中直接返回 |
+
+---
+
+### 4.2 按作者+类型查询动态
+
+查询指定作者的某类作品（text / image / video），用于个人主页的分类 tab 展示。
+
+```
+GET /api/social/moment/author/list/type
+```
+
+#### 请求参数
+
+**MomentAuthorTypeQueryDto**（query 参数，继承 MomentAuthorQueryDto）
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| authorId | Long | 是 | 作者用户 ID |
+| momentType | String | **是** | 作品类型：`text` / `image` / `video` |
+| momentId | Long | 否 | 倒序分页游标，首页不传 |
+| limit | Integer | 否 | 分页大小，默认 20，最大 100 |
+
+#### 响应参数
+
+同 [4.1 按作者查询全部动态](#41-按作者查询全部动态)，返回 `MomentAuthorPageVo`，`datas` 中仅包含指定类型的作品。
+
+#### 响应示例
+
+```json
+{
+  "status": 0,
+  "state": "OK",
+  "content": {
+    "authorId": 2495058814603264,
+    "nextMomentId": 5257117397155800,
+    "hasMore": true,
+    "datas": [
+      {
+        "momentId": 5257117397155900,
+        "authorId": 2495058814603264,
+        "nickname": "用户A",
+        "avatar": "https://cdn.example.com/a.jpg",
+        "content": {
+          "type": "image",
+          "text": { "text": "今日份的快乐 ✨", "atIds": [] },
+          "image": [
+            { "imageId": "img_001", "imageUrl": "https://cdn.example.com/photo.jpg", "width": 1080, "height": 1080 }
+          ]
+        },
+        "latitude": 22.5431,
+        "longitude": 114.0579,
+        "country": "CN",
+        "likes": 42,
+        "comments": 7,
+        "hasLike": false,
+        "status": 0,
+        "createTime": 1718000000000
+      }
+    ]
+  },
+  "message": "OK"
+}
+```
+
+#### 常见错误
+
+| 错误码 | HTTP | 说明 |
+|--------|------|------|
+| 300004 | 400 | authorId 为空或 <= 0 / momentType 为空 |
+| 400013 | 422 | momentType 不在合法值（text/image/video）内 |
+| 100003 | 403 | token 失效或未传 |
+
+#### 缓存说明
+
+与 4.1 一致：自己看自己不走缓存，他人列表 30s 缓存。缓存 key 包含 `(authorId, momentType, nextMomentId, limit)`。
+
+---
+
+## 5. 删除动态
+
+### 5.1 接口定义
 
 ```
 POST /api/social/moment/delete
 ```
 
-### 4.2 请求参数
+### 5.2 请求参数
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
@@ -359,11 +513,11 @@ POST /api/social/moment/delete
 
 > 只允许作者本人删除自己的动态，非作者调用会返回 422 错误。
 
-### 4.3 响应
+### 5.3 响应
 
 返回 `true` 表示删除成功。
 
-### 4.4 常见错误
+### 5.4 常见错误
 
 | 错误码 | HTTP | state | 说明 |
 |--------|------|-------|------|
@@ -374,7 +528,7 @@ POST /api/social/moment/delete
 
 ---
 
-## 5. 公共错误码
+## 6. 公共错误码
 
 | 错误码 | HTTP | state | 说明 |
 |--------|------|-------|------|
@@ -391,9 +545,9 @@ POST /api/social/moment/delete
 
 ---
 
-## 6. 附录：Content 内容结构
+## 7. 附录：Content 内容结构
 
-### 6.1 MomentContent（动态内容）
+### 7.1 MomentContent（动态内容）
 
 ```
 MomentContent
@@ -415,7 +569,7 @@ MomentContent
     └── duration: Integer          -- 时长（秒）
 ```
 
-### 6.2 类型说明
+### 7.2 类型说明
 
 | type | 存储结构 | 前端展示 |
 |------|---------|---------|
@@ -423,7 +577,50 @@ MomentContent
 | `image` | `{ type, text, image[] }` | 图片网格（1~9 张），上方有描述文字 |
 | `video` | `{ type, text, video }` | 视频播放器 + 封面图，下方有描述文字 |
 
-### 6.3 curl 示例
+### 7.3 作者分页查询相关对象
+
+**MomentAuthorQueryDto** — 按作者分页查询参数
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| authorId | Long | 是 | 作者用户 ID |
+| momentId | Long | 否 | 倒序分页游标 momentId，首页不传 |
+| limit | Integer | 否 | 分页大小，默认 20，最大 100 |
+
+**MomentAuthorTypeQueryDto** — 继承自 MomentAuthorQueryDto，新增 `momentType`
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| momentType | String | **是** | 作品类型：`text` / `image` / `video` |
+
+**MomentAuthorPageVo** — 作者分页结果
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| authorId | Long | 作者 ID |
+| nextMomentId | Long | 下一页游标，`0` 表示无下一页 |
+| hasMore | boolean | 是否还有更多数据 |
+| datas | List\<MomentVo\> | 动态列表 |
+
+### 7.4 MomentVo 字段表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| momentId | Long | 动态 ID（雪花算法生成） |
+| authorId | Long | 作者 ID |
+| nickname | String | 作者昵称（批量查询填充） |
+| avatar | String | 作者头像 URL（批量查询填充） |
+| content | MomentContent | 动态内容体 |
+| latitude | double | 纬度 |
+| longitude | double | 经度 |
+| country | String | 国家代码 |
+| likes | Long | 点赞数 |
+| comments | Long | 评论数 |
+| hasLike | boolean | 当前用户是否已点赞 |
+| status | Integer | 状态：`0` 显示，`1` 隐藏，`2` 删除 |
+| createTime | Long | 创建时间戳（Unix 毫秒） |
+
+### 7.5 curl 示例
 
 ```bash
 # 1. 登录获取 token
@@ -469,19 +666,27 @@ curl -X POST http://localhost:8080/api/social/moment/publish \
 curl -X GET "http://localhost:8080/api/social/moment/get?momentId=5257117397155900" \
   -H "token: <token>"
 
-# 5. 删除动态
+# 5. 按作者查询全部动态
+curl -X GET "http://localhost:8080/api/social/moment/author/list?authorId=2495058814603264&limit=20" \
+  -H "token: <token>"
+
+# 6. 按作者+类型查询动态（仅查图片作品）
+curl -X GET "http://localhost:8080/api/social/moment/author/list/type?authorId=2495058814603264&momentType=image&limit=20" \
+  -H "token: <token>"
+
+# 7. 删除动态
 curl -X POST "http://localhost:8080/api/social/moment/delete?momentId=5257117397155900" \
   -H "token: <token>"
 ```
 
-### 6.4 测试账号
+### 7.6 测试账号
 
 | 属性 | 值 |
 |------|-----|
 | phone | `+86-13800138000` |
 | code | `123456` |
 
-### 6.5 相关文件
+### 7.7 相关文件
 
 | 文件 | 说明 |
 |------|------|
@@ -491,5 +696,8 @@ curl -X POST "http://localhost:8080/api/social/moment/delete?momentId=5257117397
 | `MomentPublishDto.java` | 发布参数 DTO |
 | `MomentVo.java` | 动态响应 VO |
 | `MomentSupport.java` | 动态转换、校验工具类 |
+| `MomentAuthorQueryDto.java` | 按作者分页查询参数 DTO |
+| `MomentAuthorTypeQueryDto.java` | 按作者+类型分页查询参数 DTO（继承 MomentAuthorQueryDto） |
+| `MomentAuthorPageVo.java` | 作者分页结果 VO |
 | `MomentContent` / `MomentContentText` / `MomentContentImage` / `MomentContentVideo` | 内容结构 DTO |
 | `social-feed-api.md` | Feed 推荐流、评论、点赞 API |

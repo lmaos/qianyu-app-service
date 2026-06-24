@@ -5,6 +5,7 @@ import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.social.moment.model.dto.MomentAuthorQueryDto;
+import com.clmcat.qianyu.social.moment.model.dto.MomentAuthorTypeQueryDto;
 import com.clmcat.qianyu.social.moment.model.dto.MomentIdDto;
 import com.clmcat.qianyu.social.moment.model.dto.MomentIdsDto;
 import com.clmcat.qianyu.social.moment.model.dto.MomentPublishDto;
@@ -91,6 +92,19 @@ public class MomentController {
     @GetMapping("/author/list")
     public MomentAuthorPageVo authorList(@Parameter(hidden = true) @Token long userId, @ParameterObject @Params MomentAuthorQueryDto dto) {
         return momentServiceViewBiz.getMomentPageByAuthor(userId, dto);
+    }
+
+    /**
+     * 按作者+类型查询动态列表，使用 momentId 倒序游标分页。
+     *
+     * @param userId 当前查看者ID，来自 Token；本人查看自己的列表时不走缓存
+     * @param dto 查询参数，包含 authorId、momentType、momentId 游标、limit
+     * @return 作者某类型动态分页结果
+     */
+    @Operation(summary = "按作者+类型分页查询动态", description = "参数说明：userId 为当前查看者ID；dto.authorId 为作者ID；dto.momentType 为作品类型（text/image/video）；dto.momentId 为倒序游标；dto.limit 为分页大小。")
+    @GetMapping("/author/list/type")
+    public MomentAuthorPageVo authorListByType(@Parameter(hidden = true) @Token long userId, @ParameterObject @Params MomentAuthorTypeQueryDto dto) {
+        return momentServiceViewBiz.getMomentPageByAuthorAndType(userId, dto);
     }
 
     /**

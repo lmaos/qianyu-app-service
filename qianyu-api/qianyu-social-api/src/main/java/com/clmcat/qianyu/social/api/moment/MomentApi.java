@@ -46,6 +46,17 @@ public interface MomentApi {
      */
     MomentListDto getMomentByAuthorId(long authorId, long nextMomentId, int limit);
 
+    /**
+     * 通过作者编号和作品类型查询动态，按 momentId 倒序游标分页。
+     *
+     * @param authorId 作者编号
+     * @param momentType 作品类型：text / image / video
+     * @param nextMomentId 下一页游标，查询 momentId 小于该值的数据
+     * @param limit 查询条数
+     * @return 动态列表
+     */
+    MomentListDto getMomentByAuthorIdAndType(long authorId, String momentType, long nextMomentId, int limit);
+
     MomentIdListDto getMomentIdsByAuthorId(long authorId, long nextMomentId, int limit);
 
     boolean deleteMomentById(long moment);

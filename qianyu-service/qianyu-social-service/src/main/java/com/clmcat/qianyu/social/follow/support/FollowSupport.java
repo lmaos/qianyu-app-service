@@ -13,9 +13,12 @@ import com.clmcat.qianyu.social.follow.model.vo.FollowPageVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowRelationVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowUserVo;
 
+import com.clmcat.qianyu.user.api.model.dto.RpcUserInfoDto;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public class FollowSupport {
     public static final int FRIEND_NO = 0;
@@ -90,36 +93,54 @@ public class FollowSupport {
     }
 
     public static FollowUserVo toFolloweeVo(FollowDto dto) {
+        return toFolloweeVo(dto, null);
+    }
+
+    public static FollowUserVo toFolloweeVo(FollowDto dto, Map<Long, RpcUserInfoDto> userMap) {
         if (dto == null) {
             return null;
         }
+        RpcUserInfoDto userInfo = userMap != null ? userMap.get(dto.getFolloweeId()) : null;
         return FollowUserVo.builder()
                 .id(dto.getId())
                 .userId(dto.getFolloweeId())
                 .isFriend(dto.getIsFriend())
                 .clientTime(dto.getClientTime())
+                .nickname(userInfo != null ? userInfo.getNickname() : null)
+                .avatar(userInfo != null ? userInfo.getAvatar() : null)
                 .build();
     }
 
     public static FollowUserVo toFollowerVo(FollowDto dto) {
+        return toFollowerVo(dto, null);
+    }
+
+    public static FollowUserVo toFollowerVo(FollowDto dto, Map<Long, RpcUserInfoDto> userMap) {
         if (dto == null) {
             return null;
         }
+        RpcUserInfoDto userInfo = userMap != null ? userMap.get(dto.getFollowerId()) : null;
         return FollowUserVo.builder()
                 .id(dto.getId())
                 .userId(dto.getFollowerId())
                 .isFriend(dto.getIsFriend())
                 .clientTime(dto.getClientTime())
+                .nickname(userInfo != null ? userInfo.getNickname() : null)
+                .avatar(userInfo != null ? userInfo.getAvatar() : null)
                 .build();
     }
 
     public static List<FollowUserVo> toFolloweeVoList(Collection<FollowDto> follows) {
+        return toFolloweeVoList(follows, null);
+    }
+
+    public static List<FollowUserVo> toFolloweeVoList(Collection<FollowDto> follows, Map<Long, RpcUserInfoDto> userMap) {
         List<FollowUserVo> list = new ArrayList<>();
         if (follows == null) {
             return list;
         }
         for (FollowDto dto : follows) {
-            FollowUserVo vo = toFolloweeVo(dto);
+            FollowUserVo vo = toFolloweeVo(dto, userMap);
             if (vo != null) {
                 list.add(vo);
             }
@@ -128,12 +149,16 @@ public class FollowSupport {
     }
 
     public static List<FollowUserVo> toFollowerVoList(Collection<FollowDto> follows) {
+        return toFollowerVoList(follows, null);
+    }
+
+    public static List<FollowUserVo> toFollowerVoList(Collection<FollowDto> follows, Map<Long, RpcUserInfoDto> userMap) {
         List<FollowUserVo> list = new ArrayList<>();
         if (follows == null) {
             return list;
         }
         for (FollowDto dto : follows) {
-            FollowUserVo vo = toFollowerVo(dto);
+            FollowUserVo vo = toFollowerVo(dto, userMap);
             if (vo != null) {
                 list.add(vo);
             }

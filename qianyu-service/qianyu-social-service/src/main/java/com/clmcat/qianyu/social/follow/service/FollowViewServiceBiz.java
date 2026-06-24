@@ -13,18 +13,28 @@ import com.clmcat.qianyu.social.follow.model.vo.FollowPageVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowRelationVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowUserVo;
 import com.clmcat.qianyu.social.follow.support.FollowSupport;
+import com.clmcat.qianyu.user.api.UserApi;
+import com.clmcat.qianyu.user.api.model.dto.PpcUserInfoListDto;
+import com.clmcat.qianyu.user.api.model.dto.RpcUserInfoDto;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class FollowViewServiceBiz  {
 
     @Resource
     FollowServiceBiz followServiceBiz;
+
+    @Resource
+    UserApi userApi;
 
     /**
      * 当前用户发起关注。
@@ -90,7 +100,8 @@ public class FollowViewServiceBiz  {
             followDtos = new ArrayList<>(followDtos.subList(0, limit));
         }
         long nextCursorId = hasMore && !followDtos.isEmpty() ? followDtos.get(followDtos.size() - 1).getId() : 0L;
-        List<FollowUserVo> userList = FollowSupport.toFolloweeVoList(followDtos);
+        Map<Long, RpcUserInfoDto> userMap = queryUserInfoMapByFolloweeIds(followDtos);
+        List<FollowUserVo> userList = FollowSupport.toFolloweeVoList(followDtos, userMap);
         return FollowSupport.newFollowPageVo(userId, hasMore, nextCursorId, userList);
     }
 
@@ -125,7 +136,8 @@ public class FollowViewServiceBiz  {
             followDtos = new ArrayList<>(followDtos.subList(0, limit));
         }
         long nextCursorId = hasMore && !followDtos.isEmpty() ? followDtos.get(followDtos.size() - 1).getId() : 0L;
-        List<FollowUserVo> userList = FollowSupport.toFollowerVoList(followDtos);
+        Map<Long, RpcUserInfoDto> userMap = queryUserInfoMapByFollowerIds(followDtos);
+        List<FollowUserVo> userList = FollowSupport.toFollowerVoList(followDtos, userMap);
         return FollowSupport.newFollowPageVo(userId, hasMore, nextCursorId, userList);
     }
 
@@ -182,5 +194,65 @@ public class FollowViewServiceBiz  {
             queryDto.setLimit(dto.getLimit());
         }
         return queryDto;
+    }
+
+    /**
+     * 批量查询关注列表中的用户信息（关注的是谁）。
+     *
+     * @param followDtos 关注关系列表
+     * @return followeeId → RpcUserInfoDto 映射
+     */
+    private Map<Long, RpcUserInfoDto> queryUserInfoMapByFolloweeIds(List<FollowDto> followDtos) {
+        if (followDtos == null || followDtos.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> userIds = followDtos.stream()
+                .map(FollowDto::getFolloweeId)
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .collect(Collectors.toList());
+        return queryUserInfoMap(userIds);
+    }
+
+    /**
+     * 批量查询粉丝列表中的用户信息（谁关注了 ta）。
+     *
+     * @param followDtos 粉丝关系列表
+     * @return followerId → RpcUserInfoDto 映射
+     */
+    private Map<Long, RpcUserInfoDto> queryUserInfoMapByFollowerIds(List<FollowDto> followDtos) {
+        if (followDtos == null || followDtos.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> userIds = followDtos.stream()
+                .map(FollowDto::getFollowerId)
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .collect(Collectors.toList());
+        return queryUserInfoMap(userIds);
+    }
+
+    /**
+     * 通过 UserApi 批量查询用户信息（userId → nickname/avatar）。
+     */
+    private Map<Long, RpcUserInfoDto> queryUserInfoMap(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try {
+            PpcUserInfoListDto userList = userApi.getUserInfoList(userIds);
+            if (userList == null || userList.getUsers() == null) {
+                return Collections.emptyMap();
+            }
+            Map<Long, RpcUserInfoDto> map = new HashMap<>(userList.getUsers().size());
+            for (RpcUserInfoDto user : userList.getUsers()) {
+                if (user != null && user.getUserId() != null) {
+                    map.put(user.getUserId(), user);
+                }
+            }
+            return map;
+        } catch (Exception e) {
+            return Collections.emptyMap();
+        }
     }
 }

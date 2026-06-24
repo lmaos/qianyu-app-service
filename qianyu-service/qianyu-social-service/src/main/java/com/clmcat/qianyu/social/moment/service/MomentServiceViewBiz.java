@@ -3,6 +3,7 @@ package com.clmcat.qianyu.social.moment.service;
 import com.clmcat.qianyu.social.api.moment.model.dto.MomentDto;
 import com.clmcat.qianyu.social.base.service.UserSocialCounterServiceBiz;
 import com.clmcat.qianyu.social.moment.model.dto.MomentAuthorQueryDto;
+import com.clmcat.qianyu.social.moment.model.dto.MomentAuthorTypeQueryDto;
 import com.clmcat.qianyu.social.moment.model.dto.MomentIdDto;
 import com.clmcat.qianyu.social.moment.model.dto.MomentIdsDto;
 import com.clmcat.qianyu.social.moment.model.dto.MomentPublishDto;
@@ -109,6 +110,44 @@ public class MomentServiceViewBiz {
         int limit = MomentSupport.normalizeMomentQueryLimit(dto == null ? null : dto.getLimit());
         long cursorMomentId = MomentSupport.normalizeCursorMomentId(dto == null ? null : dto.getMomentId());
         List<MomentDto> momentDtos = momentServiceCacheBiz.getMomentByAuthorId(viewerId, authorId, cursorMomentId, limit + 1);
+
+        boolean hasMore = momentDtos.size() > limit;
+        if (hasMore) {
+            momentDtos = new ArrayList<>(momentDtos.subList(0, limit));
+        }
+
+        long nextMomentId = 0L;
+        if (hasMore && !momentDtos.isEmpty()) {
+            nextMomentId = momentDtos.get(momentDtos.size() - 1).getMomentId();
+        }
+
+        List<MomentVo> momentVos = enrichAuthorInfo(MomentSupport.toMomentVoList(momentDtos));
+
+        return MomentAuthorPageVo.builder()
+                .authorId(authorId)
+                .nextMomentId(nextMomentId)
+                .hasMore(hasMore)
+                .datas(momentVos)
+                .build();
+    }
+
+    /**
+     * 按作者+类型查询动态分页结果。
+     *
+     * @param viewerId 当前查看者ID；本人查看自己的列表时不走缓存
+     * @param dto 查询参数，包含作者ID、作品类型、游标 momentId、分页大小 limit
+     * @return 作者某类型动态分页 VO
+     */
+    public MomentAuthorPageVo getMomentPageByAuthorAndType(long viewerId, MomentAuthorTypeQueryDto dto) {
+        long authorId = dto == null ? 0L : Objects.requireNonNullElse(dto.getAuthorId(), 0L);
+        Status.AUTHOR_REQUIRED.assertThrowResEx(MomentSupport.isNullOrNonPositive(authorId));
+
+        String momentType = dto == null ? null : dto.getMomentType();
+        Status.MOMENT_TYPE_ERROR.assertThrowResEx(momentType == null || !MomentSupport.existType(momentType));
+
+        int limit = MomentSupport.normalizeMomentQueryLimit(dto == null ? null : dto.getLimit());
+        long cursorMomentId = MomentSupport.normalizeCursorMomentId(dto == null ? null : dto.getMomentId());
+        List<MomentDto> momentDtos = momentServiceCacheBiz.getMomentByAuthorIdAndType(viewerId, authorId, momentType, cursorMomentId, limit + 1);
 
         boolean hasMore = momentDtos.size() > limit;
         if (hasMore) {

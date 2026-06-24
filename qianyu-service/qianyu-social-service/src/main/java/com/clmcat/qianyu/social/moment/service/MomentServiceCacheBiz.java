@@ -96,6 +96,40 @@ public class MomentServiceCacheBiz {
     }
 
     /**
+     * 查询作者某类型的动态列表缓存。
+     *
+     * @param viewerId 当前查看者ID；本人查看自己的列表时绕过缓存
+     * @param authorId 作者ID
+     * @param momentType 作品类型：text / image / video
+     * @param nextMomentId 游标 momentId，仅查询小于该值的数据
+     * @param limit 查询数量
+     * @return 动态 DTO 列表
+     */
+    public List<MomentDto> getMomentByAuthorIdAndType(long viewerId, long authorId, String momentType, long nextMomentId, int limit) {
+        if (Objects.equals(viewerId, authorId)) {
+            return momentServiceBiz.getMomentByAuthorIdAndType(authorId, momentType, nextMomentId, limit).getMoments();
+        }
+
+        AuthorMomentListCacheKey cacheKey = new AuthorMomentListCacheKey(authorId, nextMomentId, limit, momentType);
+        List<MomentDto> cachedMomentList = authorMomentListCache.getIfPresent(cacheKey);
+        if (cachedMomentList != null) {
+            return new ArrayList<>(cachedMomentList);
+        }
+
+        List<MomentDto> momentDtos = momentServiceBiz.getMomentByAuthorIdAndType(authorId, momentType, nextMomentId, limit).getMoments();
+        List<MomentDto> cacheValue = new ArrayList<>(momentDtos);
+        authorMomentListCache.put(cacheKey, cacheValue);
+
+        for (MomentDto momentDto : momentDtos) {
+            if (momentDto != null && !Objects.equals(momentDto.getAuthorId(), viewerId)) {
+                momentDetailCache.put(momentDto.getMomentId(), momentDto);
+            }
+        }
+
+        return momentDtos;
+    }
+
+    /**
      * 失效单条动态及其作者列表缓存。
      *
      * @param momentId 动态ID
@@ -115,6 +149,9 @@ public class MomentServiceCacheBiz {
         authorMomentListCache.asMap().keySet().removeIf(cacheKey -> cacheKey.authorId() == authorId);
     }
 
-    private record AuthorMomentListCacheKey(long authorId, long nextMomentId, int limit) {
+    private record AuthorMomentListCacheKey(long authorId, long nextMomentId, int limit, String momentType) {
+        AuthorMomentListCacheKey(long authorId, long nextMomentId, int limit) {
+            this(authorId, nextMomentId, limit, null);
+        }
     }
 }

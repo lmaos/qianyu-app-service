@@ -155,6 +155,27 @@ public class MomentServiceBiz implements MomentApi {
     }
 
     @Override
+    public MomentListDto getMomentByAuthorIdAndType(long authorId, String momentType, long nextMomentId, int limit) {
+        if (authorId <= 0 || limit <= 0 || momentType == null || momentType.isBlank()) {
+            return MomentListDto.EMPTY;
+        }
+
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        queryWrapper.eq(Moment::getAuthorId, authorId);
+        queryWrapper.eq(Moment::getMomentType, momentType);
+        queryWrapper.lt(Moment::getMomentId, nextMomentId);
+        queryWrapper.orderBy(Moment::getMomentId, false);
+        queryWrapper.limit(limit);
+
+        List<Moment> moments = momentMapper.selectListByQuery(queryWrapper);
+        if (moments == null || moments.isEmpty()) {
+            return MomentListDto.EMPTY;
+        }
+        List<MomentDto> list = MomentSupport.toMomentDtoList(moments);
+        return MomentListDto.builder().moments(list).last(moments.getFirst().getMomentId()).build();
+    }
+
+    @Override
     public MomentIdListDto getMomentIdsByAuthorId(long authorId, long nextMomentId, int limit) {
         if (authorId <= 0 || limit <= 0) {
             return MomentIdListDto.EMPTY;
