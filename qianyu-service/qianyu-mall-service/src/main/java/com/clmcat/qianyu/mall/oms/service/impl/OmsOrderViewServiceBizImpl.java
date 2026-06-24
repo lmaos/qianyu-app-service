@@ -75,14 +75,22 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
             Long spuId = 0L;
             String skuName = "SKU-" + itemDTO.getSkuId();
             String skuImage = "";
-            String attributes = "";
+            String attributes = "[]";
 
             if (skuDto != null) {
                 price = skuDto.getPrice() != null ? skuDto.getPrice() : java.math.BigDecimal.ONE;
                 spuId = skuDto.getSpuId() != null ? skuDto.getSpuId() : 0L;
                 skuName = skuDto.getSkuName() != null ? skuDto.getSkuName() : "SKU-" + itemDTO.getSkuId();
                 skuImage = skuDto.getSkuImage() != null ? skuDto.getSkuImage() : "";
-                attributes = skuDto.getAttributes() != null ? skuDto.getAttributes().toString() : "";
+                // attributes is a MySQL JSON column — must be valid JSON.
+                // skuDto.getAttributes() is List<LinkedHashMap<String,String>>, .toString() yields Java format.
+                if (skuDto.getAttributes() != null && !skuDto.getAttributes().isEmpty()) {
+                    try {
+                        attributes = JSON_MAPPER.writeValueAsString(skuDto.getAttributes());
+                    } catch (Exception e) {
+                        attributes = "[]";
+                    }
+                }
                 merchantId = skuDto.getMerchantId() != null ? skuDto.getMerchantId() : 0L;
             }
 

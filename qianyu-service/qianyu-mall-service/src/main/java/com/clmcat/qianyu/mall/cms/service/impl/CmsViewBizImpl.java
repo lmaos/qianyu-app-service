@@ -200,8 +200,9 @@ public class CmsViewBizImpl implements CmsViewBiz {
         if (tabCategoryId != null && tabCategoryId > 0) {
             // 具体 Tab → 强制按 Tab 分类过滤（覆盖 zone 自身的分类）
             qw.and(PMS_SPU.CATEGORY_ID.eq(tabCategoryId));
-        } else if (zone.getCategoryId() != null) {
+        } else if (zone.getCategoryId() != null && zone.getCategoryId() > 0) {
             // recommend Tab → 用 zone 自身的分类（与 homePage 行为一致）
+            // category_id = 0 视为未设置（兼容历史脏数据），退化到"全部商品按销量排序"
             qw.and(PMS_SPU.CATEGORY_ID.eq(zone.getCategoryId()));
         }
 

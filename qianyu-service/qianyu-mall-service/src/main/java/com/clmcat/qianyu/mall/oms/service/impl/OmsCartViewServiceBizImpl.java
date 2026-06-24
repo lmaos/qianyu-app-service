@@ -43,6 +43,7 @@ public class OmsCartViewServiceBizImpl implements OmsCartViewServiceBiz {
         if (existing != null) {
             existing.setQuantity(existing.getQuantity() + dto.getQuantity());
             existing.setUpdateTime(System.currentTimeMillis());
+            existing.setDeleted(0);
             cartServiceBiz.updateCart(existing);
             return existing.getId();
         }

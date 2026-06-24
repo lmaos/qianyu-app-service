@@ -80,7 +80,7 @@ public class OmsCartApiImpl implements OmsCartApi {
 
     public OmsCart selectOneByUserAndSku(Long userId, Long skuId) {
         return cartMapper.selectOneByQuery(
-                QueryWrapper.create().where("user_id = ?", userId).and("sku_id = ?", skuId).and("deleted = 0"));
+                QueryWrapper.create().where("user_id = ?", userId).and("sku_id = ?", skuId));
     }
 
     public void updateCart(OmsCart cart) {
