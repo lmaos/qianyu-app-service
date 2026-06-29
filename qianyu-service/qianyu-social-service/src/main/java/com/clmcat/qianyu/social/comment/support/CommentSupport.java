@@ -11,6 +11,7 @@ import com.clmcat.qianyu.social.comment.model.vo.CommentVo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -49,7 +50,11 @@ public class CommentSupport {
         dto.setLikes(0L);
         dto.setReplies(0L);
         dto.setStatus(COMMENT_STATUS_SHOW);
-        return toComment(dto);
+        Comment comment = toComment(dto);
+        if (comment != null) {
+            comment.setServerTime(LocalDateTime.now());
+        }
+        return comment;
     }
 
     public static Comment toComment(CommentDto dto) {

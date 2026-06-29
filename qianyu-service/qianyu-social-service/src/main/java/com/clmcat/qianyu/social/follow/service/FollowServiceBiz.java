@@ -24,6 +24,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -66,6 +67,7 @@ public class FollowServiceBiz implements FollowApi {
             }
             long id = FollowSupport.FOLLOW_ID_SNOWFLAKE.nextId();
             long time = com.clmcat.qianyu.core.snowflake.SnowflakeSupport.parseTimeBySnowflake(FollowSupport.FOLLOW_ID_SNOWFLAKE, id);
+            LocalDateTime now = LocalDateTime.now();
             boolean reverseFollow = existsFollow(dto.getFolloweeId(), dto.getFollowerId());
             // 关注
             Follow follow = new Follow();
@@ -74,6 +76,7 @@ public class FollowServiceBiz implements FollowApi {
             follow.setFolloweeId(dto.getFolloweeId());
             follow.setIsFriend(reverseFollow ? FollowSupport.FRIEND_YES : FollowSupport.FRIEND_NO);
             follow.setClientTime(time);
+            follow.setServerTime(now);
 
             // 粉丝
             Follower follower= new Follower();
@@ -82,6 +85,7 @@ public class FollowServiceBiz implements FollowApi {
             follower.setFolloweeId(dto.getFolloweeId());
             follower.setIsFriend(reverseFollow ? FollowSupport.FRIEND_YES : FollowSupport.FRIEND_NO);
             follower.setClientTime(time);
+            follower.setServerTime(now);
 
             try {
                 followMapper.insert(follow);

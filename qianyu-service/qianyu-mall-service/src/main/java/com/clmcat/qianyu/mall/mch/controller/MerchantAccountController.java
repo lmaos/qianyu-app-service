@@ -1,6 +1,7 @@
 package com.clmcat.qianyu.mall.mch.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
+import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.mch.model.dto.BillQueryDTO;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "商家账户资金", description = "账户、账单、结算、提现")
 @ApiController
 @RequestMapping("/api/mall/merchant/mch")
-// @LoginVerify
+@LoginVerify
 public class MerchantAccountController {
 
     @Resource

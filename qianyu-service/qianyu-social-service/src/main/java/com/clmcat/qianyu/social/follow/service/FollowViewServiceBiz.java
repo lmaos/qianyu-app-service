@@ -8,6 +8,7 @@ import com.clmcat.qianyu.social.follow.model.dto.FollowSelfListQueryDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowTargetDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowUserQueryDto;
 import com.clmcat.qianyu.social.follow.model.entity.status.Status;
+import com.clmcat.qianyu.social.follow.model.vo.ContactVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowCountVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowPageVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowRelationVo;
@@ -178,6 +179,32 @@ public class FollowViewServiceBiz  {
         FollowUserQueryDto dto = new FollowUserQueryDto();
         dto.setUserId(userId);
         return getFollowCount(dto);
+    }
+
+    /**
+     * 常用联系人（好友）列表：当前用户的好友（互关）用户信息。
+     *
+     * @param userId 当前登录用户ID
+     * @return 好友联系人列表（按好友关系顺序，含昵称/头像/userNo）
+     */
+    public List<ContactVo> getFriendContacts(long userId) {
+        Status.QUERY_USER_REQUIRED.assertThrowResEx(FollowSupport.isNullOrNonPositive(userId));
+        List<Long> friendIds = followServiceBiz.getFriendIdsByUserId(userId);
+        if (friendIds == null || friendIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<Long, RpcUserInfoDto> userMap = queryUserInfoMap(friendIds);
+        List<ContactVo> list = new ArrayList<>(friendIds.size());
+        for (Long friendId : friendIds) {
+            RpcUserInfoDto u = userMap.get(friendId);
+            list.add(ContactVo.builder()
+                    .userId(friendId)
+                    .nickname(u != null ? u.getNickname() : null)
+                    .avatar(u != null ? u.getAvatar() : null)
+                    .userNo(u != null ? u.getUserNo() : null)
+                    .build());
+        }
+        return list;
     }
 
     private void verifyTarget(FollowDto followDto) {

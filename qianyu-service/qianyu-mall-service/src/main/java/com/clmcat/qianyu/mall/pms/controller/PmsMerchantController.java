@@ -1,6 +1,7 @@
 package com.clmcat.qianyu.mall.pms.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
+import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.pms.model.dto.BrandCreateDto;
@@ -29,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "商家商品管理", description = "SPU 创建/编辑/上下架、SKU 管理、分类/品牌 CRUD")
 @ApiController
 @RequestMapping("/api/mall/merchant/pms")
-// @LoginVerify
+@LoginVerify
 public class PmsMerchantController {
 
     @Resource

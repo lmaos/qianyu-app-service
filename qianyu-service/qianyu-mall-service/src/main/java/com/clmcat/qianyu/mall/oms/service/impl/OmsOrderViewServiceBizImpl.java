@@ -6,6 +6,8 @@ import com.clmcat.qianyu.mall.api.inv.InvStockApi;
 import com.clmcat.qianyu.mall.api.inv.model.dto.InvStockDto;
 import com.clmcat.qianyu.mall.api.pms.PmsSkuApi;
 import com.clmcat.qianyu.mall.api.pms.model.dto.PmsSkuDto;
+import com.clmcat.qianyu.mall.log.model.dto.LogisticsCreateDTO;
+import com.clmcat.qianyu.mall.log.service.LogisticsViewServiceBiz;
 import com.clmcat.qianyu.mall.oms.mapper.OmsOrderMapper;
 import com.clmcat.qianyu.mall.oms.model.dto.*;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsOrder;
@@ -15,6 +17,9 @@ import com.clmcat.qianyu.mall.oms.model.vo.*;
 import com.clmcat.qianyu.mall.oms.support.OmsSupport;
 import com.clmcat.qianyu.mall.pay.mapper.PayPaymentMapper;
 import com.clmcat.qianyu.mall.pay.model.entity.PayPayment;
+import com.clmcat.qianyu.user.api.UserApi;
+import com.clmcat.qianyu.user.api.model.dto.PpcUserInfoListDto;
+import com.clmcat.qianyu.user.api.model.dto.RpcUserInfoDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.paginate.Page;
@@ -24,8 +29,10 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import com.clmcat.qianyu.mall.oms.service.OmsOrderViewServiceBiz;
 
 @Service
@@ -50,6 +57,12 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
 
     @DubboReference
     private AdsAddressApi adsAddressApi;
+
+    @DubboReference
+    private UserApi userApi;
+
+    @Resource
+    private LogisticsViewServiceBiz logisticsViewServiceBiz;
 
     public OrderCreateVO createOrder(Long userId, OrderCreateDTO dto) {
         OmsStatus.OMS_ADDRESS_REQUIRED.assertThrowResEx(dto.getAddressId() == null);
@@ -361,6 +374,26 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
             return new Page<>(pageNum, pageSize);
         }
 
+        // 批量查询买家昵称（避免逐单 RPC）。降级：RPC 失败时 buyerNick 为空
+        List<Long> buyerUserIds = orderPage.getRecords().stream()
+                .map(OmsOrder::getUserId)
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, RpcUserInfoDto> userInfoMap = new HashMap<>();
+        if (!buyerUserIds.isEmpty()) {
+            try {
+                PpcUserInfoListDto listDto = userApi.getUserInfoList(buyerUserIds);
+                if (listDto != null && listDto.getUsers() != null) {
+                    userInfoMap = listDto.getUsers().stream()
+                            .filter(u -> u != null && u.getUserId() != null)
+                            .collect(Collectors.toMap(RpcUserInfoDto::getUserId, u -> u, (a, b) -> a));
+                }
+            } catch (Exception e) {
+                // 降级：仅 nickname 缺失，列表其他字段正常返回
+            }
+        }
+
         List<OrderSimpleVO> voList = new ArrayList<>();
         for (OmsOrder order : orderPage.getRecords()) {
             List<OmsOrderItem> items = orderServiceBiz.findItemsByOrderId(order.getId());
@@ -375,6 +408,9 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
                         .build());
             }
 
+            RpcUserInfoDto buyer = order.getUserId() != null ? userInfoMap.get(order.getUserId()) : null;
+            String buyerNick = buyer != null ? buyer.getNickname() : null;
+
             voList.add(OrderSimpleVO.builder()
                     .orderId(order.getId())
                     .orderSn(order.getOrderNo())
@@ -387,6 +423,7 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
                     .totalQuantity(order.getTotalQuantity())
                     .items(itemVos)
                     .createTime(formatTime(order.getCreateTime()))
+                    .buyerNick(buyerNick)
                     .build());
         }
 
@@ -450,6 +487,19 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         order.setDeliveryTime(System.currentTimeMillis());
         order.setUpdateTime(System.currentTimeMillis());
         orderServiceBiz.updateOrder(order);
+
+        // 同步创建物流记录，发货后用户才能查物流轨迹
+        // 注：userId 在 createLogistics 内部未使用，仅作为身份占位
+        LogisticsCreateDTO logisticsDTO = new LogisticsCreateDTO();
+        logisticsDTO.setOrderId(order.getId());
+        logisticsDTO.setLogisticsCompany(dto.getLogisticsCompany());
+        logisticsDTO.setLogisticsNo(dto.getLogisticsNo());
+        try {
+            logisticsViewServiceBiz.createLogistics(0L, logisticsDTO);
+        } catch (Exception e) {
+            // 物流记录创建失败不回滚订单状态（主流程已成功）；
+            // 极端场景：旧物流记录已存在（拆单/重复发货），由后续重试或运营介入
+        }
     }
 
     /**

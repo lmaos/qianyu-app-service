@@ -8,6 +8,7 @@ import com.clmcat.qianyu.social.follow.model.dto.FollowListQueryDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowSelfListQueryDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowTargetDto;
 import com.clmcat.qianyu.social.follow.model.dto.FollowUserQueryDto;
+import com.clmcat.qianyu.social.follow.model.vo.ContactVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowCountVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowPageVo;
 import com.clmcat.qianyu.social.follow.model.vo.FollowRelationVo;
@@ -20,6 +21,8 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.util.List;
 
 /**
  * 关注关系接口。
@@ -77,6 +80,18 @@ public class FollowController {
     @GetMapping("/relation")
     public FollowRelationVo relation(@Parameter(hidden = true) @Token long userId, @ParameterObject @Params FollowTargetDto dto) {
         return followViewServiceBiz.getRelation(userId, dto);
+    }
+
+    /**
+     * 常用联系人（好友）列表。
+     *
+     * @param userId 当前登录用户ID，来自 Token
+     * @return 好友（互关）联系人列表，含昵称/头像/userNo
+     */
+    @Operation(summary = "常用联系人（好友）列表", description = "参数说明：userId 为当前登录用户ID；返回好友（互关）列表，含昵称/头像/userNo。")
+    @GetMapping("/friends")
+    public List<ContactVo> friends(@Parameter(hidden = true) @Token long userId) {
+        return followViewServiceBiz.getFriendContacts(userId);
     }
 
     /**

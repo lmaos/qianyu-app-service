@@ -12,6 +12,8 @@ import com.clmcat.qianyu.social.like.model.entity.CommentLike;
 import com.clmcat.qianyu.social.like.model.entity.MomentLike;
 import com.clmcat.qianyu.social.like.model.vo.LikeStatusVo;
 
+import java.time.LocalDateTime;
+
 public class LikeSupport {
     public static final CustomSnowflake LIKE_ID_SNOWFLAKE = SnowflakeSupport.createSnowflake(42, 10, 11);
 
@@ -42,6 +44,7 @@ public class LikeSupport {
         momentLike.setUserId(dto.getUserId());
         momentLike.setAuthorId(dto.getAuthorId());
         momentLike.setClientTime(clientTime);
+        momentLike.setServerTime(LocalDateTime.now());
         return momentLike;
     }
 
@@ -60,6 +63,7 @@ public class LikeSupport {
         commentLike.setUserId(dto.getUserId());
         commentLike.setAuthorId(dto.getAuthorId());
         commentLike.setClientTime(clientTime);
+        commentLike.setServerTime(LocalDateTime.now());
         return commentLike;
     }
 

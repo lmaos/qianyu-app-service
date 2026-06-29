@@ -341,9 +341,26 @@ public class MerchantViewServiceBizImpl implements MerchantViewServiceBiz {
 
         MerchantStore store = storeServiceBiz.selectStoreByMerchantId(merchant.getId());
 
-        // TODO: 替换真实接口 - 聚合统计 salesCount/spuCount
-        int salesCount = 0;
-        int spuCount = 0;
+        // 聚合 pms_spu 统计：在售 SPU 数 / 累计销量 / 店铺评分
+        List<PmsSpu> activeSpus = spuMapper.selectListByQuery(
+                QueryWrapper.create().where(PMS_SPU.MERCHANT_ID.eq(merchant.getId()))
+                        .and(PMS_SPU.STATUS.eq(1)).and(PMS_SPU.DELETED.eq(0)));
+        int spuCount = activeSpus.size();
+        long salesCount = 0L;
+        BigDecimal totalScore = BigDecimal.ZERO;
+        int scoreCount = 0;
+        for (PmsSpu spu : activeSpus) {
+            if (spu.getSales() != null && spu.getSales() > 0) {
+                salesCount += spu.getSales();
+            }
+            if (spu.getAvgScore() != null && spu.getAvgScore().compareTo(BigDecimal.ZERO) > 0) {
+                totalScore = totalScore.add(spu.getAvgScore());
+                scoreCount++;
+            }
+        }
+        BigDecimal score = scoreCount > 0
+                ? totalScore.divide(BigDecimal.valueOf(scoreCount), 1, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         return ShopInfoVO.builder()
                 .merchantId(merchant.getId())
@@ -356,8 +373,8 @@ public class MerchantViewServiceBizImpl implements MerchantViewServiceBiz {
                 .contactEmail(null)
                 .status(merchant.getStatus())
                 .createTime(MerchantConvert.formatTime(merchant.getCreateTime()))
-                .score(BigDecimal.ZERO) // TODO: 替换真实接口
-                .salesCount(salesCount)
+                .score(score)
+                .salesCount((int) Math.min(salesCount, Integer.MAX_VALUE))
                 .spuCount(spuCount)
                 .build();
     }

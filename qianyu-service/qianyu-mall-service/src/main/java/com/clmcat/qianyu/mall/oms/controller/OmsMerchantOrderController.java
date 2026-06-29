@@ -3,6 +3,7 @@ package com.clmcat.qianyu.mall.oms.controller;
 import com.clmcat.framework.webmvc.anns.*;
 import com.clmcat.qianyu.mall.api.mch.MerchantApi;
 import com.clmcat.qianyu.mall.api.mch.model.dto.MerchantDto;
+import com.clmcat.qianyu.mall.mch.model.entity.status.MchStatus;
 import com.clmcat.qianyu.mall.oms.model.dto.*;
 import com.clmcat.qianyu.mall.oms.model.vo.AfterSaleSimpleVO;
 import com.clmcat.qianyu.mall.oms.model.vo.OrderDetailVO;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "OMS-订单(B端)")
 @ApiController
 @RequestMapping("/api/mall/merchant/oms")
-// @LoginVerify
+@LoginVerify
 public class OmsMerchantOrderController {
 
     @Resource
@@ -77,6 +78,9 @@ public class OmsMerchantOrderController {
 
     private Long resolveMerchantId(Long userId) {
         MerchantDto merchantDto = merchantApi.getByUserId(userId);
-        return merchantDto != null ? merchantDto.getId() : userId;
+        // 越权防护：非商家不允许走 B 端订单接口，原来 fallback 用 userId 当 merchantId
+        // 会让任意已登录用户都能查到 merchant_id=userId 的订单（即便刚好没数据，也是脏查询）
+        MchStatus.MCH_NOT_MERCHANT.assertThrowResEx(merchantDto == null);
+        return merchantDto.getId();
     }
 }

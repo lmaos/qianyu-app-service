@@ -24,6 +24,19 @@
             <groupId>com.clmcat.app</groupId>
             <artifactId>qianyu-user-api</artifactId>
         </dependency>
+
+        <!-- 测试：Spring Boot Test（含 JUnit5 / Mockito / AssertJ / MockMvc） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Spring Boot 4.0 起把 @WebMvcTest/@AutoConfigureMockMvc 拆到独立模块 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

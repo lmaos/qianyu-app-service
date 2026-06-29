@@ -1,6 +1,7 @@
 package com.clmcat.qianyu.mall.mch.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
+import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.mch.model.dto.FreightTemplateCreateDTO;
@@ -21,7 +22,7 @@ import java.util.List;
 @Tag(name = "商家运费模板", description = "运费模板 CRUD")
 @ApiController
 @RequestMapping("/api/mall/merchant/mch")
-// @LoginVerify
+@LoginVerify
 public class MerchantFreightController {
 
     @Resource
