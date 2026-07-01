@@ -42,6 +42,7 @@ public final class ShortcutConfig {
 
     /** 本期默认展示的入口 key */
     public static final List<String> DEFAULT_ACTIVE_KEYS = List.of(
+            "visitors",  // 新访客
             "anchor",    // 主播中心
             "merchant",  // 商家管理
             "orders",    // 订单中心
