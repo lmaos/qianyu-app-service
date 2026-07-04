@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
  */
 @Tag(name = "个人中心接口", description = "提供个人中心聚合数据查询，包括用户信息、统计数据、快捷入口和分页内容列表。")
 @ApiController
-@RequestMapping("/api/app")
+@RequestMapping("/api/app/personal")
 @LoginVerify
 public class PersonalCenterController {
 
@@ -44,7 +44,7 @@ public class PersonalCenterController {
             summary = "获取个人中心数据",
             description = "参数说明：userId 由登录 token 自动解析。返回用户基础信息、统计数据、快捷入口。"
     )
-    @GetMapping("/personal/center")
+    @GetMapping("/center")
     public PersonalCenterDto personalCenter(@Parameter(hidden = true) @Token long userId) {
         return personalCenterServiceBiz.getPersonalCenter(userId);
     }
@@ -62,7 +62,7 @@ public class PersonalCenterController {
             summary = "分页查询内容列表",
             description = "参数说明：userId 由登录 token 自动解析；tab 支持 moment/work/like/history；cursor 为游标ID，首次传 0；limit 默认 20、最大 50。"
     )
-    @GetMapping("/personal/center/contents")
+    @GetMapping("/center/contents")
     public ContentPageDto contents(
             @Parameter(hidden = true) @Token long userId,
             @Parameter(description = "内容类型：moment / work / like / history") @RequestParam String tab,

@@ -165,7 +165,8 @@ public class PersonalCenterServiceBiz implements PersonalCenterApi {
     }
 
     private ContentPageDto getHistoryContents(long userId, long cursor, int limit) {
-        // TODO: 社交内容浏览历史暂未实现，返回空
+        // TODO: 浏览历史已记录在 user_history 表，可调用 visitorApi.getHistoryListByVisitorId() 获取，
+        //       再关联 MomentApi 查询对应用户的作品。当前暂返回空。
         log.debug("getHistoryContents: userId={}, not implemented, returning empty", userId);
         return ContentPageDto.builder()
                 .items(Collections.emptyList())
