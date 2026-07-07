@@ -1,6 +1,7 @@
 package com.clmcat.qianyu.mall.inv.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
+import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.qianyu.mall.inv.model.dto.StockBatchQueryDTO;
 import com.clmcat.qianyu.mall.inv.model.dto.StockConfirmDTO;
@@ -19,6 +20,7 @@ import java.util.List;
 
 @Tag(name = "库存内部接口", description = "供 OMS/PMS 内部调用的库存 RPC")
 @ApiController
+@LoginVerify
 @RequestMapping("/api/mall/internal/inv")
 public class InvInternalController {
 

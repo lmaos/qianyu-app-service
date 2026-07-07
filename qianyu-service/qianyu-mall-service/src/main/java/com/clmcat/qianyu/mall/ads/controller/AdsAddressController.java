@@ -1,6 +1,7 @@
 package com.clmcat.qianyu.mall.ads.controller;
 
 import com.clmcat.framework.webmvc.anns.ApiController;
+import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
 import com.clmcat.qianyu.mall.ads.model.dto.AddressCreateDTO;
@@ -21,7 +22,7 @@ import java.util.List;
 @Tag(name = "收货地址", description = "用户收货地址管理")
 @ApiController
 @RequestMapping("/api/mall/ads")
-// @LoginVerify
+@LoginVerify
 public class AdsAddressController {
 
     @Resource

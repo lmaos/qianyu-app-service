@@ -65,10 +65,17 @@ public class OmsOrderApiImpl implements OmsOrderApi {
         if (order == null || order.getStatus() != fromStatus) {
             return false;
         }
-        order.setVersion(order.getVersion() + 1);
-        order.setStatus(toStatus);
-        order.setUpdateTime(System.currentTimeMillis());
-        return orderMapper.update(order) > 0;
+        long ver = order.getVersion();
+        // P0-3: 真 CAS — WHERE id + status + version，防并发双推进
+        OmsOrder update = new OmsOrder();
+        update.setStatus(toStatus);
+        update.setVersion(ver + 1);
+        update.setUpdateTime(System.currentTimeMillis());
+        int affected = orderMapper.updateByQuery(update,
+                QueryWrapper.create().where("id = " + orderId)
+                        .and("status = " + fromStatus)
+                        .and("version = " + ver));
+        return affected > 0;
     }
 
     public List<OmsOrderItem> findItemsByOrderId(Long orderId) {

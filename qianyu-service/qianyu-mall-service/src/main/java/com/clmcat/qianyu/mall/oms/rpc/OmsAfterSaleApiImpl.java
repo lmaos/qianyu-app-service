@@ -55,6 +55,20 @@ public class OmsAfterSaleApiImpl implements OmsAfterSaleApi {
         afterSaleMapper.update(afterSale);
     }
 
+    /**
+     * P0-3: 售后状态机真 CAS — WHERE id + status，防并发双推进（OmsAfterSale 无 version 字段，用 status 作条件）
+     * @return true 如果 CAS 成功（affected > 0）
+     */
+    public boolean updateStatusCAS(Long id, int fromStatus, int toStatus, String rejectReason) {
+        OmsAfterSale update = new OmsAfterSale();
+        update.setStatus(toStatus);
+        if (rejectReason != null) update.setRejectReason(rejectReason);
+        update.setUpdateTime(System.currentTimeMillis());
+        int affected = afterSaleMapper.updateByQuery(update,
+                QueryWrapper.create().where("id = " + id).and("status = " + fromStatus));
+        return affected > 0;
+    }
+
     public void createAfterSale(OmsAfterSale afterSale) {
         afterSaleMapper.insertSelective(afterSale);
     }

@@ -6,6 +6,7 @@ import com.clmcat.qianyu.mall.oms.mapper.OmsOrderMapper;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsOrder;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsOrderItem;
 import com.clmcat.qianyu.mall.oms.rpc.OmsOrderApiImpl;
+import com.clmcat.qianyu.mall.pay.config.PayConfig;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -19,9 +20,6 @@ import java.util.List;
 @Component
 public class OmsOrderTimeoutTask {
 
-    private static final long TIMEOUT_MS = Long.parseLong(
-            System.getProperty("order.timeout.minutes", "30")) * 60_000L;
-
     @Resource
     private OmsOrderMapper orderMapper;
 
@@ -31,9 +29,17 @@ public class OmsOrderTimeoutTask {
     @Resource
     private InvStockApi invStockApi;
 
+    @Resource
+    private PayConfig payConfig;
+
+    /**
+     * 每 30 秒扫描一次，取消超时未支付的订单（status=10 → 50），释放库存。
+     * 超时时间通过 application-mall.yml 的 qianyu.mall.pay.timeout.minutes 配置。
+     */
     @Scheduled(fixedRate = 30_000)
     public void cancelTimeoutOrders() {
-        long threshold = System.currentTimeMillis() - TIMEOUT_MS;
+        long timeoutMs = payConfig.getTimeout().getMinutes() * 60_000L;
+        long threshold = System.currentTimeMillis() - timeoutMs;
         List<OmsOrder> expired = orderMapper.selectListByQuery(
                 QueryWrapper.create()
                         .where("status = ?", OmsOrder.STATUS_PENDING_PAY)
@@ -42,13 +48,22 @@ public class OmsOrderTimeoutTask {
         );
         if (expired.isEmpty()) return;
 
-        log.info("订单超时自动取消: 发现 {} 笔超时未支付订单", expired.size());
+        log.info("订单超时自动取消: 发现 {} 笔超时未支付订单（超时 {} 分钟）", expired.size(), payConfig.getTimeout().getMinutes());
         for (OmsOrder order : expired) {
             try {
-                order.setStatus(OmsOrder.STATUS_CANCELLED);
-                order.setCloseTime(System.currentTimeMillis());
-                order.setUpdateTime(System.currentTimeMillis());
-                orderMapper.update(order);
+                // CAS 取消（防并发：用户正在支付时 status≠10，CAS 失败跳过）
+                boolean cancelled = orderServiceBiz.transitStatus(
+                        order.getId(), OmsOrder.STATUS_PENDING_PAY, OmsOrder.STATUS_CANCELLED);
+                if (!cancelled) {
+                    log.info("超时取消跳过(状态已变更): orderId={}", order.getId());
+                    continue;
+                }
+
+                // 设置关单时间（非关键，单独更新）
+                OmsOrder closeUpdate = new OmsOrder();
+                closeUpdate.setId(order.getId());
+                closeUpdate.setCloseTime(System.currentTimeMillis());
+                orderMapper.update(closeUpdate);
 
                 // 释放库存
                 List<OmsOrderItem> items = orderServiceBiz.findItemsByOrderId(order.getId());

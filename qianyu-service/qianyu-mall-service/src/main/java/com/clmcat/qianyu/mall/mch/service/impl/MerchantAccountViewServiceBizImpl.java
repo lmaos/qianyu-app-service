@@ -71,11 +71,15 @@ public class MerchantAccountViewServiceBizImpl implements MerchantAccountViewSer
         if (dto.getStatus() != null) {
             queryWrapper.and("status = " + dto.getStatus());
         }
-        if (dto.getStartTime() != null && !dto.getStartTime().isEmpty()) {
-            // TODO: 替换真实接口 - 时间范围过滤
+        // 时间范围过滤：startTime/endTime 是 String，兼容「毫秒戳」与「yyyy-MM-dd[ HH:mm:ss]」两种格式
+        // （MerchantBill.createTime 是 Long 毫秒戳；前端 merchant-finance.vue 暂未传，此处为未来 UI + e2e 预留）
+        Long startMillis = parseTimeToMillis(dto.getStartTime());
+        if (startMillis != null) {
+            queryWrapper.and("create_time >= " + startMillis);
         }
-        if (dto.getEndTime() != null && !dto.getEndTime().isEmpty()) {
-            // TODO: 替换真实接口 - 时间范围过滤
+        Long endMillis = parseTimeToMillis(dto.getEndTime());
+        if (endMillis != null) {
+            queryWrapper.and("create_time <= " + endMillis);
         }
         queryWrapper.orderBy("create_time DESC");
 
@@ -165,6 +169,7 @@ public class MerchantAccountViewServiceBizImpl implements MerchantAccountViewSer
     /**
      * 提现申请
      */
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public String withdrawApply(long userId, WithdrawApplyDTO dto) {
         Merchant merchant = merchantServiceBiz.selectByUserId(userId);
         MchStatus.MCH_NOT_MERCHANT.assertThrowResEx(merchant == null);
@@ -179,14 +184,12 @@ public class MerchantAccountViewServiceBizImpl implements MerchantAccountViewSer
 
         long now = System.currentTimeMillis();
 
-        // 冻结余额
-        account.setBalance(account.getBalance().subtract(amount));
-        account.setFrozenAmount(account.getFrozenAmount().add(amount));
-        account.setUpdateTime(now);
-        accountServiceBiz.updateAccount(account);
+        // P0-5: CAS 扣减余额（防并发超额提现）
+        boolean ok = accountServiceBiz.deductForWithdraw(merchant.getId(), amount, account.getBalance(), account.getFrozenAmount(), account.getVersion());
+        MchStatus.MCH_INSUFFICIENT_BALANCE.assertThrowResEx(!ok);
 
-        // 生成提现单号
-        String withdrawalNo = "WD" + new java.text.SimpleDateFormat("yyyyMMddHHmmss").format(new java.util.Date(now)) + String.format("%03d", (int) (merchant.getId() % 1000));
+        // P0-5: 用雪花 ID 生成提现单号（防同商家同秒同号）
+        String withdrawalNo = "WD" + MerchantConvert.WITHDRAWAL_ID_SNOWFLAKE.nextId();
 
         // 插入提现记录
         MerchantWithdrawal withdrawal = new MerchantWithdrawal();
@@ -241,5 +244,32 @@ public class MerchantAccountViewServiceBizImpl implements MerchantAccountViewSer
         result.setPageNumber(withdrawPage.getPageNumber());
         result.setPageSize(withdrawPage.getPageSize());
         return result;
+    }
+
+    /**
+     * 把账单查询时间字符串解析为毫秒戳。兼容两种格式：
+     * - 纯数字（毫秒戳，e2e/后端自测用）：直接 parseLong
+     * - 日期时间串（"yyyy-MM-dd HH:mm:ss" 或 "yyyy-MM-dd"，未来 UI 用）：DateTimeFormatter 解析后转 millis
+     * 解析失败返回 null（不过滤，与字段可选语义一致）。
+     */
+    private Long parseTimeToMillis(String time) {
+        if (time == null || time.isEmpty()) return null;
+        String t = time.trim();
+        // 1. 纯数字 → 毫秒戳
+        if (t.matches("\\d+")) {
+            try {
+                return Long.parseLong(t);
+            } catch (NumberFormatException ignored) { }
+        }
+        // 2. 日期 / 日期时间串 → 转 millis
+        try {
+            if (t.length() <= 10) {
+                java.time.LocalDate ld = java.time.LocalDate.parse(t, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                return ld.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+            }
+            java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(t, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            return ldt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        } catch (java.time.format.DateTimeParseException ignored) { }
+        return null;
     }
 }

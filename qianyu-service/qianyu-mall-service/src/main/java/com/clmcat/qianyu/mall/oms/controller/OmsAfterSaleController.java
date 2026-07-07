@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "OMS-售后(C端)")
 @ApiController
 @RequestMapping("/api/mall/oms")
-// @LoginVerify
+@LoginVerify
 public class OmsAfterSaleController {
 
     @Resource

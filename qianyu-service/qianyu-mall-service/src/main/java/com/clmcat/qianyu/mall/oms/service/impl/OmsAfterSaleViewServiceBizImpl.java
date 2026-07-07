@@ -119,32 +119,29 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
                 .build();
     }
 
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void cancelAfterSale(Long userId, Long aftersaleId) {
         OmsAfterSale afterSale = afterSaleServiceBiz.getAfterSaleById(aftersaleId);
         OmsStatus.OMS_AFTERSALE_NOT_FOUND.assertThrowResEx(afterSale == null);
         OmsStatus.OMS_AFTERSALE_NOT_BELONG_USER.assertThrowResEx(!afterSale.getUserId().equals(userId));
         OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(afterSale.getStatus() != OmsAfterSale.STATUS_PENDING_REVIEW);
-
-        afterSale.setStatus(OmsAfterSale.STATUS_CANCELLED);
-        afterSale.setUpdateTime(System.currentTimeMillis());
-        afterSaleServiceBiz.updateAfterSale(afterSale);
+        // P0-3: 真 CAS — WHERE id + status，防并发
+        boolean ok = afterSaleServiceBiz.updateStatusCAS(aftersaleId, OmsAfterSale.STATUS_PENDING_REVIEW, OmsAfterSale.STATUS_CANCELLED, null);
+        OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(!ok);
     }
 
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void auditAfterSale(Long merchantId, AfterSaleAuditDTO dto) {
         OmsAfterSale afterSale = afterSaleServiceBiz.getAfterSaleById(dto.getAftersaleId());
         OmsStatus.OMS_AFTERSALE_NOT_FOUND.assertThrowResEx(afterSale == null);
         OmsStatus.OMS_AFTERSALE_NOT_BELONG_MERCHANT.assertThrowResEx(!afterSale.getMerchantId().equals(merchantId));
         OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(afterSale.getStatus() != OmsAfterSale.STATUS_PENDING_REVIEW);
 
-        if (dto.getApproved()) {
-            afterSale.setStatus(OmsAfterSale.STATUS_MERCHANT_AGREE);
-            // TODO: If type == 1 (refund only), trigger refund via RPC
-        } else {
-            afterSale.setStatus(OmsAfterSale.STATUS_MERCHANT_REJECT);
-            afterSale.setRejectReason(dto.getRejectReason());
-        }
-        afterSale.setUpdateTime(System.currentTimeMillis());
-        afterSaleServiceBiz.updateAfterSale(afterSale);
+        // P0-3: 真 CAS — WHERE id + status，防并发
+        int toStatus = dto.getApproved() ? OmsAfterSale.STATUS_MERCHANT_AGREE : OmsAfterSale.STATUS_MERCHANT_REJECT;
+        String reason = dto.getApproved() ? null : dto.getRejectReason();
+        boolean ok = afterSaleServiceBiz.updateStatusCAS(dto.getAftersaleId(), OmsAfterSale.STATUS_PENDING_REVIEW, toStatus, reason);
+        OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(!ok);
     }
 
     /**

@@ -25,4 +25,7 @@ public class OrderCreateDTO {
     @Params(scope = Params.ParamsScope.IP)
     @Schema(description = "下单客户端IP", hidden = true)
     private String buyerIp;
+
+    @Schema(description = "客户端幂等令牌(防重复提交)")
+    private String clientToken;
 }

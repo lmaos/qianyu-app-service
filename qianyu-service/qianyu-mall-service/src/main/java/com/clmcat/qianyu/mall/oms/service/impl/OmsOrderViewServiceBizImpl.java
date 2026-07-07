@@ -27,6 +27,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,15 +59,32 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
     @DubboReference
     private AdsAddressApi adsAddressApi;
 
+    @Resource
+    private org.springframework.data.redis.core.RedisTemplate<String, String> redisTemplate;
+
     @DubboReference
     private UserApi userApi;
 
     @Resource
     private LogisticsViewServiceBiz logisticsViewServiceBiz;
 
+    @Transactional(rollbackFor = Exception.class)
     public OrderCreateVO createOrder(Long userId, OrderCreateDTO dto) {
         OmsStatus.OMS_ADDRESS_REQUIRED.assertThrowResEx(dto.getAddressId() == null);
         OmsStatus.OMS_ORDER_ITEMS_EMPTY.assertThrowResEx(dto.getItems() == null || dto.getItems().isEmpty());
+
+        // P0-2: address existence + ownership validation (prevent info leak via addressSnapshot)
+        com.clmcat.qianyu.mall.api.ads.model.dto.AdsAddressDto validatedAddress = adsAddressApi.getById(dto.getAddressId());
+        OmsStatus.OMS_ADDRESS_NOT_FOUND.assertThrowResEx(validatedAddress == null);
+        OmsStatus.OMS_ADDRESS_NOT_BELONG_USER.assertThrowResEx(!userId.equals(validatedAddress.getUserId()));
+
+        // P0-1: clientToken 幂等锁（防双击重复下单，锁 30s 自动过期）
+        if (dto.getClientToken() != null && !dto.getClientToken().isEmpty()) {
+            com.clmcat.qianyu.core.redis.RedisLock idemLock =
+                    com.clmcat.qianyu.core.redis.RedisLockSupport.newLock(redisTemplate, 30);
+            OmsStatus.OMS_ORDER_DUPLICATE_REQUEST.assertThrowResEx(
+                    !idemLock.lock("order:create:" + userId + ":" + dto.getClientToken(), 2000));
+        }
 
         long now = System.currentTimeMillis();
         Long orderId = OmsSupport.ORDER_ID_SNOWFLAKE.nextId();
@@ -137,14 +155,14 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
             lockItem.setQuantity(itemDTO.getQuantity());
             lockItems.add(lockItem);
         }
-        try {
-            invStockApi.lockStock(orderNo, lockItems);
-        } catch (Exception e) {
-            // Stock lock failure is not fatal for order creation in this phase
-        }
-
+        // P0-1: stock lock failure is fatal — order must not be created without stock lock
+        invStockApi.lockStock(orderNo, lockItems);
+        // P0-1: declare before try (used in return outside try block)
         java.math.BigDecimal freightAmount = java.math.BigDecimal.ZERO;
         java.math.BigDecimal payAmount = totalAmount.add(freightAmount);
+        // P0-1: compensating release on failure (INV is remote, not in local tx)
+        try {
+        // --- order build + insert (if this fails, release stock) ---
 
         OmsOrder order = new OmsOrder();
         order.setId(orderId);
@@ -166,15 +184,12 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         order.setBuyerIp(dto.getBuyerIp());
         order.setCouponUserId(dto.getCouponUserId());
 
-        // Fetch address snapshot
+        // P0-2: snapshot from validated address (no re-fetch, no swallow)
         String addressSnapshot = null;
         try {
-            com.clmcat.qianyu.mall.api.ads.model.dto.AdsAddressDto addressDto = adsAddressApi.getById(dto.getAddressId());
-            if (addressDto != null) {
-                addressSnapshot = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(addressDto);
-            }
+            addressSnapshot = JSON_MAPPER.writeValueAsString(validatedAddress);
         } catch (Exception e) {
-            // Address lookup failure should not block order creation
+            // JSON serialization failure — non-fatal
         }
         order.setAddressSnapshot(addressSnapshot);
 
@@ -183,6 +198,11 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         order.setDeleted(0);
 
         orderServiceBiz.insertOrderWithItems(order, orderItems);
+        } catch (Exception e) {
+            // P0-1: 补偿释放——insert 失败须释放已锁库存（INV 是 remote，不在本地 tx）
+            try { invStockApi.releaseStock(orderNo, lockItems); } catch (Exception ex) { /* best-effort */ }
+            throw e;
+        }
 
         return OrderCreateVO.builder()
                 .orderId(orderId)

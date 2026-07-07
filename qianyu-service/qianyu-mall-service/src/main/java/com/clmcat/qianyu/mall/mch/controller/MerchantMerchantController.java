@@ -1,5 +1,6 @@
 package com.clmcat.qianyu.mall.mch.controller;
 
+import com.clmcat.framework.webmvc.ResponseStatus;
 import com.clmcat.framework.webmvc.anns.ApiController;
 import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.Params;
@@ -90,7 +91,10 @@ public class MerchantMerchantController {
     public void settleAudit(
             @Parameter(hidden = true) @Token long userId,
             @Params MerchantAuditDTO dto) {
-        merchantViewServiceBiz.auditMerchant(userId, dto);
+        // P0 热修（2026-07-07）：平台审核语义接口误挂商家端控制器——auditMerchant 实现忽略 @Token userId，
+        // 仅凭 dto.merchantId 直查改库 → 任意 C 端登录用户可审核/结算任意商户（越权）。
+        // 运营后台（/api/admin/**）迁移审核能力前，此端点永久拒绝，不对外暴露。
+        ResponseStatus.AUTH_NO_PERMISSION.assertThrowResEx(true);
     }
 
     /**

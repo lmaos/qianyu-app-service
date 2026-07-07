@@ -15,6 +15,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import com.clmcat.qianyu.mall.pay.service.PayViewServiceBiz;
@@ -29,6 +30,10 @@ public class PayViewServiceBizImpl implements PayViewServiceBiz {
     @DubboReference
     private OmsOrderApi omsOrderApi;
 
+    @Resource
+    private com.clmcat.qianyu.mall.pay.config.PayConfig payConfig;
+
+    @Transactional(rollbackFor = Exception.class)
     public PayApplyVO payApply(Long userId, PayApplyDTO dto) {
         // 1. Check existing pending payment (idempotent)
         PayPayment existingPayment = getExistingPayment(dto.getOrderId());
@@ -64,6 +69,21 @@ public class PayViewServiceBizImpl implements PayViewServiceBiz {
         payment.setUpdateTime(System.currentTimeMillis());
         payment.setDeleted(0);
 
+        // ── Sandbox 沙箱模式：不拉起第三方支付，按配置直接成功/失败 ──
+        if (payConfig.getSandbox().isOpen() && !"realmode".equalsIgnoreCase(payConfig.getSandbox().getMode())) {
+            boolean success = "success".equalsIgnoreCase(payConfig.getSandbox().getMode());
+            payment.setPayStatus(success ? PayPayment.PAY_STATUS_SUCCESS : PayPayment.PAY_STATUS_FAILED);
+            payment.setPayTime(System.currentTimeMillis());
+            payment.setUpdateTime(System.currentTimeMillis());
+            payServiceBiz.insert(payment);
+            if (success && dto.getOrderId() != null) {
+                omsOrderApi.transitStatus(dto.getOrderId(), 10, 20);
+            } else if (!success) {
+                throw new RuntimeException("沙箱支付失败(mode=fail)");
+            }
+            return PayApplyVO.builder().paySn(payment.getPaymentNo()).payParams(null).build();
+        }
+
         // For balance payment, immediately succeed
         if (channel == PayPayment.CHANNEL_BALANCE) {
             payment.setPayStatus(PayPayment.PAY_STATUS_SUCCESS);
@@ -75,11 +95,8 @@ public class PayViewServiceBizImpl implements PayViewServiceBiz {
 
         // For balance payment, update order status to pending_ship (20)
         if (channel == PayPayment.CHANNEL_BALANCE && dto.getOrderId() != null) {
-            try {
-                omsOrderApi.transitStatus(dto.getOrderId(), 10, 20);
-            } catch (Exception e) {
-                log.warn("余额支付后更新订单状态失败, orderId={}, error={}", dto.getOrderId(), e.getMessage());
-            }
+            // P0-3: 不再吞错——transitStatus 失败须回滚整个 payApply 事务
+            omsOrderApi.transitStatus(dto.getOrderId(), 10, 20);
         }
 
         return PayApplyVO.builder()
