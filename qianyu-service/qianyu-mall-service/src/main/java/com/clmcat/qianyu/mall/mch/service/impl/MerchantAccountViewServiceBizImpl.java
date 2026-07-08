@@ -64,22 +64,22 @@ public class MerchantAccountViewServiceBizImpl implements MerchantAccountViewSer
         int pageSize = dto.getPageSize() != null && dto.getPageSize() > 0 ? dto.getPageSize() : 10;
 
         QueryWrapper queryWrapper = QueryWrapper.create();
-        queryWrapper.and("merchant_id = " + merchant.getId());
+        queryWrapper.and("merchant_id = ?", merchant.getId());
         if (dto.getType() != null && dto.getType() > 0) {
-            queryWrapper.and("type = " + dto.getType());
+            queryWrapper.and("type = ?", dto.getType());
         }
         if (dto.getStatus() != null) {
-            queryWrapper.and("status = " + dto.getStatus());
+            queryWrapper.and("status = ?", dto.getStatus());
         }
         // 时间范围过滤：startTime/endTime 是 String，兼容「毫秒戳」与「yyyy-MM-dd[ HH:mm:ss]」两种格式
         // （MerchantBill.createTime 是 Long 毫秒戳；前端 merchant-finance.vue 暂未传，此处为未来 UI + e2e 预留）
         Long startMillis = parseTimeToMillis(dto.getStartTime());
         if (startMillis != null) {
-            queryWrapper.and("create_time >= " + startMillis);
+            queryWrapper.and("create_time >= ?", startMillis);
         }
         Long endMillis = parseTimeToMillis(dto.getEndTime());
         if (endMillis != null) {
-            queryWrapper.and("create_time <= " + endMillis);
+            queryWrapper.and("create_time <= ?", endMillis);
         }
         queryWrapper.orderBy("create_time DESC");
 
@@ -219,9 +219,9 @@ public class MerchantAccountViewServiceBizImpl implements MerchantAccountViewSer
         int pageSize = dto.getPageSize() != null && dto.getPageSize() > 0 ? dto.getPageSize() : 10;
 
         QueryWrapper queryWrapper = QueryWrapper.create();
-        queryWrapper.and("merchant_id = " + merchant.getId());
+        queryWrapper.and("merchant_id = ?", merchant.getId());
         if (dto.getStatus() != null) {
-            queryWrapper.and("status = " + dto.getStatus());
+            queryWrapper.and("status = ?", dto.getStatus());
         }
         queryWrapper.orderBy("create_time DESC");
 

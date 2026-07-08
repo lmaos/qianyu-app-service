@@ -1,6 +1,7 @@
 package com.clmcat.qianyu.mall.oms.rpc;
 
 import com.clmcat.qianyu.mall.api.oms.OmsAfterSaleApi;
+import com.clmcat.qianyu.mall.api.oms.model.dto.AftersalePageQueryDTO;
 import com.clmcat.qianyu.mall.api.oms.model.dto.OmsAfterSaleDto;
 import com.clmcat.qianyu.mall.oms.mapper.OmsAfterSaleMapper;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsAfterSale;
@@ -9,6 +10,10 @@ import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @DubboService
 @Service
@@ -57,16 +62,46 @@ public class OmsAfterSaleApiImpl implements OmsAfterSaleApi {
 
     /**
      * P0-3: 售后状态机真 CAS — WHERE id + status，防并发双推进（OmsAfterSale 无 version 字段，用 status 作条件）
+     * <p>已提升为 {@link OmsAfterSaleApi} 契约方法（架构红线：backstage → mall 一律走 @DubboReference）。
      * @return true 如果 CAS 成功（affected > 0）
      */
+    @Override
     public boolean updateStatusCAS(Long id, int fromStatus, int toStatus, String rejectReason) {
         OmsAfterSale update = new OmsAfterSale();
         update.setStatus(toStatus);
         if (rejectReason != null) update.setRejectReason(rejectReason);
         update.setUpdateTime(System.currentTimeMillis());
         int affected = afterSaleMapper.updateByQuery(update,
-                QueryWrapper.create().where("id = " + id).and("status = " + fromStatus));
+                QueryWrapper.create().where("id = ?", id).and("status = ?", fromStatus));
         return affected > 0;
+    }
+
+    /**
+     * 平台跨店售后分页（运营端视角）。
+     * <p>逻辑删除 {@code deleted=0} 兜底过滤；merchantId/status/type 任一为 null 则跳过该条件。
+     */
+    @Override
+    public List<OmsAfterSaleDto> pageByPlatform(AftersalePageQueryDTO query) {
+        QueryWrapper qw = QueryWrapper.create().where("deleted = ?", 0);
+        if (query.getMerchantId() != null) {
+            qw.and("merchant_id = ?", query.getMerchantId());
+        }
+        if (query.getStatus() != null) {
+            qw.and("status = ?", query.getStatus());
+        }
+        if (query.getType() != null) {
+            qw.and("type = ?", query.getType());
+        }
+        qw.orderBy("create_time DESC");
+
+        int pageNum = query.getPageNum() != null && query.getPageNum() > 0 ? query.getPageNum() : 1;
+        int pageSize = query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : 10;
+
+        Page<OmsAfterSale> page = afterSaleMapper.paginate(Page.of(pageNum, pageSize), qw);
+        if (page.getRecords() == null || page.getRecords().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
     }
 
     public void createAfterSale(OmsAfterSale afterSale) {

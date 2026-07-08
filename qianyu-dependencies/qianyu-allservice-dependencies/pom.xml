@@ -44,6 +44,11 @@
         </dependency>
         <dependency>
             <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-mall-backstage-service</artifactId>
+            <version>${project.qianyu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
             <artifactId>qianyu-storage-service</artifactId>
             <version>${project.qianyu.version}</version>
         </dependency>

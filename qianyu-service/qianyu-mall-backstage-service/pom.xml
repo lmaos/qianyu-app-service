@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.clmcat.app</groupId>
+        <artifactId>qianyu-service</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>qianyu-mall-backstage-service</artifactId>
+    <description>运营后台后端服务（admin 独立模块，单体同进程；@DubboReference 调 mall 契约）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-web-dependencies</artifactId>
+        </dependency>
+        <!-- 运营后台跨域调 mall 契约（@DubboReference），架构红线：admin 调 mall 一律走 RPC -->
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-mall-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.clmcat.app</groupId>
+            <artifactId>qianyu-user-api</artifactId>
+        </dependency>
+        <!-- BCrypt 密码哈希（运营账号，决策 3 安全策略 BCrypt cost≥12；spring-security-crypto 轻量，仅密码编码无 Security 核心） -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+        <!-- AOP：op_log @Aspect（操作审计，拦截 @RequiresPermission）。
+             Spring Boot 4.0 起 spring-boot-starter-aop 已被拆分为 spring-boot-starter-aspectj
+             （官方迁移指南；旧 starter 仅留 4.0.0-M1/M2 后不再发布）。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+            <version>4.0.6</version>
+        </dependency>
+    </dependencies>
+</project>

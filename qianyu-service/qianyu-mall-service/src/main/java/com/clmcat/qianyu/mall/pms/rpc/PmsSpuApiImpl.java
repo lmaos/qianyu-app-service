@@ -82,6 +82,46 @@ public class PmsSpuApiImpl implements PmsSpuApi {
         spuMapper.update(update);
     }
 
+    @Override
+    public List<PmsSpuDto> pageByPlatform(com.clmcat.qianyu.mall.api.pms.model.dto.SpuPageQueryDTO query) {
+        QueryWrapper qw = QueryWrapper.create().where(PMS_SPU.DELETED.eq(0));
+        if (query.getMerchantId() != null) qw.and(PMS_SPU.MERCHANT_ID.eq(query.getMerchantId()));
+        if (query.getBrandId() != null) qw.and(PMS_SPU.BRAND_ID.eq(query.getBrandId()));
+        if (query.getCategoryId() != null) qw.and(PMS_SPU.CATEGORY_ID.eq(query.getCategoryId()));
+        if (query.getStatus() != null) qw.and(PMS_SPU.STATUS.eq(query.getStatus()));
+        if (query.getKeyword() != null && !query.getKeyword().isEmpty()) {
+            qw.and(PMS_SPU.NAME.like("%" + query.getKeyword() + "%"));
+        }
+        qw.orderBy(PMS_SPU.CREATE_TIME.desc());
+        int pageNum = query.getPageNum() != null && query.getPageNum() > 0 ? query.getPageNum() : 1;
+        int pageSize = query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : 10;
+        com.mybatisflex.core.paginate.Page<PmsSpu> page = spuMapper.paginate(
+                com.mybatisflex.core.paginate.Page.of(pageNum, pageSize), qw);
+        return page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public void adminListOff(Long spuId, String reason) {
+        PmsSpu spu = spuMapper.selectOneByQuery(
+                QueryWrapper.create().where(PMS_SPU.ID.eq(spuId)).and(PMS_SPU.DELETED.eq(0)));
+        if (spu == null) return;
+        spu.setStatus(2);
+        spu.setUpdateTime(System.currentTimeMillis());
+        spuMapper.update(spu);
+    }
+
+    @Override
+    public void audit(Long spuId, Boolean approved, String rejectReason) {
+        PmsSpu spu = spuMapper.selectOneByQuery(
+                QueryWrapper.create().where(PMS_SPU.ID.eq(spuId)).and(PMS_SPU.DELETED.eq(0)));
+        if (spu == null) return;
+        if (Boolean.TRUE.equals(approved)) {
+            spu.setStatus(1);
+        }
+        spu.setUpdateTime(System.currentTimeMillis());
+        spuMapper.update(spu);
+    }
+
     // ==================== Internal methods for ViewBiz ====================
 
     public PmsSpu selectOneById(Long id) {

@@ -69,7 +69,7 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
         int pageSize = dto.getPageSize() != null && dto.getPageSize() > 0 ? dto.getPageSize() : 10;
 
         QueryWrapper qw = QueryWrapper.create();
-        qw.where("user_id = " + userId)
+        qw.where("user_id = ?", userId)
                 .orderBy("create_time DESC");
 
         Page<OmsAfterSale> page = Page.of(pageNum, pageSize);

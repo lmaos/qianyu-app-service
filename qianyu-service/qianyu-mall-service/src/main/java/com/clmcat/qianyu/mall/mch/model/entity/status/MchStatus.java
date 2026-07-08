@@ -22,6 +22,10 @@ public enum MchStatus implements ResponseErrorStatus, Serializable {
     MCH_FREIGHT_TEMPLATE_IN_USE(407014, "运费模板正在使用中，无法删除", "运费模板正在使用中"),
     MCH_SETTLEMENT_NOT_FOUND(407015, "结算单不存在", "结算单不存在"),
     MCH_BILL_NOT_FOUND(407016, "账单不存在", "账单不存在"),
+    MCH_WITHDRAWAL_NOT_FOUND(407017, "提现单不存在", "提现单不存在"),
+    MCH_WITHDRAWAL_STATUS_INVALID(407018, "提现单当前状态不允许该操作", "提现单当前状态不允许该操作"),
+    MCH_WITHDRAWAL_TRANSFER_NO_DUPLICATE(407019, "打款流水号已存在", "打款流水号已存在"),
+    MCH_WITHDRAWAL_CAS_FAIL(407020, "资金操作并发冲突，请重试", "资金操作并发冲突"),
     ;
 
     MchStatus(Integer status, String message) {
