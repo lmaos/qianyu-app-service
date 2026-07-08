@@ -46,7 +46,7 @@ public class VisitorTest {
         restTemplate = new RestTemplate();
         // 不抛出 HTTP 错误，允许测试验证错误响应
         restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
-            @Override
+            @SuppressWarnings("unused")
             public void handleError(ClientHttpResponse response) {
                 // no-op
             }

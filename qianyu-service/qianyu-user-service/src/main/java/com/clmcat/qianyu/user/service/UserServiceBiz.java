@@ -1,6 +1,7 @@
 package com.clmcat.qianyu.user.service;
 
 import com.clmcat.framework.webmvc.ResponseStatus;
+import com.clmcat.qianyu.search.api.UserSearchApi;
 import com.clmcat.qianyu.user.api.UserApi;
 import com.clmcat.qianyu.user.api.model.dto.PpcUserInfoListDto;
 import com.clmcat.qianyu.user.api.model.dto.RpcUserInfoDto;
@@ -11,6 +12,7 @@ import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -27,6 +29,9 @@ public class UserServiceBiz implements UserApi {
 
     @Resource
     UserInfoMapper userInfoMapper;
+
+    @Resource
+    private UserSearchApi userSearchApi;
 
     @Override
     public RpcUserInfoDto getUserInfo(long userId) {
@@ -81,6 +86,7 @@ public class UserServiceBiz implements UserApi {
         return rpcUserInfoDto;
     }
 
+    @Transactional
     public RpcUserInfoDto updateUserInfo(long userId, UserInfoUpdateDto dto) {
         ResponseStatus.P_VALUE_ERROR.assertThrowResEx(userId <= 0);
         verifyUpdateDto(dto);
@@ -88,6 +94,11 @@ public class UserServiceBiz implements UserApi {
         UserInfo updateUserInfo = buildUpdateUserInfo(userId, dto);
 
         ResponseStatus.P_VALUE_ERROR.assertThrowResEx(!hasUpdatableField(updateUserInfo));
+
+        if (updateUserInfo.getNickname() != null) {
+            userSearchApi.updateNickname(userId, updateUserInfo.getNickname());
+        }
+
         ResponseStatus.R_NOEXIST_DATA.assertThrowResEx(userInfoMapper.updateByUserIdSelective(updateUserInfo) <= 0);
         return getUserInfo(userId);
     }
