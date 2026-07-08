@@ -66,3 +66,4 @@ logs/
 **/*-local.xml
 **/*-local.html
 
+/DEVELOPMENT_LOG.md
