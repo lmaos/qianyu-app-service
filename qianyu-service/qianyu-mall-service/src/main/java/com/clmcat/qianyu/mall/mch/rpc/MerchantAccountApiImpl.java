@@ -4,9 +4,11 @@ import com.clmcat.qianyu.mall.api.mch.MerchantAccountApi;
 import com.clmcat.qianyu.mall.api.mch.model.dto.MerchantAccountDto;
 import com.clmcat.qianyu.mall.mch.mapper.MerchantAccountMapper;
 import com.clmcat.qianyu.mall.mch.model.entity.MerchantAccount;
+import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
+import java.math.BigDecimal;
 
 @DubboService
 @Service
@@ -52,5 +54,23 @@ public class MerchantAccountApiImpl implements MerchantAccountApi {
 
     public void updateAccount(com.clmcat.qianyu.mall.mch.model.entity.MerchantAccount account) {
         accountMapper.update(account);
+    }
+
+    /**
+     * P0-5: 账户余额 CAS 扣减（防并发超额提现）
+     * WHERE merchant_id + balance + version，affected=0 说明并发冲突或余额不足
+     * @return true 如果 CAS 成功
+     */
+    public boolean deductForWithdraw(Long merchantId, BigDecimal amount, BigDecimal currentBalance, BigDecimal currentFrozen, Long currentVersion) {
+        com.clmcat.qianyu.mall.mch.model.entity.MerchantAccount update = new com.clmcat.qianyu.mall.mch.model.entity.MerchantAccount();
+        update.setBalance(currentBalance.subtract(amount));
+        update.setFrozenAmount(currentFrozen.add(amount));
+        update.setVersion(currentVersion + 1);
+        update.setUpdateTime(System.currentTimeMillis());
+        int affected = accountMapper.updateByQuery(update,
+                QueryWrapper.create().where("merchant_id = " + merchantId)
+                        .and("balance = " + currentBalance.toPlainString())
+                        .and("version = " + currentVersion));
+        return affected > 0;
     }
 }

@@ -22,6 +22,19 @@ public class PayController {
     @Resource
     private PayViewServiceBiz payViewServiceBiz;
 
+    @Resource
+    private com.clmcat.qianyu.mall.pay.config.PayConfig payConfig;
+
+    @Operation(summary = "支付配置(sandbox/渠道appId)")
+    @PostMapping("/config")
+    public java.util.Map<String, Object> config() {
+        java.util.Map<String, Object> content = new java.util.LinkedHashMap<>();
+        content.put("alipay", java.util.Map.of("appId", payConfig.getAlipay().getAppId()));
+        content.put("wxpay", java.util.Map.of("appId", payConfig.getWxpay().getAppId()));
+        content.put("sandbox", payConfig.getSandbox().isOpen());
+        return content;
+    }
+
     // app.md §11.4 /api/mall/pay/payApply
     @Operation(summary = "发起支付")
     @PostMapping("/payApply")

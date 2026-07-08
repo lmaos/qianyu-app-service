@@ -54,7 +54,15 @@ public class FavViewServiceBizImpl implements FavViewServiceBiz {
             return FavActionResultVO.builder().favId(existing.getId()).isFav(true).build();
         }
 
-        // TODO：替换真实接口 - 校验目标存在（查 pms_spu 或 mch_store）
+        // 校验目标真实存在（targetType: 1=商品SPU, 2=店铺→按 merchantId 查）
+        if (dto.getTargetType() == 1) {
+            PmsSpuDto spu = pmsSpuApi.getById(dto.getTargetId());
+            FavStatus.FAV_TARGET_NOT_FOUND.assertThrowResEx(spu == null);
+        } else if (dto.getTargetType() == 2) {
+            // targetType==2 的 targetId 是 merchantId（见 getFavList 的 merchantIds 收集逻辑）
+            MerchantStoreDto store = merchantStoreApi.getByMerchantId(dto.getTargetId());
+            FavStatus.FAV_TARGET_NOT_FOUND.assertThrowResEx(store == null);
+        }
 
         long now = System.currentTimeMillis();
         FavFavorite fav = new FavFavorite();

@@ -21,6 +21,10 @@ public enum OmsStatus implements ResponseErrorStatus, Serializable {
     OMS_ORDER_NOT_BELONG_MERCHANT(405013, "非本商户订单"),
     OMS_AFTERSALE_NOT_BELONG_MERCHANT(405014, "非本商户售后单"),
     OMS_SKU_NOT_FOUND(405015, "商品SKU不存在"),
+    OMS_ADDRESS_NOT_FOUND(405016, "收货地址不存在"),
+    OMS_ADDRESS_NOT_BELONG_USER(405017, "收货地址不属于当前用户"),
+    OMS_STOCK_LOCK_FAILED(405018, "库存锁定失败"),
+    OMS_ORDER_DUPLICATE_REQUEST(405019, "订单重复提交，请勿重复操作"),
     ;
 
     OmsStatus(Integer status, String message) {

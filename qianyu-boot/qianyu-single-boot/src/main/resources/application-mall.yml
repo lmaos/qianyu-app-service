@@ -1,0 +1,12 @@
+qianyu:
+  mall:
+    pay:
+      sandbox:
+        open: true       # true=沙箱(不拉起支付)；false=真实支付
+        mode: success    # success=默认成功；fail=默认失败；realmode=真实回调
+      timeout:
+        minutes: 30      # 订单支付超时(分钟)，超时后自动取消+释放库存
+      alipay:
+        appId: demo-alipay
+      wxpay:
+        appId: demo-wxpay
