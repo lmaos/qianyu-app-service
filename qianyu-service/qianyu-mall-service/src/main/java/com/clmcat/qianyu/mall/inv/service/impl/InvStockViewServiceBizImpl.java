@@ -2,6 +2,10 @@ package com.clmcat.qianyu.mall.inv.service.impl;
 
 import com.clmcat.qianyu.mall.inv.rpc.InvStockLogApiImpl;
 import com.clmcat.qianyu.mall.inv.rpc.InvStockApiImpl;
+import com.clmcat.qianyu.mall.api.mch.MerchantApi;
+import com.clmcat.qianyu.mall.api.mch.model.dto.MerchantDto;
+import com.clmcat.qianyu.mall.api.pms.PmsSkuApi;
+import com.clmcat.qianyu.mall.api.pms.model.dto.PmsSkuDto;
 import com.clmcat.qianyu.mall.inv.model.dto.*;
 import com.clmcat.qianyu.mall.inv.model.entity.InvStock;
 import com.clmcat.qianyu.mall.inv.model.entity.InvStockLog;
@@ -15,6 +19,7 @@ import com.clmcat.qianyu.mall.inv.support.InvSupport;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,6 +34,12 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
 
     @Resource
     private InvStockLogApiImpl stockLogServiceBiz;
+
+    @DubboReference
+    private MerchantApi merchantApi;
+
+    @DubboReference
+    private PmsSkuApi pmsSkuApi;
 
     /**
      * 锁定库存
@@ -129,7 +140,11 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
             stock.setUpdateTime(System.currentTimeMillis());
             stockServiceBiz.insertStock(stock);
         }
-        // TODO: 校验 SKU 归属商家 InvStatus.INV_SKU_NOT_BELONG_MERCHANT.assertThrowResEx(...)
+        // S16: 校验 SKU 归属当前商家（防越权改任意 SKU 库存）
+        MerchantDto m = merchantApi.getByUserId(userId);
+        PmsSkuDto skuDto = pmsSkuApi.getById(dto.getSkuId());
+        InvStatus.INV_SKU_NOT_BELONG_MERCHANT.assertThrowResEx(
+                m == null || skuDto == null || !m.getId().equals(skuDto.getMerchantId()));
 
         int beforeStock = stock.getAvailableStock();
         int delta;
@@ -171,6 +186,18 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
         int pageSize = dto != null && dto.getPageSize() != null && dto.getPageSize() > 0 ? dto.getPageSize() : 10;
 
         QueryWrapper qw = QueryWrapper.create();
+        // S16: 仅查本商家 SKU 的库存（inv_stock 无 merchant_id，先查本商家 sku_id 列表再 IN 过滤）
+        MerchantDto m = merchantApi.getByUserId(userId);
+        InvStatus.INV_SKU_NOT_BELONG_MERCHANT.assertThrowResEx(m == null);
+        List<PmsSkuDto> skus = pmsSkuApi.listByMerchantId(m.getId());
+        if (skus == null || skus.isEmpty()) {
+            return new Page<>(pageNum, pageSize);
+        }
+        List<Long> skuIds = new ArrayList<>();
+        for (PmsSkuDto s : skus) {
+            skuIds.add(s.getId());
+        }
+        qw.in("sku_id", skuIds);
         qw.orderBy("update_time DESC");
 
         Page<InvStock> stockPage = stockServiceBiz.paginate(Page.of(pageNum, pageSize), qw);

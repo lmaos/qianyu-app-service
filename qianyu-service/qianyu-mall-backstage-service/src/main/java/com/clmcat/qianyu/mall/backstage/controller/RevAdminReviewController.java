@@ -48,7 +48,8 @@ public class RevAdminReviewController {
     @Operation(summary = "评价列表分页（跨店）")
     @RequiresPermission("rev:review:view")
     @PostMapping("/page")
-    public List<RevReviewDto> page(@Token Long adminId, @Params ReviewPageQueryDTO query) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<RevReviewDto> page(
+            @Token Long adminId, @Params ReviewPageQueryDTO query) {
         return revReviewApi.pageByPlatform(query);
     }
 

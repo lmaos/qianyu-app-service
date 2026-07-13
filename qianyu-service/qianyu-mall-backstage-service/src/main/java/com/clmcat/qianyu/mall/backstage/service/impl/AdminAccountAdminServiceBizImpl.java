@@ -57,7 +57,7 @@ public class AdminAccountAdminServiceBizImpl implements AdminAccountAdminService
     @Resource private AdminRoleMapper roleMapper;
 
     @Override
-    public Page<AdminAccountVO> page(AdminAccountPageQueryDTO dto) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<AdminAccountVO> page(AdminAccountPageQueryDTO dto) {
         int pageNum = dto == null || dto.getPageNum() == null || dto.getPageNum() <= 0 ? 1 : dto.getPageNum();
         int pageSize = dto == null || dto.getPageSize() == null || dto.getPageSize() <= 0 ? 10 : dto.getPageSize();
 
@@ -75,13 +75,13 @@ public class AdminAccountAdminServiceBizImpl implements AdminAccountAdminService
         qw.orderBy("create_time DESC");
 
         Page<AdminAccount> rawPage = accountMapper.paginate(Page.of(pageNum, pageSize), qw);
+        long totalRow = rawPage == null ? 0 : rawPage.getTotalRow();
         List<AdminAccount> records = rawPage == null || rawPage.getRecords() == null
                 ? Collections.emptyList() : rawPage.getRecords();
         if (records.isEmpty()) {
-            Page<AdminAccountVO> empty = new Page<>(pageNum, pageSize);
-            empty.setRecords(Collections.emptyList());
-            empty.setTotalRow(rawPage == null ? 0 : rawPage.getTotalRow());
-            return empty;
+            return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<AdminAccountVO>builder()
+                    .records(Collections.emptyList()).total(totalRow)
+                    .pageNum(pageNum).pageSize(pageSize).build();
         }
 
         // 富化 roleNames：一次性查全部 account_role + role，避免 N+1
@@ -100,10 +100,9 @@ public class AdminAccountAdminServiceBizImpl implements AdminAccountAdminService
                 .roleNames(roleNamesByAccount.getOrDefault(a.getId(), Collections.emptyList()))
                 .build()).collect(Collectors.toList());
 
-        Page<AdminAccountVO> result = new Page<>(pageNum, pageSize);
-        result.setRecords(voList);
-        result.setTotalRow(rawPage.getTotalRow());
-        return result;
+        return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<AdminAccountVO>builder()
+                .records(voList).total(totalRow)
+                .pageNum(pageNum).pageSize(pageSize).build();
     }
 
     @Override

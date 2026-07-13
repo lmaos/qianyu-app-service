@@ -2,6 +2,7 @@ package com.clmcat.qianyu.mall.oms.scheduled;
 
 import com.clmcat.qianyu.mall.api.inv.InvStockApi;
 import com.clmcat.qianyu.mall.api.inv.model.dto.InvStockDto;
+import com.clmcat.qianyu.mall.api.pay.PayPaymentApi;
 import com.clmcat.qianyu.mall.oms.mapper.OmsOrderMapper;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsOrder;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsOrderItem;
@@ -10,6 +11,7 @@ import com.clmcat.qianyu.mall.pay.config.PayConfig;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +30,9 @@ public class OmsOrderTimeoutTask {
 
     @Resource
     private InvStockApi invStockApi;
+
+    @DubboReference
+    private PayPaymentApi payPaymentApi;
 
     @Resource
     private PayConfig payConfig;
@@ -57,6 +62,13 @@ public class OmsOrderTimeoutTask {
                 if (!cancelled) {
                     log.info("超时取消跳过(状态已变更): orderId={}", order.getId());
                     continue;
+                }
+
+                // S6: 关闭该订单悬挂的 PENDING 支付单（使待支付单失效，防取消后仍可被回调推进）
+                try {
+                    payPaymentApi.closePendingByOrderId(order.getId());
+                } catch (Exception e) {
+                    log.warn("超时取消-关闭PENDING支付单失败 orderId={} error={}", order.getId(), e.getMessage());
                 }
 
                 // 设置关单时间（非关键，单独更新）

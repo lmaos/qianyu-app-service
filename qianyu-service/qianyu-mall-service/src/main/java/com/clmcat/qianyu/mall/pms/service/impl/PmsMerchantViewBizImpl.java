@@ -83,10 +83,13 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
                 QueryWrapper.create().where("merchant_id = ?", merchantId).and("status = 1").and("deleted = 0"));
         long offCount = spuMapper.selectCountByQuery(
                 QueryWrapper.create().where("merchant_id = ?", merchantId).and("status IN (0, 2)").and("deleted = 0"));
+        long auditingCount = spuMapper.selectCountByQuery(
+                QueryWrapper.create().where("merchant_id = ?", merchantId).and("status IN (4, 5)").and("deleted = 0"));
 
         List<MerchantGoodsPageVO.SummaryItem> summaryList = new ArrayList<>();
         summaryList.add(MerchantGoodsPageVO.SummaryItem.builder().key("all").label("全部商品").value(String.valueOf(totalCount)).build());
         summaryList.add(MerchantGoodsPageVO.SummaryItem.builder().key("selling").label("在售中").value(String.valueOf(sellingCount)).build());
+        summaryList.add(MerchantGoodsPageVO.SummaryItem.builder().key("auditing").label("审核中").value(String.valueOf(auditingCount)).build());
         summaryList.add(MerchantGoodsPageVO.SummaryItem.builder().key("warning").label("库存预警").value("0").build());
 
         // 2. 商品列表查询
@@ -95,6 +98,7 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
         switch (filter) {
             case 1 -> qw.and("status = 1");           // 在售
             case 2 -> qw.and("status IN (0, 2)");     // 待上架(草稿+下架)
+            case 4 -> qw.and("status IN (4, 5)");     // 审核中(待审核+审核通过)
             case 3 -> { /* 库存预警 P2, 暂无数据 */ }
             default -> { /* 全部 */ }
         }
@@ -113,6 +117,8 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
                 case 1 -> "在售中";
                 case 0 -> "待上架";
                 case 2 -> "已下架";
+                case 4 -> "审核中";
+                case 5 -> "可上架";
                 default -> "未知";
             };
             String price = spu.getMinPrice() != null
@@ -432,6 +438,9 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
         Long merchantId = resolveMerchantId(userId);
         PmsStatus.PMS_SPU_NOT_OWNER.assertThrowResEx(
                 spu.getMerchantId() == null || !spu.getMerchantId().equals(merchantId));
+        // 审核闸：仅「审核通过(5)」可上架；草稿(0)/下架(2)须先「提交审核」走审核流
+        PmsStatus.PMS_SPU_NOT_AUDIT_PASSED.assertThrowResEx(
+                spu.getStatus() == null || spu.getStatus() != PmsSpu.STATUS_APPROVED);
 
         long now = System.currentTimeMillis();
 
@@ -483,6 +492,32 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
             skuUpdate.setUpdateTime(now);
             skuServiceBiz.updateSku(skuUpdate);
         }
+    }
+
+    /**
+     * 商户提交审核（草稿 0 / 下架 2 → 待审核 4）。
+     * <p>审核是唯一上架路径：商品须审核通过(5)后才能上架(1)。
+     * 实际审核推进由 {@link com.clmcat.qianyu.mall.pms.scheduled.PmsSpuAuditTask} 完成（4 → 5，当前为自动通过 stub，
+     * 未来替换为「自动审核 + 人工审核」）。下架后重新上架也必须再走审核。
+     */
+    @Transactional
+    public void submitForAudit(long userId, Long spuId) {
+        PmsSpu spu = spuServiceBiz.selectOneById(spuId);
+        PmsStatus.PMS_SPU_NOT_FOUND.assertThrowResEx(spu == null || spu.getDeleted() == 1);
+        Long merchantId = resolveMerchantId(userId);
+        PmsStatus.PMS_SPU_NOT_OWNER.assertThrowResEx(
+                spu.getMerchantId() == null || !spu.getMerchantId().equals(merchantId));
+        // 仅草稿(0)/下架(2)可提交审核；审核中(4)/已通过(5)/在售(1)不允许重复提交
+        int status = spu.getStatus() == null ? -1 : spu.getStatus();
+        PmsStatus.PMS_SPU_STATUS_INVALID.assertThrowResEx(
+                status != PmsSpu.STATUS_DRAFT && status != PmsSpu.STATUS_OFF_SHELF);
+
+        long now = System.currentTimeMillis();
+        PmsSpu update = new PmsSpu();
+        update.setId(spuId);
+        update.setStatus(PmsSpu.STATUS_PENDING_AUDIT);
+        update.setUpdateTime(now);
+        spuServiceBiz.updateSpu(update);
     }
 
     /**
@@ -546,6 +581,8 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
 
     private Long resolveMerchantId(long userId) {
         MerchantDto merchantDto = merchantApi.getByUserId(userId);
-        return merchantDto != null ? merchantDto.getId() : userId;
+        // S1: 非商家不再回退 userId（原 fallback 致任意 C 端用户可冒充 merchantId 操作商品）
+        PmsStatus.PMS_MERCHANT_NOT_FOUND.assertThrowResEx(merchantDto == null);
+        return merchantDto.getId();
     }
 }

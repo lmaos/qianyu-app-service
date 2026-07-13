@@ -2,8 +2,7 @@ package com.clmcat.qianyu.mall.api.mch;
 
 import com.clmcat.qianyu.mall.api.mch.model.dto.MerchantDto;
 import com.clmcat.qianyu.mall.api.mch.model.dto.MerchantPageQueryDTO;
-
-import java.util.List;
+import com.clmcat.qianyu.mall.api.model.dto.PageResultDTO;
 
 public interface MerchantApi {
 
@@ -11,8 +10,11 @@ public interface MerchantApi {
 
     MerchantDto getById(Long merchantId);
 
-    /** 平台商户分页查询（运营端跨店视角）。 */
-    List<MerchantDto> pageMerchants(MerchantPageQueryDTO query);
+    /**
+     * 平台商户分页查询（运营端跨店视角）。
+     * @return 分页结果（含当前页 records + total/页码），不再丢 total
+     */
+    PageResultDTO<MerchantDto> pageMerchants(MerchantPageQueryDTO query);
 
     /** 更新商户状态（0禁用/1正常/2冻结）。运营端状态管控。 */
     void updateMerchantStatus(Long merchantId, Integer status);

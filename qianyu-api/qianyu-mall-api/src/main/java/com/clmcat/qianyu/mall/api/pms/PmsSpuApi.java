@@ -1,5 +1,6 @@
 package com.clmcat.qianyu.mall.api.pms;
 
+import com.clmcat.qianyu.mall.api.model.dto.PageResultDTO;
 import com.clmcat.qianyu.mall.api.pms.model.dto.PmsSpuDto;
 import com.clmcat.qianyu.mall.api.pms.model.dto.SpuPageQueryDTO;
 
@@ -16,7 +17,7 @@ public interface PmsSpuApi {
     void updateStatFields(Long spuId, BigDecimal minPrice, Integer sales, Integer commentCount, BigDecimal avgScore);
 
     /** 平台跨店商品分页（运营端）。 */
-    List<PmsSpuDto> pageByPlatform(SpuPageQueryDTO query);
+    PageResultDTO<PmsSpuDto> pageByPlatform(SpuPageQueryDTO query);
 
     /** 强制下架（status→2）。 */
     void adminListOff(Long spuId, String reason);

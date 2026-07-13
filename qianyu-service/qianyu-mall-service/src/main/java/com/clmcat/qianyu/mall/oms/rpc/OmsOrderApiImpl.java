@@ -2,6 +2,7 @@ package com.clmcat.qianyu.mall.oms.rpc;
 
 import com.clmcat.qianyu.mall.api.oms.OmsOrderApi;
 import com.clmcat.qianyu.mall.api.oms.model.dto.OmsOrderDto;
+import com.clmcat.qianyu.mall.api.oms.model.dto.OmsOrderItemDto;
 import com.clmcat.qianyu.mall.api.oms.model.dto.OrderPageQueryDTO;
 import com.clmcat.qianyu.mall.oms.mapper.OmsOrderItemMapper;
 import com.clmcat.qianyu.mall.oms.mapper.OmsOrderMapper;
@@ -82,7 +83,47 @@ public class OmsOrderApiImpl implements OmsOrderApi {
     }
 
     @Override
-    public List<OmsOrderDto> pageByPlatform(OrderPageQueryDTO query) {
+    public boolean markPaid(Long orderId) {
+        OmsOrder order = orderMapper.selectOneById(orderId);
+        if (order == null || order.getStatus() != OmsOrder.STATUS_PENDING_PAY) {
+            return false;
+        }
+        long ver = order.getVersion();
+        // S9: CAS 10→20 + 回写 pay_time（复用 transitStatus CAS 模式，多 set pay_time）
+        OmsOrder update = new OmsOrder();
+        update.setStatus(OmsOrder.STATUS_PENDING_SHIP);
+        update.setPayTime(System.currentTimeMillis());
+        update.setVersion(ver + 1);
+        update.setUpdateTime(System.currentTimeMillis());
+        int affected = orderMapper.updateByQuery(update,
+                QueryWrapper.create().where("id = ?", orderId)
+                        .and("status = ?", OmsOrder.STATUS_PENDING_PAY)
+                        .and("version = ?", ver));
+        return affected > 0;
+    }
+
+    @Override
+    public boolean markReceived(Long orderId) {
+        OmsOrder order = orderMapper.selectOneById(orderId);
+        if (order == null || order.getStatus() != OmsOrder.STATUS_SHIPPED) {
+            return false;
+        }
+        long ver = order.getVersion();
+        // S22: CAS 30→40 + 回写 receive_time（仿 markPaid 模式）
+        OmsOrder update = new OmsOrder();
+        update.setStatus(OmsOrder.STATUS_COMPLETED);
+        update.setReceiveTime(System.currentTimeMillis());
+        update.setVersion(ver + 1);
+        update.setUpdateTime(System.currentTimeMillis());
+        int affected = orderMapper.updateByQuery(update,
+                QueryWrapper.create().where("id = ?", orderId)
+                        .and("status = ?", OmsOrder.STATUS_SHIPPED)
+                        .and("version = ?", ver));
+        return affected > 0;
+    }
+
+    @Override
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<OmsOrderDto> pageByPlatform(OrderPageQueryDTO query) {
         // 动态过滤：所有占位符由 MyBatis-Flex 参数化，杜绝 SQL 拼接
         QueryWrapper qw = QueryWrapper.create().where("deleted = ?", 0);
         if (query.getMerchantId() != null) {
@@ -97,6 +138,8 @@ public class OmsOrderApiImpl implements OmsOrderApi {
         if (query.getBuyerUserId() != null) {
             qw.and("user_id = ?", query.getBuyerUserId());
         }
+        if (query.getStartTime() != null) qw.and("create_time >= ?", query.getStartTime());
+        if (query.getEndTime() != null) qw.and("create_time <= ?", query.getEndTime());
         qw.orderBy("create_time DESC");
 
         int pageNum = query.getPageNum() != null && query.getPageNum() > 0 ? query.getPageNum() : 1;
@@ -105,14 +148,27 @@ public class OmsOrderApiImpl implements OmsOrderApi {
         com.mybatisflex.core.paginate.Page<OmsOrder> page =
                 orderMapper.paginate(com.mybatisflex.core.paginate.Page.of(pageNum, pageSize), qw);
         if (page.getRecords() == null || page.getRecords().isEmpty()) {
-            return Collections.emptyList();
+            return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<OmsOrderDto>builder()
+                    .records(Collections.emptyList()).total(page.getTotalRow())
+                    .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
         }
-        return page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
+        List<OmsOrderDto> records = page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
+        return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<OmsOrderDto>builder()
+                .records(records).total(page.getTotalRow())
+                .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
     }
 
     public List<OmsOrderItem> findItemsByOrderId(Long orderId) {
         return orderItemMapper.selectListByQuery(
                 QueryWrapper.create().where("order_id = ?", orderId));
+    }
+
+    @Override
+    public List<OmsOrderItemDto> findOrderItemsByOrderId(Long orderId) {
+        List<OmsOrderItem> items = orderItemMapper.selectListByQuery(
+                QueryWrapper.create().where("order_id = ?", orderId));
+        if (items == null || items.isEmpty()) return Collections.emptyList();
+        return items.stream().map(this::toItemDto).collect(Collectors.toList());
     }
 
     public OmsOrderItem findItemById(Long orderItemId) {
@@ -180,6 +236,23 @@ public class OmsOrderApiImpl implements OmsOrderApi {
         dto.setReceiveTime(order.getReceiveTime());
         dto.setCloseTime(order.getCloseTime());
         dto.setCreateTime(order.getCreateTime());
+        return dto;
+    }
+
+    private OmsOrderItemDto toItemDto(OmsOrderItem item) {
+        if (item == null) return null;
+        OmsOrderItemDto dto = new OmsOrderItemDto();
+        dto.setId(item.getId());
+        dto.setOrderId(item.getOrderId());
+        dto.setMerchantId(item.getMerchantId());
+        dto.setSpuId(item.getSpuId());
+        dto.setSkuId(item.getSkuId());
+        dto.setSkuName(item.getSkuName());
+        dto.setSkuImage(item.getSkuImage());
+        dto.setPrice(item.getPrice());
+        dto.setQuantity(item.getQuantity());
+        dto.setTotalAmount(item.getTotalAmount());
+        dto.setCreateTime(item.getCreateTime());
         return dto;
     }
 }

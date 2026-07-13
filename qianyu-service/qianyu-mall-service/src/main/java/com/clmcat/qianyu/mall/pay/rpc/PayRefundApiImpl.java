@@ -1,5 +1,11 @@
 package com.clmcat.qianyu.mall.pay.rpc;
 
+import com.clmcat.qianyu.mall.api.inv.InvStockApi;
+import com.clmcat.qianyu.mall.api.inv.model.dto.InvStockDto;
+import com.clmcat.qianyu.mall.api.mch.MerchantApi;
+import com.clmcat.qianyu.mall.api.oms.OmsOrderApi;
+import com.clmcat.qianyu.mall.api.oms.model.dto.OmsOrderDto;
+import com.clmcat.qianyu.mall.api.oms.model.dto.OmsOrderItemDto;
 import com.clmcat.qianyu.mall.api.pay.PayRefundApi;
 import com.clmcat.qianyu.mall.api.pay.model.dto.PayRefundDto;
 import com.clmcat.qianyu.mall.pay.mapper.PayRefundMapper;
@@ -11,12 +17,17 @@ import com.clmcat.qianyu.mall.pay.model.vo.RefundResultVO;
 import com.clmcat.qianyu.mall.pay.support.PayChannelStrategy;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @DubboService
 @Service
 public class PayRefundApiImpl implements PayRefundApi {
@@ -27,6 +38,13 @@ public class PayRefundApiImpl implements PayRefundApi {
     @Resource
     private PayPaymentApiImpl payServiceBiz;
 
+    @DubboReference
+    private InvStockApi invStockApi;
+
+    @DubboReference
+    private OmsOrderApi omsOrderApi;
+
+    @Transactional(rollbackFor = Exception.class)
     public RefundResultVO refund(RefundDTO dto) {
         PayPayment payment = payServiceBiz.getPaymentByPaymentNo(dto.getPaySn());
         PayStatus.PAY_ORDER_NOT_FOUND.assertThrowResEx(payment == null);
@@ -63,6 +81,8 @@ public class PayRefundApiImpl implements PayRefundApi {
             refund.setRefundStatus(PayRefund.REFUND_STATUS_SUCCESS);
             refund.setRefundTime(System.currentTimeMillis());
             refundMapper.update(refund);
+            // S21: 退款成功释放订单锁定库存（单一释放点；releaseStock CAS，幂等日志去重依赖 S12）
+            releaseStockForOrder(payment.getOrderId());
         }
 
         return RefundResultVO.builder()
@@ -74,6 +94,29 @@ public class PayRefundApiImpl implements PayRefundApi {
     @Override
     public void insert(PayRefundDto dto) {
         refundMapper.insertSelective(toEntity(dto));
+    }
+
+    /**
+     * S21: 退款成功释放订单库存（单一释放点）。仅退款即时释放；退货退款应在商家确认收货后释放。
+     * <p>注：confirmStock 后库存已扣减（locked=0），releaseStock CAS 会跳过；sold→available 回库需新原语（后续增强）。
+     */
+    private void releaseStockForOrder(Long orderId) {
+        try {
+            OmsOrderDto order = omsOrderApi.findById(orderId);
+            if (order == null) return;
+            List<OmsOrderItemDto> items = omsOrderApi.findOrderItemsByOrderId(orderId);
+            if (items == null || items.isEmpty()) return;
+            List<InvStockDto.StockLockItem> releaseItems = new ArrayList<>();
+            for (OmsOrderItemDto it : items) {
+                InvStockDto.StockLockItem li = new InvStockDto.StockLockItem();
+                li.setSkuId(it.getSkuId());
+                li.setQuantity(it.getQuantity());
+                releaseItems.add(li);
+            }
+            invStockApi.releaseStock(order.getOrderNo(), releaseItems);
+        } catch (Exception e) {
+            log.warn("退款释放库存失败 orderId={} error={}", orderId, e.getMessage());
+        }
     }
 
     @Override

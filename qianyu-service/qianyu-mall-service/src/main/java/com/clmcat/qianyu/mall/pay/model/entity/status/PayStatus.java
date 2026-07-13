@@ -16,6 +16,7 @@ public enum PayStatus implements ResponseErrorStatus, Serializable {
     PAY_REFUND_FAIL(403008, "退款失败（渠道返回错误）"),
     PAY_CALL_CHANNEL_FAIL(403009, "调用支付渠道失败（网络/渠道异常）"),
     PAY_ORDER_STATUS_ERROR(403010, "支付单状态不允许此操作"),
+    PAY_SANDBOX_FAIL(403011, "沙箱支付失败"),
     ;
 
     PayStatus(Integer status, String message) {

@@ -15,4 +15,7 @@ public class OrderShipDTO {
 
     @Schema(description = "物流单号", requiredMode = Schema.RequiredMode.REQUIRED)
     private String logisticsNo;
+
+    @Schema(description = "物流公司编码（如 SF/YTO，发货必填，用于物流单创建校验）", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String logisticsCode;
 }

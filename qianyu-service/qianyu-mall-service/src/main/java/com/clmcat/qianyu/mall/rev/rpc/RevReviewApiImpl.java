@@ -32,7 +32,7 @@ public class RevReviewApiImpl implements RevReviewApi {
     }
 
     @Override
-    public List<RevReviewDto> pageByPlatform(ReviewPageQueryDTO query) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<RevReviewDto> pageByPlatform(ReviewPageQueryDTO query) {
         // 动态过滤：所有占位符由 MyBatis-Flex 参数化，杜绝 SQL 拼接
         QueryWrapper qw = QueryWrapper.create().where("deleted = ?", 0);
         if (query.getSpuId() != null) {
@@ -47,6 +47,8 @@ public class RevReviewApiImpl implements RevReviewApi {
         if (query.getScore() != null) {
             qw.and("score = ?", query.getScore());
         }
+        if (query.getStartTime() != null) qw.and("create_time >= ?", query.getStartTime());
+        if (query.getEndTime() != null) qw.and("create_time <= ?", query.getEndTime());
         qw.orderBy("create_time DESC");
 
         int pageNum = query.getPageNum() != null && query.getPageNum() > 0 ? query.getPageNum() : 1;
@@ -55,9 +57,14 @@ public class RevReviewApiImpl implements RevReviewApi {
         com.mybatisflex.core.paginate.Page<RevReview> page =
                 reviewMapper.paginate(com.mybatisflex.core.paginate.Page.of(pageNum, pageSize), qw);
         if (page.getRecords() == null || page.getRecords().isEmpty()) {
-            return Collections.emptyList();
+            return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<RevReviewDto>builder()
+                    .records(Collections.emptyList()).total(page.getTotalRow())
+                    .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
         }
-        return page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
+        List<RevReviewDto> records = page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
+        return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<RevReviewDto>builder()
+                .records(records).total(page.getTotalRow())
+                .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
     }
 
     /**

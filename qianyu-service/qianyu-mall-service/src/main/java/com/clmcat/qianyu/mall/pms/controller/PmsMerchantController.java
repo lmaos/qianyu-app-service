@@ -101,6 +101,18 @@ public class PmsMerchantController {
         merchantViewBiz.listOffSpu(userId, dto.getSpuId());
     }
 
+    /**
+     * 商户提交审核（草稿/下架 → 待审核）。审核为唯一上架路径：须审核通过后才能上架。
+     * 实际审核推进由定时任务 PmsSpuAuditTask 完成（当前自动通过 stub）。
+     */
+    @Operation(summary = "SPU 提交审核")
+    @PostMapping("/spuSubmitAudit")
+    public void spuSubmitAudit(
+            @Parameter(hidden = true) @Token long userId,
+            @Params SpuIdDto dto) {
+        merchantViewBiz.submitForAudit(userId, dto.getSpuId());
+    }
+
     // app.md §13.2 /api/mall/merchant/pms/skuBatchUpdate
     /**
      * SKU 批量更新（库存/价格）

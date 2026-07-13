@@ -1,9 +1,8 @@
 package com.clmcat.qianyu.mall.api.oms;
 
+import com.clmcat.qianyu.mall.api.model.dto.PageResultDTO;
 import com.clmcat.qianyu.mall.api.oms.model.dto.AftersalePageQueryDTO;
 import com.clmcat.qianyu.mall.api.oms.model.dto.OmsAfterSaleDto;
-
-import java.util.List;
 
 public interface OmsAfterSaleApi {
 
@@ -31,7 +30,7 @@ public interface OmsAfterSaleApi {
      * <p>支持按 merchantId / status / type 过滤，按 create_time DESC 排序。
      *
      * @param query 分页查询条件（pageNum/pageSize 默认 1/10）
-     * @return 当前页记录列表（DTO），空列表而非 null
+     * @return 分页结果（含当前页 records + total/页码），records 空列表而非 null
      */
-    List<OmsAfterSaleDto> pageByPlatform(AftersalePageQueryDTO query);
+    PageResultDTO<OmsAfterSaleDto> pageByPlatform(AftersalePageQueryDTO query);
 }

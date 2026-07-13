@@ -28,6 +28,12 @@ public class OrderPageQueryDTO implements Serializable {
     /** 支付渠道（预留，空=不过滤） */
     private Integer paymentChannel;
 
+    /** 创建时间起（毫秒戳，含）；空=不过滤 */
+    private Long startTime;
+
+    /** 创建时间止（毫秒戳，含）；空=不过滤 */
+    private Long endTime;
+
     /** 页码，缺省 1 */
     private Integer pageNum;
 

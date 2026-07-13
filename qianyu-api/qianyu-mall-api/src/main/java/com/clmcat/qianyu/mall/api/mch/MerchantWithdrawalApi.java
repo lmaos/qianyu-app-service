@@ -2,8 +2,7 @@ package com.clmcat.qianyu.mall.api.mch;
 
 import com.clmcat.qianyu.mall.api.mch.model.dto.WithdrawalPageQueryDTO;
 import com.clmcat.qianyu.mall.api.mch.model.dto.WithdrawalPageResultDto;
-
-import java.util.List;
+import com.clmcat.qianyu.mall.api.model.dto.PageResultDTO;
 
 /**
  * 提现审批闭环 RPC 契约（运营端·mch 域）。
@@ -21,9 +20,9 @@ public interface MerchantWithdrawalApi {
     /**
      * 平台视角提现审批分页（跨店），含四要素脱敏 + merchantName + accountBalance + allowedActions 富化。
      * @param query 分页筛选（merchantId/status/withdrawalNo/createTime 区间/pageNum/pageSize）
-     * @return 提现单 DTO 列表（分页返回 List，total/页码信息由调用方据需二次封装）
+     * @return 分页结果（含当前页 records + total/页码）
      */
-    List<WithdrawalPageResultDto> pageByPlatform(WithdrawalPageQueryDTO query);
+    PageResultDTO<WithdrawalPageResultDto> pageByPlatform(WithdrawalPageQueryDTO query);
 
     /**
      * 审核通过（0→1）。调 settleForApprove（frozen→totalWithdraw + version+1 双 CAS）。

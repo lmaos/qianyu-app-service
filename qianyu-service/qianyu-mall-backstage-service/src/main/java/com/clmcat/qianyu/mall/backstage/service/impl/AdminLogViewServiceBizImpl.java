@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.List;
 
 /**
  * 运营日志查询服务实现（操作日志 + 登录日志，审计只增）。
@@ -32,7 +33,7 @@ public class AdminLogViewServiceBizImpl implements AdminLogViewServiceBiz {
     @Resource private AdminLoginLogMapper loginLogMapper;
 
     @Override
-    public Page<AdminOpLog> pageOpLog(AdminLogQueryDTO dto) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<AdminOpLog> pageOpLog(AdminLogQueryDTO dto) {
         int pageNum = dto == null || dto.getPageNum() == null || dto.getPageNum() <= 0 ? 1 : dto.getPageNum();
         int pageSize = dto == null || dto.getPageSize() == null || dto.getPageSize() <= 0 ? 10 : dto.getPageSize();
 
@@ -54,11 +55,11 @@ public class AdminLogViewServiceBizImpl implements AdminLogViewServiceBiz {
         qw.orderBy("ts DESC");
 
         Page<AdminOpLog> page = opLogMapper.paginate(Page.of(pageNum, pageSize), qw);
-        return page == null ? emptyPage(pageNum, pageSize) : page;
+        return toPageResult(page, pageNum, pageSize);
     }
 
     @Override
-    public Page<AdminLoginLog> pageLoginLog(AdminLogQueryDTO dto) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<AdminLoginLog> pageLoginLog(AdminLogQueryDTO dto) {
         int pageNum = dto == null || dto.getPageNum() == null || dto.getPageNum() <= 0 ? 1 : dto.getPageNum();
         int pageSize = dto == null || dto.getPageSize() == null || dto.getPageSize() <= 0 ? 10 : dto.getPageSize();
 
@@ -78,13 +79,20 @@ public class AdminLogViewServiceBizImpl implements AdminLogViewServiceBiz {
         qw.orderBy("login_at DESC");
 
         Page<AdminLoginLog> page = loginLogMapper.paginate(Page.of(pageNum, pageSize), qw);
-        return page == null ? emptyPage(pageNum, pageSize) : page;
+        return toPageResult(page, pageNum, pageSize);
     }
 
-    private static <T> Page<T> emptyPage(int pageNum, int pageSize) {
-        Page<T> p = new Page<>(pageNum, pageSize);
-        p.setRecords(Collections.emptyList());
-        p.setTotalRow(0);
-        return p;
+    /**
+     * MyBatis-Flex {@link Page} → {@link com.clmcat.qianyu.mall.api.model.dto.PageResultDTO} 适配。
+     * <p>统一 null 兜底 + 字段映射，避免每个 page 方法重复构造。
+     */
+    private static <T> com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<T> toPageResult(
+            Page<T> page, int pageNum, int pageSize) {
+        List<T> records = page == null || page.getRecords() == null
+                ? Collections.emptyList() : page.getRecords();
+        long total = page == null ? 0 : page.getTotalRow();
+        return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<T>builder()
+                .records(records).total(total)
+                .pageNum(pageNum).pageSize(pageSize).build();
     }
 }

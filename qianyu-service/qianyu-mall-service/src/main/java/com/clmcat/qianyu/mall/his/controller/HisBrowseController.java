@@ -1,5 +1,6 @@
 package com.clmcat.qianyu.mall.his.controller;
 
+import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.ApiController;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "浏览历史", description = "商品浏览记录管理")
 @ApiController
 @RequestMapping("/api/mall/his")
-// @LoginVerify
+@LoginVerify
 public class HisBrowseController {
 
     @Resource

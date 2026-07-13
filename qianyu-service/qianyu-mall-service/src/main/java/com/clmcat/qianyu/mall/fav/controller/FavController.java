@@ -1,5 +1,6 @@
 package com.clmcat.qianyu.mall.fav.controller;
 
+import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.ApiController;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "收藏", description = "商品/店铺收藏管理")
 @ApiController
 @RequestMapping("/api/mall/fav")
-// @LoginVerify
+@LoginVerify
 public class FavController {
 
     @Resource

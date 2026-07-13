@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "商家库存管理", description = "商家库存调整与日志查询")
 @ApiController
 @RequestMapping("/api/mall/merchant/inv")
-// @LoginVerify
+@LoginVerify
 public class InvMerchantController {
 
     @Resource

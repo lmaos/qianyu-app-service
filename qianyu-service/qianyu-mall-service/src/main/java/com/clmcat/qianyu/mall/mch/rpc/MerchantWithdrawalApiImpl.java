@@ -49,7 +49,7 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
     private MerchantApi merchantApi;
 
     @Override
-    public List<WithdrawalPageResultDto> pageByPlatform(WithdrawalPageQueryDTO query) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<WithdrawalPageResultDto> pageByPlatform(WithdrawalPageQueryDTO query) {
         QueryWrapper qw = QueryWrapper.create();
         if (query.getMerchantId() != null) {
             qw.and("merchant_id = ?", query.getMerchantId());
@@ -73,11 +73,17 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
 
         Page<MerchantWithdrawal> page = withdrawalMapper.paginate(Page.of(pageNum, pageSize), qw);
         if (page.getRecords() == null || page.getRecords().isEmpty()) {
-            return Collections.emptyList();
+            return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<WithdrawalPageResultDto>builder()
+                    .records(Collections.emptyList()).total(page.getTotalRow())
+                    .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
         }
 
         // 富化 merchantName / accountBalance
-        return page.getRecords().stream().map(w -> toResultDto(w, true)).collect(java.util.stream.Collectors.toList());
+        List<WithdrawalPageResultDto> records = page.getRecords().stream()
+                .map(w -> toResultDto(w, true)).collect(java.util.stream.Collectors.toList());
+        return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<WithdrawalPageResultDto>builder()
+                .records(records).total(page.getTotalRow())
+                .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
     }
 
     @Override

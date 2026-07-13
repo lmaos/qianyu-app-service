@@ -13,6 +13,9 @@ public interface PayViewServiceBiz {
 
     String handleWechatCallback(String rawBody);
 
+    /** S13: 微信支付 V3 回调（含 SDK 验签 headers） */
+    String handleWechatCallback(String rawBody, String serial, String nonce, String timestamp, String signature);
+
     String handleAlipayCallback(java.util.Map<String, String> params);
 
 }

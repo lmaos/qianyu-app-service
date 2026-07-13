@@ -39,7 +39,8 @@ public class OmsAdminAfterSaleController {
     @Operation(summary = "售后列表分页（平台视角跨店）")
     @RequiresPermission("oms:aftersale:view")
     @PostMapping("/page")
-    public List<OmsAfterSaleDto> page(@Token Long adminId, @Params AftersalePageQueryDTO dto) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<OmsAfterSaleDto> page(
+            @Token Long adminId, @Params AftersalePageQueryDTO dto) {
         return afterSaleApi.pageByPlatform(dto);
     }
 

@@ -1,11 +1,11 @@
 package com.clmcat.qianyu.mall.backstage.service;
 
+import com.clmcat.qianyu.mall.api.model.dto.PageResultDTO;
 import com.clmcat.qianyu.mall.backstage.model.dto.AdminRoleAssignPermissionsDTO;
 import com.clmcat.qianyu.mall.backstage.model.dto.AdminRoleCreateDTO;
 import com.clmcat.qianyu.mall.backstage.model.dto.AdminRolePageQueryDTO;
 import com.clmcat.qianyu.mall.backstage.model.dto.AdminRoleUpdateDTO;
 import com.clmcat.qianyu.mall.backstage.model.vo.AdminRoleVO;
-import com.mybatisflex.core.paginate.Page;
 
 import java.util.List;
 
@@ -17,8 +17,9 @@ public interface AdminRoleViewServiceBiz {
 
     /**
      * 角色分页查询（带 permissionIds 富化）。
+     * @return 分页结果（records 为 AdminRoleVO，含 total/页码）
      */
-    Page<AdminRoleVO> page(AdminRolePageQueryDTO dto);
+    PageResultDTO<AdminRoleVO> page(AdminRolePageQueryDTO dto);
 
     /**
      * 创建角色：role_code 唯一性校验。

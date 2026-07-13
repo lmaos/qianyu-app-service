@@ -49,7 +49,8 @@ public class OmsAdminOrderController {
     @Operation(summary = "订单列表分页（跨店）")
     @RequiresPermission("oms:order:view")
     @PostMapping("/page")
-    public List<OmsOrderDto> page(@Token Long adminId, @Params OrderPageQueryDTO dto) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<OmsOrderDto> page(
+            @Token Long adminId, @Params OrderPageQueryDTO dto) {
         return omsOrderApi.pageByPlatform(dto);
     }
 

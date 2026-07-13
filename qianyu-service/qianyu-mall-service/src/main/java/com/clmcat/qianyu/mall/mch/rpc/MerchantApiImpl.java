@@ -30,17 +30,22 @@ public class MerchantApiImpl implements MerchantApi {
     }
 
     @Override
-    public java.util.List<MerchantDto> pageMerchants(com.clmcat.qianyu.mall.api.mch.model.dto.MerchantPageQueryDTO query) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<MerchantDto> pageMerchants(com.clmcat.qianyu.mall.api.mch.model.dto.MerchantPageQueryDTO query) {
         com.mybatisflex.core.query.QueryWrapper qw = com.mybatisflex.core.query.QueryWrapper.create();
         if (query.getAuditStatus() != null) qw.and("audit_status = ?", query.getAuditStatus());
         if (query.getStatus() != null) qw.and("status = ?", query.getStatus());
         if (query.getKeyword() != null && !query.getKeyword().isEmpty()) qw.and("name like ?", "%" + query.getKeyword() + "%");
+        if (query.getStartTime() != null) qw.and("create_time >= ?", query.getStartTime());
+        if (query.getEndTime() != null) qw.and("create_time <= ?", query.getEndTime());
         qw.orderBy("create_time DESC");
         int pageNum = query.getPageNum() != null && query.getPageNum() > 0 ? query.getPageNum() : 1;
         int pageSize = query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : 10;
         com.mybatisflex.core.paginate.Page<Merchant> page = merchantMapper.paginate(
                 com.mybatisflex.core.paginate.Page.of(pageNum, pageSize), qw);
-        return page.getRecords().stream().map(this::toDto).collect(java.util.stream.Collectors.toList());
+        java.util.List<MerchantDto> records = page.getRecords().stream().map(this::toDto).collect(java.util.stream.Collectors.toList());
+        return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<MerchantDto>builder()
+                .records(records).total(page.getTotalRow())
+                .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
     }
 
     @Override

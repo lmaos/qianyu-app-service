@@ -83,7 +83,7 @@ public class PmsSpuApiImpl implements PmsSpuApi {
     }
 
     @Override
-    public List<PmsSpuDto> pageByPlatform(com.clmcat.qianyu.mall.api.pms.model.dto.SpuPageQueryDTO query) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<PmsSpuDto> pageByPlatform(com.clmcat.qianyu.mall.api.pms.model.dto.SpuPageQueryDTO query) {
         QueryWrapper qw = QueryWrapper.create().where(PMS_SPU.DELETED.eq(0));
         if (query.getMerchantId() != null) qw.and(PMS_SPU.MERCHANT_ID.eq(query.getMerchantId()));
         if (query.getBrandId() != null) qw.and(PMS_SPU.BRAND_ID.eq(query.getBrandId()));
@@ -92,12 +92,17 @@ public class PmsSpuApiImpl implements PmsSpuApi {
         if (query.getKeyword() != null && !query.getKeyword().isEmpty()) {
             qw.and(PMS_SPU.NAME.like("%" + query.getKeyword() + "%"));
         }
+        if (query.getStartTime() != null) qw.and(PMS_SPU.CREATE_TIME.ge(query.getStartTime()));
+        if (query.getEndTime() != null) qw.and(PMS_SPU.CREATE_TIME.le(query.getEndTime()));
         qw.orderBy(PMS_SPU.CREATE_TIME.desc());
         int pageNum = query.getPageNum() != null && query.getPageNum() > 0 ? query.getPageNum() : 1;
         int pageSize = query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : 10;
         com.mybatisflex.core.paginate.Page<PmsSpu> page = spuMapper.paginate(
                 com.mybatisflex.core.paginate.Page.of(pageNum, pageSize), qw);
-        return page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
+        List<PmsSpuDto> records = page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
+        return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<PmsSpuDto>builder()
+                .records(records).total(page.getTotalRow())
+                .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
     }
 
     @Override

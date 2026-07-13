@@ -9,6 +9,8 @@ public class MerchantPageQueryDTO implements Serializable {
     private Integer auditStatus;   // 0待审/1通过/2拒绝
     private Integer status;        // 0禁用/1正常/2冻结
     private String keyword;        // 名称模糊
+    private Long startTime;        // 创建时间起（毫秒戳，含）
+    private Long endTime;          // 创建时间止（毫秒戳，含）
     private Integer pageNum;
     private Integer pageSize;
 }

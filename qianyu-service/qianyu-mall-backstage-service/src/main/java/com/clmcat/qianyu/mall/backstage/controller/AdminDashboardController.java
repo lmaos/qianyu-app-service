@@ -23,9 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
  * 方法 {@code @RequiresPermission}。
  * <p>统一信封自动包装（{@code @ApiController}），返回 VO，禁手写 {@code ResponseEntity}/{@code Response<>}。
  *
- * <p>当前 RPC 契约（{@code pageMerchants}/{@code pageByPlatform}）返回 {@code List} 不含 total，
- * 故各计数采用「拉取较大页 + 取 list.size()」的简化策略（{@link #COUNT_FETCH_LIMIT}）。
- * 看板只需展示几个关键数字，避免为单纯展示新增 count RPC 造成过度设计。
+ * <p>各计数查询走分页 RPC 的 {@code total} 字段（pageSize=1 即可拿到准确总数，无需拉全量记录）。
  */
 @Tag(name = "运营-平台看板", description = "运营首页运营数字概览")
 @ApiController
@@ -33,12 +31,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @LoginVerify(loginVerify = BackstageLoginVerifyFunction.class, token = "X-Admin-Token")
 public class AdminDashboardController {
 
-    /**
-     * 各计数查询的页大小上限：单次 RPC 返回上限。
-     * <p>取值权衡：足够覆盖真实看板量级（运营初期单日新增远小于此），又避免一次性拉全表。
-     * 当真实数量超过此值时，看板数字会被截断到此上限（可接受：看板只需「量级感知」）。
-     */
-    private static final int COUNT_FETCH_LIMIT = 1000;
+    /** 看板计数查询的页大小：仅需触发分页拿到 total，无需实际记录，固定 1 条。 */
+    private static final int COUNT_PAGE_SIZE = 1;
 
     @DubboReference
     private MerchantApi merchantApi;
@@ -64,35 +58,35 @@ public class AdminDashboardController {
         // 总商户数（auditStatus/status 任意）
         MerchantPageQueryDTO allMerchants = new MerchantPageQueryDTO();
         allMerchants.setPageNum(1);
-        allMerchants.setPageSize(COUNT_FETCH_LIMIT);
-        long totalMerchants = merchantApi.pageMerchants(allMerchants).size();
+        allMerchants.setPageSize(COUNT_PAGE_SIZE);
+        long totalMerchants = merchantApi.pageMerchants(allMerchants).getTotal();
 
         // 待审核商户（auditStatus=0）
         MerchantPageQueryDTO pendingAudit = new MerchantPageQueryDTO();
         pendingAudit.setAuditStatus(0);
         pendingAudit.setPageNum(1);
-        pendingAudit.setPageSize(COUNT_FETCH_LIMIT);
-        long pendingAuditMerchants = merchantApi.pageMerchants(pendingAudit).size();
+        pendingAudit.setPageSize(COUNT_PAGE_SIZE);
+        long pendingAuditMerchants = merchantApi.pageMerchants(pendingAudit).getTotal();
 
         // 待审核提现（status=0）
         WithdrawalPageQueryDTO pendingWithdrawal = new WithdrawalPageQueryDTO();
         pendingWithdrawal.setStatus(0);
         pendingWithdrawal.setPageNum(1);
-        pendingWithdrawal.setPageSize(COUNT_FETCH_LIMIT);
-        long pendingWithdrawals = withdrawalApi.pageByPlatform(pendingWithdrawal).size();
+        pendingWithdrawal.setPageSize(COUNT_PAGE_SIZE);
+        long pendingWithdrawals = withdrawalApi.pageByPlatform(pendingWithdrawal).getTotal();
 
         // 近期订单（status 任意）
         OrderPageQueryDTO allOrders = new OrderPageQueryDTO();
         allOrders.setPageNum(1);
-        allOrders.setPageSize(COUNT_FETCH_LIMIT);
-        long totalOrders = omsOrderApi.pageByPlatform(allOrders).size();
+        allOrders.setPageSize(COUNT_PAGE_SIZE);
+        long totalOrders = omsOrderApi.pageByPlatform(allOrders).getTotal();
 
         // 待发货订单（status=20）
         OrderPageQueryDTO pendingShip = new OrderPageQueryDTO();
         pendingShip.setStatus(20);
         pendingShip.setPageNum(1);
-        pendingShip.setPageSize(COUNT_FETCH_LIMIT);
-        long pendingShipOrders = omsOrderApi.pageByPlatform(pendingShip).size();
+        pendingShip.setPageSize(COUNT_PAGE_SIZE);
+        long pendingShipOrders = omsOrderApi.pageByPlatform(pendingShip).getTotal();
 
         return DashboardVO.builder()
                 .totalMerchants(totalMerchants)

@@ -81,7 +81,7 @@ public class OmsAfterSaleApiImpl implements OmsAfterSaleApi {
      * <p>逻辑删除 {@code deleted=0} 兜底过滤；merchantId/status/type 任一为 null 则跳过该条件。
      */
     @Override
-    public List<OmsAfterSaleDto> pageByPlatform(AftersalePageQueryDTO query) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<OmsAfterSaleDto> pageByPlatform(AftersalePageQueryDTO query) {
         QueryWrapper qw = QueryWrapper.create().where("deleted = ?", 0);
         if (query.getMerchantId() != null) {
             qw.and("merchant_id = ?", query.getMerchantId());
@@ -92,6 +92,12 @@ public class OmsAfterSaleApiImpl implements OmsAfterSaleApi {
         if (query.getType() != null) {
             qw.and("type = ?", query.getType());
         }
+        if (query.getStartTime() != null) qw.and("create_time >= ?", query.getStartTime());
+        if (query.getEndTime() != null) qw.and("create_time <= ?", query.getEndTime());
+        if (query.getBuyerUserId() != null) qw.and("user_id = ?", query.getBuyerUserId());
+        if (query.getAfterSaleNo() != null && !query.getAfterSaleNo().isEmpty()) {
+            qw.and("after_sale_no like ?", "%" + query.getAfterSaleNo() + "%");
+        }
         qw.orderBy("create_time DESC");
 
         int pageNum = query.getPageNum() != null && query.getPageNum() > 0 ? query.getPageNum() : 1;
@@ -99,9 +105,14 @@ public class OmsAfterSaleApiImpl implements OmsAfterSaleApi {
 
         Page<OmsAfterSale> page = afterSaleMapper.paginate(Page.of(pageNum, pageSize), qw);
         if (page.getRecords() == null || page.getRecords().isEmpty()) {
-            return Collections.emptyList();
+            return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<OmsAfterSaleDto>builder()
+                    .records(Collections.emptyList()).total(page.getTotalRow())
+                    .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
         }
-        return page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
+        List<OmsAfterSaleDto> records = page.getRecords().stream().map(this::toDto).collect(Collectors.toList());
+        return com.clmcat.qianyu.mall.api.model.dto.PageResultDTO.<OmsAfterSaleDto>builder()
+                .records(records).total(page.getTotalRow())
+                .pageNum(page.getPageNumber()).pageSize(page.getPageSize()).build();
     }
 
     public void createAfterSale(OmsAfterSale afterSale) {

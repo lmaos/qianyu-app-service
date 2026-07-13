@@ -22,6 +22,18 @@ public class AftersalePageQueryDTO implements Serializable {
     /** 售后类型（1=仅退款 2=退货退款 3=换货 4=维修，可选过滤）。 */
     private Integer type;
 
+    /** 创建时间起（毫秒戳，含）；空=不过滤 */
+    private Long startTime;
+
+    /** 创建时间止（毫秒戳，含）；空=不过滤 */
+    private Long endTime;
+
+    /** 买家用户 ID（精确匹配，对应 OmsAfterSale.user_id；空=不过滤） */
+    private Long buyerUserId;
+
+    /** 售后单号（模糊匹配，对应 OmsAfterSale.after_sale_no；空=不过滤） */
+    private String afterSaleNo;
+
     /** 页码（默认 1）。 */
     private Integer pageNum;
 

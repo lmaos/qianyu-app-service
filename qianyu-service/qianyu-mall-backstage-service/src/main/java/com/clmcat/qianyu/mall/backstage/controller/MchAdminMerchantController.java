@@ -40,7 +40,7 @@ public class MchAdminMerchantController {
     @Operation(summary = "商户列表分页")
     @RequiresPermission("mch:merchant:view")
     @PostMapping("/page")
-    public java.util.List<com.clmcat.qianyu.mall.api.mch.model.dto.MerchantDto> page(
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<com.clmcat.qianyu.mall.api.mch.model.dto.MerchantDto> page(
             @Token Long adminId,
             @Params com.clmcat.qianyu.mall.api.mch.model.dto.MerchantPageQueryDTO dto) {
         return merchantApi.pageMerchants(dto);

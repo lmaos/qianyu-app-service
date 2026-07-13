@@ -34,8 +34,9 @@ public class AdminRoleController {
     @Operation(summary = "角色分页（带 permissionIds 富化）")
     @RequiresPermission("admin:role:manage")
     @PostMapping("/page")
-    public List<AdminRoleVO> page(@Token Long adminId, @Params AdminRolePageQueryDTO dto) {
-        return roleService.page(dto).getRecords();
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<AdminRoleVO> page(
+            @Token Long adminId, @Params AdminRolePageQueryDTO dto) {
+        return roleService.page(dto);
     }
 
     @Operation(summary = "创建角色")

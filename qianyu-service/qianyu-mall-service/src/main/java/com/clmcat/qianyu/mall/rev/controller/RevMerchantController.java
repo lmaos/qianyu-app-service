@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "商家评价管理", description = "商家查看评价、回复评价")
 @ApiController
 @RequestMapping("/api/mall/merchant/merchant/rev")
-// @LoginVerify
+@LoginVerify
 public class RevMerchantController {
 
     @Resource

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "C端评价", description = "提交评价、我的评价")
 @ApiController
 @RequestMapping("/api/mall/oms/rev")
-// @LoginVerify
+@LoginVerify
 public class RevOmsController {
 
     @Resource

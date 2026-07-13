@@ -14,6 +14,13 @@ import java.util.List;
 @Table("pms_spu")
 public class PmsSpu {
 
+    /** 状态常量（status 字段取值）。C 端可见性只认 STATUS_ON_SALE(1)。 */
+    public static final int STATUS_DRAFT = 0;         // 草稿（商户编辑态）
+    public static final int STATUS_ON_SALE = 1;       // 上架（C 端可见）
+    public static final int STATUS_OFF_SHELF = 2;     // 下架
+    public static final int STATUS_PENDING_AUDIT = 4; // 待审核（商户提交后，等审核任务推进）
+    public static final int STATUS_APPROVED = 5;      // 审核通过（待商户上架）
+
     @Id(keyType = KeyType.None)
     @Column(value = "id", comment = "主键（Snowflake ID）")
     private Long id;
@@ -55,7 +62,7 @@ public class PmsSpu {
     @Column(value = "unit", comment = "计量单位（个/件/箱等）")
     private String unit;
 
-    @Column(value = "status", comment = "状态: 0=草稿, 1=上架, 2=下架, 3=已删除")
+    @Column(value = "status", comment = "状态: 0=草稿, 1=上架, 2=下架, 3=已删除, 4=待审核, 5=审核通过")
     private Integer status;
 
     @Column(value = "sort", comment = "排序值，越小越靠前")

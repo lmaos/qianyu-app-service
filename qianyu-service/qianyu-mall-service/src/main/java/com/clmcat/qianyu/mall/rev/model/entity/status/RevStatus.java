@@ -16,6 +16,8 @@ public enum RevStatus implements ResponseErrorStatus, Serializable {
     REV_IMAGE_LIMIT_EXCEED(408008, "评价图片超过 9 张"),
     REV_SCORE_INVALID(408009, "评分无效（须为 1-5 整数）"),
     REV_REPLY_CONTENT_TOO_LONG(408010, "回复内容超出字数限制"),
+    REV_ORDER_NOT_BELONG_USER(408011, "非本用户订单，无权评价"),
+    REV_NOT_MERCHANT(408012, "非商家用户，无权操作评价"),
     ;
 
     RevStatus(Integer status, String message) {

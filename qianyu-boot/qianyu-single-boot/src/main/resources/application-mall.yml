@@ -8,5 +8,34 @@ qianyu:
         minutes: 30      # 订单支付超时(分钟)，超时后自动取消+释放库存
       alipay:
         appId: demo-alipay
+        # S13: 支付宝真实回调验签（填入商户凭证后生效）
+        private-key: ""       # 应用私钥(PKCS8)
+        public-key: ""        # 支付宝公钥
+        sign-type: RSA2
+        notify-url: ""
       wxpay:
         appId: demo-wxpay
+        # S13: 微信支付 V3 真实回调验签（填入商户凭证后生效）
+        merchant-id: ""       # 商户号
+        merchant-serial: ""   # 商户API证书序列号
+        private-key: ""       # apiclient_key.pem 内容
+        api-v3-key: ""        # APIv3密钥(32字节)
+        notify-url: ""
+    pms:
+      audit:
+        rate-ms: 30000        # 商品审核任务扫描间隔(毫秒)
+        delay-seconds: 10     # 模拟审核耗时(秒)，提交审核后 N 秒自动通过；0=立即
+    oms:
+      auto-receive:
+        days: 15              # 发货后自动确认收货天数（超时 CAS 30→40）
+    logistics:
+      # M5: 物流轨迹查询提供商；nil=Mock假数据, kdniao=快递鸟, kuaidi100=快递100
+      tracker: nil
+      kdniao:
+        # 快递鸟即时查询 API（https://www.kdniao.com/api-track）
+        business-id: ""       # 快递鸟商户ID（EBusinessID）
+        api-key: ""           # 快递鸟API密钥（APIKey，用于 DataSign 签名）
+      kuaidi100:
+        # 快递100 实时查询 API（https://api.kuaidi100.com）
+        customer: ""          # 快递100授权码（customer）
+        key: ""               # 快递100签名密钥（key）

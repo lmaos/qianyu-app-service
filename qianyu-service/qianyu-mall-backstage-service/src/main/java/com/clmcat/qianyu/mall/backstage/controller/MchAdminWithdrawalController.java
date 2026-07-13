@@ -41,7 +41,8 @@ public class MchAdminWithdrawalController {
     @Operation(summary = "提现审批列表分页（平台视角跨店）")
     @RequiresPermission("mch:withdrawal:view")
     @PostMapping("/page")
-    public List<WithdrawalPageResultDto> page(@Token Long adminId, @Params WithdrawalPageQueryDTO dto) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<WithdrawalPageResultDto> page(
+            @Token Long adminId, @Params WithdrawalPageQueryDTO dto) {
         return withdrawalApi.pageByPlatform(dto);
     }
 

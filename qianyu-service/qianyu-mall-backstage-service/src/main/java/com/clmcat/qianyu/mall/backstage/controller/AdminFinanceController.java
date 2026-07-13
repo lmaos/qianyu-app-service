@@ -71,7 +71,8 @@ public class AdminFinanceController {
     @Operation(summary = "商户提现列表（结算对账）")
     @RequiresPermission("mch:withdrawal:view")
     @PostMapping("/withdrawals")
-    public List<WithdrawalPageResultDto> withdrawals(@Token Long adminId, @Params AdminMerchantIdDTO dto) {
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<WithdrawalPageResultDto> withdrawals(
+            @Token Long adminId, @Params AdminMerchantIdDTO dto) {
         WithdrawalPageQueryDTO query = new WithdrawalPageQueryDTO();
         query.setMerchantId(dto.getMerchantId());
         // 对账场景需看全量，给较大 pageSize；与 pageByPlatform 实现一致（缺省 1/10）

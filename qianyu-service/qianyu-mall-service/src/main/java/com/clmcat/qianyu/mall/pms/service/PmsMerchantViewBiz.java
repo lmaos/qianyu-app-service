@@ -18,6 +18,9 @@ public interface PmsMerchantViewBiz {
 
     void listOffSpu(long userId, Long spuId);
 
+    /** 商户提交审核（草稿 0 / 下架 2 → 待审核 4）。审核为唯一上架路径。 */
+    void submitForAudit(long userId, Long spuId);
+
     void skuBatchUpdate(long userId, SkuBatchUpdateDto dto);
 
 }

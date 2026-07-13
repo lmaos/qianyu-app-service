@@ -20,7 +20,7 @@ public class InvStockLog {
     @Column(value = "order_id", comment = "关联订单 ID")
     private Long orderId;
 
-    @Column(value = "type", comment = "变更类型：1=商家调整 2=下单锁定 3=出库解锁 4=退单回滚")
+    @Column(value = "type", comment = "变更类型：1=商家调整 2=下单锁定 3=取消释放 4=支付确认 5=售后释放")
     private Integer type;
 
     @Column(value = "quantity", comment = "变更数量（正数增加，负数减少）")

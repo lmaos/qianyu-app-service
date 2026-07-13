@@ -1,5 +1,6 @@
 package com.clmcat.qianyu.mall.log.controller;
 
+import com.clmcat.framework.webmvc.anns.LoginVerify;
 import com.clmcat.framework.webmvc.anns.ApiController;
 import com.clmcat.framework.webmvc.anns.Params;
 import com.clmcat.framework.webmvc.anns.Token;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "商家物流管理", description = "商家发货物流操作")
 @ApiController
 @RequestMapping("/api/mall/merchant/log")
-// @LoginVerify
+@LoginVerify
 public class LogisticsMerchantController {
 
     @Resource

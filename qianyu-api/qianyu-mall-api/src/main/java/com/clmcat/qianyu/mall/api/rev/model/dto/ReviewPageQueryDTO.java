@@ -25,6 +25,12 @@ public class ReviewPageQueryDTO implements Serializable {
     /** 评分：1~5 分（空=全部） */
     private Integer score;
 
+    /** 创建时间起（毫秒戳，含）；空=不过滤 */
+    private Long startTime;
+
+    /** 创建时间止（毫秒戳，含）；空=不过滤 */
+    private Long endTime;
+
     /** 页码，缺省 1 */
     private Integer pageNum;
 

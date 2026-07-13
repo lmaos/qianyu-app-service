@@ -1,5 +1,6 @@
 package com.clmcat.qianyu.mall.api.rev;
 
+import com.clmcat.qianyu.mall.api.model.dto.PageResultDTO;
 import com.clmcat.qianyu.mall.api.rev.model.dto.RevReviewDto;
 import com.clmcat.qianyu.mall.api.rev.model.dto.ReviewPageQueryDTO;
 
@@ -18,9 +19,9 @@ public interface RevReviewApi {
      * 返回当前页 RevReviewDto 列表（含所有状态：0=隐藏/1=正常/2=违规，便于运营审计）。
      *
      * @param query 分页与过滤条件（pageNum/pageSize 缺省 1/10）
-     * @return 当前页评价 DTO 列表；无数据返回空列表
+     * @return 分页结果（含当前页 records + total/页码）；无数据 records 为空列表
      */
-    List<RevReviewDto> pageByPlatform(ReviewPageQueryDTO query);
+    PageResultDTO<RevReviewDto> pageByPlatform(ReviewPageQueryDTO query);
 
     /**
      * RPC: 批量修改评价状态。

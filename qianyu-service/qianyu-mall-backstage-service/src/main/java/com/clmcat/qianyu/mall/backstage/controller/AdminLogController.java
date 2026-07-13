@@ -32,14 +32,16 @@ public class AdminLogController {
     @Operation(summary = "操作日志分页（按 admin_id/perm_code/时间范围 过滤）")
     @RequiresPermission("admin:oplog:view")
     @PostMapping("/oplog/page")
-    public List<AdminOpLog> oplogPage(@Token Long adminId, @Params AdminLogQueryDTO dto) {
-        return logService.pageOpLog(dto).getRecords();
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<AdminOpLog> oplogPage(
+            @Token Long adminId, @Params AdminLogQueryDTO dto) {
+        return logService.pageOpLog(dto);
     }
 
     @Operation(summary = "登录日志分页（按 admin_id/时间范围 过滤）")
     @RequiresPermission("admin:oplog:view")
     @PostMapping("/loginlog/page")
-    public List<AdminLoginLog> loginlogPage(@Token Long adminId, @Params AdminLogQueryDTO dto) {
-        return logService.pageLoginLog(dto).getRecords();
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<AdminLoginLog> loginlogPage(
+            @Token Long adminId, @Params AdminLogQueryDTO dto) {
+        return logService.pageLoginLog(dto);
     }
 }

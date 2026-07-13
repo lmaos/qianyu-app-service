@@ -8,6 +8,8 @@ import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @DubboService
 @Service
@@ -18,6 +20,29 @@ public class PayPaymentApiImpl implements PayPaymentApi {
 
     public void insert(PayPayment payment) {
         paymentMapper.insertSelective(payment);
+    }
+
+    /**
+     * S6(#18): 失败支付单独立事务持久化。REQUIRES_NEW 保证外层 payApply 抛错回滚时 FAILED 单仍落库可追溯。
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void insertFailedPayment(PayPayment payment) {
+        paymentMapper.insertSelective(payment);
+    }
+
+    /**
+     * S6(#8): CAS 关闭订单的 PENDING 支付单（PENDING→CLOSED）。订单取消时调用，使悬挂待支付单失效。
+     */
+    @Override
+    public int closePendingByOrderId(Long orderId) {
+        if (orderId == null) return 0;
+        PayPayment update = new PayPayment();
+        update.setPayStatus(PayPayment.PAY_STATUS_CLOSED);
+        update.setUpdateTime(System.currentTimeMillis());
+        return paymentMapper.updateByQuery(update,
+                QueryWrapper.create().where("order_id = ?", orderId)
+                        .and("pay_status = ?", PayPayment.PAY_STATUS_PENDING)
+                        .and("deleted = 0"));
     }
 
     public void update(PayPayment payment) {

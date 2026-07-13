@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "PAY-支付(C端)")
 @ApiController
 @RequestMapping("/api/mall/pay")
-// @LoginVerify
+@LoginVerify
 public class PayController {
 
     @Resource

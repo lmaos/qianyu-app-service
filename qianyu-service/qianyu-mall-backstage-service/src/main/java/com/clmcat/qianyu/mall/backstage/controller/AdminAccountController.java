@@ -38,8 +38,9 @@ public class AdminAccountController {
     @Operation(summary = "账号分页（带 roleNames 富化）")
     @RequiresPermission("admin:account:manage")
     @PostMapping("/page")
-    public List<AdminAccountVO> page(@Token Long adminId, @Params AdminAccountPageQueryDTO dto) {
-        return accountAdminService.page(dto).getRecords();
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<AdminAccountVO> page(
+            @Token Long adminId, @Params AdminAccountPageQueryDTO dto) {
+        return accountAdminService.page(dto);
     }
 
     @Operation(summary = "创建账号（BCrypt 哈希密码）")

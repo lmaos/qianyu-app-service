@@ -1,5 +1,6 @@
 package com.clmcat.qianyu.mall.rev.service.impl;
 
+import com.clmcat.framework.webmvc.ResponseStatus;
 import com.clmcat.qianyu.mall.rev.rpc.RevReviewApiImpl;
 import com.clmcat.qianyu.mall.rev.service.RevReviewStatServiceBiz;
 import com.clmcat.qianyu.mall.api.mch.MerchantApi;
@@ -64,6 +65,11 @@ public class RevReviewViewServiceBizImpl implements RevReviewViewServiceBiz {
         RevStatus.REV_ORDER_NOT_COMPLETED.assertThrowResEx(orderDto == null);
         RevStatus.REV_ORDER_NOT_COMPLETED.assertThrowResEx(orderDto.getStatus() == null || orderDto.getStatus() != 40);
 
+        // S26: 订单归属校验——防越权评价他人订单
+        RevStatus.REV_ORDER_NOT_BELONG_USER.assertThrowResEx(!Long.valueOf(userId).equals(orderDto.getUserId()));
+        // S24: merchantId 用订单商家（原硬编码 0 致商家评价列表/回复失效）；订单无 merchantId 属异常数据，抛系统错误不降级
+        ResponseStatus.SYSTEM_ERROR.assertThrowResEx(orderDto.getMerchantId() == null);
+
         List<Long> reviewIds = new ArrayList<>();
 
         for (ReviewItemDTO item : dto.getItems()) {
@@ -84,7 +90,7 @@ public class RevReviewViewServiceBizImpl implements RevReviewViewServiceBiz {
 
             // 构建实体并插入
             RevReview review = RevSupport.newReview(
-                    userId, dto.getOrderId(), 0L, // merchantId 需要 JOIN 获取，此处先填 0
+                    userId, dto.getOrderId(), orderDto.getMerchantId(),
                     item.getOrderItemId(), item.getSpuId(), item.getSkuId(), null,
                     item.getScore(), item.getContent(), item.getImages(),
                     item.getAnonymous()
@@ -191,7 +197,9 @@ public class RevReviewViewServiceBizImpl implements RevReviewViewServiceBiz {
     public Page<ReviewItemVO> getMerchantReviewList(long userId, MerchantReviewQueryDTO dto) {
         // Resolve merchantId from userId via MCH module
         MerchantDto merchantDto = merchantApi.getByUserId(userId);
-        long merchantId = merchantDto != null ? merchantDto.getId() : userId;
+        // S25: 非商家不再 fallback userId（原 fallback 致 replyReview 归属校验失效）
+        RevStatus.REV_NOT_MERCHANT.assertThrowResEx(merchantDto == null);
+        long merchantId = merchantDto.getId();
 
         int pageNum = dto != null && dto.getPageNum() != null && dto.getPageNum() > 0 ? dto.getPageNum() : 1;
         int pageSize = dto != null && dto.getPageSize() != null && dto.getPageSize() > 0 ? dto.getPageSize() : 10;
@@ -246,7 +254,9 @@ public class RevReviewViewServiceBizImpl implements RevReviewViewServiceBiz {
 
         // Resolve merchantId from userId via MCH module
         MerchantDto merchantDto = merchantApi.getByUserId(userId);
-        long merchantId = merchantDto != null ? merchantDto.getId() : userId;
+        // S25: 非商家不再 fallback userId（原 fallback 致 replyReview 归属校验失效）
+        RevStatus.REV_NOT_MERCHANT.assertThrowResEx(merchantDto == null);
+        long merchantId = merchantDto.getId();
         RevStatus.REV_REVIEW_NOT_BELONG_MERCHANT.assertThrowResEx(!review.getMerchantId().equals(merchantId));
         RevStatus.REV_ALREADY_REPLIED.assertThrowResEx(review.getReplyContent() != null);
 

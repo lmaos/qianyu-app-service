@@ -97,6 +97,9 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         Long merchantId = 0L;
 
         for (OrderItemDTO itemDTO : dto.getItems()) {
+            // S8: quantity 校验（防负数下单凭空增库存+负金额；上界 99 防刷单，未来批发可配置化）
+            OmsStatus.OMS_ORDER_QUANTITY_INVALID.assertThrowResEx(
+                    itemDTO.getQuantity() == null || itemDTO.getQuantity() <= 0 || itemDTO.getQuantity() > 99);
             Long itemId = OmsSupport.ORDER_ITEM_ID_SNOWFLAKE.nextId();
 
             // Lookup SKU info via RPC
@@ -514,6 +517,7 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         logisticsDTO.setOrderId(order.getId());
         logisticsDTO.setLogisticsCompany(dto.getLogisticsCompany());
         logisticsDTO.setLogisticsNo(dto.getLogisticsNo());
+        logisticsDTO.setLogisticsCode(dto.getLogisticsCode());
         try {
             logisticsViewServiceBiz.createLogistics(0L, logisticsDTO);
         } catch (Exception e) {

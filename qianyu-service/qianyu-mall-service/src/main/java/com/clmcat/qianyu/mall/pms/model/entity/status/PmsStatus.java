@@ -20,6 +20,9 @@ public enum PmsStatus implements ResponseErrorStatus, Serializable {
     PMS_CATEGORY_NAME_DUPLICATE(ResponseStatus.P_VALUE_ERROR.getStatus(), "同级下分类名称重复"),
     PMS_SPU_PARAM_INVALID(ResponseStatus.P_VALUE_ERROR.getStatus(), "商品参数校验失败"),
     PMS_SKU_PRICE_INVALID(ResponseStatus.P_VALUE_ERROR.getStatus(), "SKU 价格无效（须大于 0）"),
+    PMS_SPU_NOT_AUDIT_PASSED(ResponseStatus.A_ACCESS_DENIED.getStatus(), "商品未通过审核，无法上架"),
+    PMS_SPU_STATUS_INVALID(ResponseStatus.P_VALUE_ERROR.getStatus(), "当前商品状态不允许该操作"),
+    PMS_MERCHANT_NOT_FOUND(ResponseStatus.A_ACCESS_DENIED.getStatus(), "非商家用户，无权操作商品"),
     ;
 
     PmsStatus(Integer status, String message) {

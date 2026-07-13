@@ -51,6 +51,27 @@ public class PmsSkuApiImpl implements PmsSkuApi {
         return result;
     }
 
+    @Override
+    public List<PmsSkuDto> listByMerchantId(Long merchantId) {
+        if (merchantId == null || merchantId <= 0) {
+            return new ArrayList<>();
+        }
+        List<PmsSku> skuList = skuMapper.selectListByQuery(
+                QueryWrapper.create().where(PMS_SKU.MERCHANT_ID.eq(merchantId))
+                        .and(PMS_SKU.DELETED.eq(0)));
+        if (skuList == null || skuList.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<PmsSkuDto> result = new ArrayList<>();
+        for (PmsSku sku : skuList) {
+            PmsSkuDto dto = toDto(sku);
+            if (dto != null) {
+                result.add(dto);
+            }
+        }
+        return result;
+    }
+
     // ==================== Internal methods for ViewBiz ====================
 
     public java.util.List<PmsSku> selectBySpuId(Long spuId) {

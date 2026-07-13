@@ -59,7 +59,7 @@ public class AdsAddressController {
     }
 
     @Operation(summary = "删除收货地址")
-    @DeleteMapping("/addressDelete")
+    @PostMapping("/addressDelete")
     public void addressDelete(
             @Parameter(hidden = true) @Token long userId,
             @Params AddressIdDTO dto) {

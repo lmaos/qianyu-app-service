@@ -24,7 +24,7 @@ public class PmsAdminSpuController {
     @Operation(summary = "商品列表分页（跨店）")
     @RequiresPermission("pms:spu:view")
     @PostMapping("/page")
-    public java.util.List<com.clmcat.qianyu.mall.api.pms.model.dto.PmsSpuDto> page(
+    public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<com.clmcat.qianyu.mall.api.pms.model.dto.PmsSpuDto> page(
             @Token Long adminId,
             @Params com.clmcat.qianyu.mall.api.pms.model.dto.SpuPageQueryDTO dto) {
         return pmsSpuApi.pageByPlatform(dto);

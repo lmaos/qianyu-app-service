@@ -1,12 +1,12 @@
 package com.clmcat.qianyu.mall.backstage.service;
 
+import com.clmcat.qianyu.mall.api.model.dto.PageResultDTO;
 import com.clmcat.qianyu.mall.backstage.model.dto.AdminAccountAssignRolesDTO;
 import com.clmcat.qianyu.mall.backstage.model.dto.AdminAccountCreateDTO;
 import com.clmcat.qianyu.mall.backstage.model.dto.AdminAccountPageQueryDTO;
 import com.clmcat.qianyu.mall.backstage.model.dto.AdminAccountUpdateDTO;
 import com.clmcat.qianyu.mall.backstage.model.vo.AdminAccountVO;
 import com.clmcat.qianyu.mall.backstage.model.vo.AdminRoleVO;
-import com.mybatisflex.core.paginate.Page;
 
 import java.util.List;
 
@@ -20,9 +20,9 @@ public interface AdminAccountAdminServiceBiz {
     /**
      * 账号分页查询（带 roleNames 富化）。
      * @param dto 分页/关键字/状态过滤；pageNum/pageSize 为 null 走默认 1/10
-     * @return 账号分页（records 为 AdminAccountVO）
+     * @return 分页结果（records 为 AdminAccountVO，含 total/页码）
      */
-    Page<AdminAccountVO> page(AdminAccountPageQueryDTO dto);
+    PageResultDTO<AdminAccountVO> page(AdminAccountPageQueryDTO dto);
 
     /**
      * 创建账号：BCrypt(cost=12) 哈希密码后落库，username 唯一性校验。
