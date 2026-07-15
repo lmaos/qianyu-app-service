@@ -26,4 +26,7 @@ public class SpuListItemVo {
 
     @Schema(description = "店铺名称")
     private String shopName;
+
+    @Schema(description = "商品主分类 ID（用于前端按 thirdCategoryId 过滤）")
+    private Long categoryId;
 }

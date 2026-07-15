@@ -44,6 +44,16 @@ public class PayRefundApiImpl implements PayRefundApi {
     @DubboReference
     private OmsOrderApi omsOrderApi;
 
+    /** 系统通知投递（降级，不阻断主流程——决策 D-05）。 */
+    @DubboReference
+    private com.clmcat.qianyu.mall.api.msg.MsgApi msgApi;
+
+    private void notifySafely(Long userId, Integer type, String title, String content, String bizType, Long bizId) {
+        if (userId == null || userId <= 0) return;
+        try { msgApi.send(userId, type, title, content, bizType, bizId); }
+        catch (Exception e) { log.warn("通知投递失败 type={} bizId={}: {}", type, bizId, e.getMessage()); }
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public RefundResultVO refund(RefundDTO dto) {
         PayPayment payment = payServiceBiz.getPaymentByPaymentNo(dto.getPaySn());
@@ -83,6 +93,8 @@ public class PayRefundApiImpl implements PayRefundApi {
             refundMapper.update(refund);
             // S21: 退款成功释放订单锁定库存（单一释放点；releaseStock CAS，幂等日志去重依赖 S12）
             releaseStockForOrder(payment.getOrderId());
+            // 通知买家退款到账（降级）
+            notifySafely(payment.getUserId(), 4, "退款到账", "您的退款已原路退回。", "refund_arrived", payment.getOrderId());
         }
 
         return RefundResultVO.builder()

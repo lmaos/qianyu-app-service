@@ -106,6 +106,7 @@ public class DbSpuQueryImpl implements SpuQueryInterface {
                 .price(price)
                 .originalPrice(originalPrice)
                 .shopName(shopName)
+                .categoryId(spu.getCategoryId())
                 .build();
     }
 

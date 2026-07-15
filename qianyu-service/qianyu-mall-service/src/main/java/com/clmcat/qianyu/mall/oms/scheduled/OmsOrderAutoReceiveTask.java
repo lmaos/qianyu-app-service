@@ -7,6 +7,7 @@ import com.clmcat.qianyu.mall.oms.rpc.OmsOrderApiImpl;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,16 @@ public class OmsOrderAutoReceiveTask {
     @Resource
     private OmsConfig omsConfig;
 
+    /** 系统通知投递（降级，不阻断主流程——决策 D-05）。 */
+    @DubboReference
+    private com.clmcat.qianyu.mall.api.msg.MsgApi msgApi;
+
+    private void notifySafely(Long userId, Integer type, String title, String content, String bizType, Long bizId) {
+        if (userId == null || userId <= 0) return;
+        try { msgApi.send(userId, type, title, content, bizType, bizId); }
+        catch (Exception e) { log.warn("通知投递失败 type={} bizId={}: {}", type, bizId, e.getMessage()); }
+    }
+
     @Scheduled(fixedRate = 60_000)
     public void autoReceive() {
         long timeoutMs = omsConfig.getAutoReceive().getDays() * 86400_000L;
@@ -48,6 +59,7 @@ public class OmsOrderAutoReceiveTask {
                 // CAS 30→40（markReceived WHERE status+version），防与手动确认并发
                 if (orderServiceBiz.markReceived(order.getId())) {
                     received++;
+                    notifySafely(order.getUserId(), 2, "订单已自动确认收货", "超时未操作，系统已自动确认收货。", "auto_received", order.getId());
                 }
             } catch (Exception e) {
                 log.error("自动确认收货失败 orderId={} error={}", order.getId(), e.getMessage());

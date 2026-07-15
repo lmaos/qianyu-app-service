@@ -36,8 +36,18 @@ public class PayViewServiceBizImpl implements PayViewServiceBiz {
     @DubboReference
     private InvStockApi invStockApi;
 
+    /** 系统通知投递（降级，不阻断主流程——决策 D-05）。 */
+    @DubboReference
+    private com.clmcat.qianyu.mall.api.msg.MsgApi msgApi;
+
     @Resource
     private com.clmcat.qianyu.mall.pay.config.PayConfig payConfig;
+
+    private void notifySafely(Long userId, Integer type, String title, String content, String bizType, Long bizId) {
+        if (userId == null || userId <= 0) return;
+        try { msgApi.send(userId, type, title, content, bizType, bizId); }
+        catch (Exception e) { log.warn("通知投递失败 type={} bizId={}: {}", type, bizId, e.getMessage()); }
+    }
 
     @Transactional(rollbackFor = Exception.class)
     public PayApplyVO payApply(Long userId, PayApplyDTO dto) {
@@ -127,6 +137,11 @@ public class PayViewServiceBizImpl implements PayViewServiceBiz {
         } catch (Exception e) {
             log.warn("confirmStock 失败 orderId={} error={}", orderId, e.getMessage());
         }
+        // 通知买家支付成功（降级，不阻断）
+        try {
+            OmsOrderDto o = omsOrderApi.findById(orderId);
+            if (o != null) notifySafely(o.getUserId(), 3, "支付成功", "您的订单已支付成功，等待商家发货。", "pay_success", orderId);
+        } catch (Exception ignore) {}
     }
 
     public PayResultVO payResult(Long userId, PayResultQueryDTO dto) {

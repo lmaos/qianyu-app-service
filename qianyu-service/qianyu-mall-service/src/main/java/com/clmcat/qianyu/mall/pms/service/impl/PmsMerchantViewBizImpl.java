@@ -192,8 +192,8 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
         // 计算 minPrice
         BigDecimal minPrice = null;
         for (SpuCreateDto.SkuCreateItem skuItem : dto.getSkuList()) {
-            if (skuItem.getPrice() != null) {
-                BigDecimal p = new BigDecimal(skuItem.getPrice());
+            BigDecimal p = toBigDecimal(skuItem.getPrice());
+            if (p != null) {
                 if (minPrice == null || p.compareTo(minPrice) < 0) {
                     minPrice = p;
                 }
@@ -251,8 +251,8 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
                 sku.setAttributes(pmsSupport.specsToAttributes(skuItem.getSpecs(), dto.getCategoryId()));
             }
             sku.setSkuImage(skuItem.getImage());
-            sku.setPrice(skuItem.getPrice() != null ? new BigDecimal(skuItem.getPrice()) : null);
-            sku.setOriginalPrice(skuItem.getOriginalPrice() != null ? new BigDecimal(skuItem.getOriginalPrice()) : null);
+            sku.setPrice(toBigDecimal(skuItem.getPrice()));
+            sku.setOriginalPrice(toBigDecimal(skuItem.getOriginalPrice()));
             sku.setCostPrice(null);
             sku.setStatus(0); // 上架
             sku.setIsDefault(isDefault ? 1 : 0);
@@ -409,6 +409,11 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
             update.setFreightTemplateId(dto.getFreightTemplateId());
         }
         update.setUpdateTime(now);
+        // 编辑在售/下架商品 → 回草稿(需重新审核才能再上架)
+        if (spu.getStatus() != null
+                && (spu.getStatus() == PmsSpu.STATUS_ON_SALE || spu.getStatus() == PmsSpu.STATUS_OFF_SHELF)) {
+            update.setStatus(PmsSpu.STATUS_DRAFT);
+        }
         spuServiceBiz.updateSpu(update);
 
         // 更新 SPU-分类关联（若 categoryId 变更）
@@ -436,9 +441,10 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
         Long merchantId = resolveMerchantId(userId);
         PmsStatus.PMS_SPU_NOT_OWNER.assertThrowResEx(
                 spu.getMerchantId() == null || !spu.getMerchantId().equals(merchantId));
-        // 审核闸：仅「审核通过(5)」可上架；草稿(0)/下架(2)须先「提交审核」走审核流
+        // 审核闸：「审核通过(5)」首次上架 或 「下架(2)」重新上架（不重审）；草稿(0)须先提交审核
         PmsStatus.PMS_SPU_NOT_AUDIT_PASSED.assertThrowResEx(
-                spu.getStatus() == null || spu.getStatus() != PmsSpu.STATUS_APPROVED);
+                spu.getStatus() == null
+                || (spu.getStatus() != PmsSpu.STATUS_APPROVED && spu.getStatus() != PmsSpu.STATUS_OFF_SHELF));
 
         long now = System.currentTimeMillis();
 
@@ -575,6 +581,12 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
 
         // 重新计算 minPrice
         pmsSupport.refreshMinPrice(dto.getSpuId());
+    }
+
+    /** 安全 BigDecimal 解析：null/空串/异常→null（防 spuCreate 的 originalPrice="" 崩溃）。 */
+    private static BigDecimal toBigDecimal(String s) {
+        if (s == null || s.isBlank()) return null;
+        try { return new BigDecimal(s.trim()); } catch (NumberFormatException e) { return null; }
     }
 
     private Long resolveMerchantId(long userId) {

@@ -37,6 +37,16 @@ public class OmsOrderTimeoutTask {
     @Resource
     private PayConfig payConfig;
 
+    /** 系统通知投递（降级，不阻断主流程——决策 D-05）。 */
+    @DubboReference
+    private com.clmcat.qianyu.mall.api.msg.MsgApi msgApi;
+
+    private void notifySafely(Long userId, Integer type, String title, String content, String bizType, Long bizId) {
+        if (userId == null || userId <= 0) return;
+        try { msgApi.send(userId, type, title, content, bizType, bizId); }
+        catch (Exception e) { log.warn("通知投递失败 type={} bizId={}: {}", type, bizId, e.getMessage()); }
+    }
+
     /**
      * 每 30 秒扫描一次，取消超时未支付的订单（status=10 → 50），释放库存。
      * 超时时间通过 application-mall.yml 的 qianyu.mall.pay.timeout.minutes 配置。
@@ -93,6 +103,7 @@ public class OmsOrderTimeoutTask {
                         log.warn("超时取消-释放库存失败, orderId={}, error={}", order.getId(), e.getMessage());
                     }
                 }
+                notifySafely(order.getUserId(), 2, "订单已取消", "超时未支付，订单已自动取消。", "order_timeout_cancelled", order.getId());
                 log.info("超时取消成功: orderId={}, orderNo={}", order.getId(), order.getOrderNo());
             } catch (Exception e) {
                 log.error("超时取消失败: orderId={}, error={}", order.getId(), e.getMessage());

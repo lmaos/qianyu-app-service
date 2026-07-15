@@ -28,6 +28,7 @@ import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import com.clmcat.qianyu.mall.oms.service.OmsOrderViewServiceBiz;
 
+@Slf4j
 @Service
 public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
 
@@ -67,6 +69,16 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
 
     @Resource
     private LogisticsViewServiceBiz logisticsViewServiceBiz;
+
+    /** 系统通知投递（降级，不阻断主流程——决策 D-05）。 */
+    @DubboReference
+    private com.clmcat.qianyu.mall.api.msg.MsgApi msgApi;
+
+    private void notifySafely(Long userId, Integer type, String title, String content, String bizType, Long bizId) {
+        if (userId == null || userId <= 0) return;
+        try { msgApi.send(userId, type, title, content, bizType, bizId); }
+        catch (Exception e) { log.warn("通知投递失败 type={} bizId={}: {}", type, bizId, e.getMessage()); }
+    }
 
     @Transactional(rollbackFor = Exception.class)
     public OrderCreateVO createOrder(Long userId, OrderCreateDTO dto) {
@@ -510,6 +522,7 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         order.setDeliveryTime(System.currentTimeMillis());
         order.setUpdateTime(System.currentTimeMillis());
         orderServiceBiz.updateOrder(order);
+        notifySafely(order.getUserId(), 2, "订单已发货", "商家已发货，请注意查收。", "order_shipped", order.getId());
 
         // 同步创建物流记录，发货后用户才能查物流轨迹
         // 注：userId 在 createLogistics 内部未使用，仅作为身份占位
