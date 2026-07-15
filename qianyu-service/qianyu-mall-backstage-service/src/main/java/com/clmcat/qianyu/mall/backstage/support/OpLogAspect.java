@@ -42,6 +42,15 @@ public class OpLogAspect {
     /** 审计日志雪花 ID（42 时间位 / 10 机器位 / 11 序列位，项目统一基准）。 */
     private static final CustomSnowflake OP_LOG_ID_SNOWFLAKE = SnowflakeSupport.createSnowflake(42, 10, 11);
 
+    /**
+     * 资金类 permCode 白名单（BG-02）：由 mall-service 的 {@code MerchantWithdrawalApiImpl} 在
+     * {@code @Transactional} 内写规范 op_log（同事务强一致，审计失败回滚资金）；切面跳过这些码避免双写。
+     * 注：资质审核类 {@code mch:audit} 由另一 impl（{@code MerchantApiImpl.auditMerchant}）负责，本轮未改造，
+     * 暂不加入跳过名单（否则审核操作会丢失切面审计）——待 MerchantApiImpl 同模式改造后再加。
+     */
+    private static final java.util.Set<String> FUND_PERM_CODES_SKIPPED =
+            java.util.Set.of("mch:withdrawal:approve", "mch:withdrawal:reject", "mch:withdrawal:transfer");
+
     private final AdminOpLogMapper adminOpLogMapper;
 
     public OpLogAspect(AdminOpLogMapper adminOpLogMapper) {
@@ -80,6 +89,11 @@ public class OpLogAspect {
         }
         String permCode = (anno != null && anno.value().length > 0) ? anno.value()[0] : null;
         String targetEntity = method.getDeclaringClass().getSimpleName();
+
+        // BG-02：资金类由 mall-service impl 同事务写规范 op_log，切面跳过避免双写（异常照常从 proceed 抛出）。
+        if (permCode != null && FUND_PERM_CODES_SKIPPED.contains(permCode)) {
+            return pjp.proceed();
+        }
 
         long start = System.currentTimeMillis();
         Object result;

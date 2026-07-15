@@ -3,20 +3,27 @@ package com.clmcat.qianyu.mall.oms.service.impl;
 import com.clmcat.qianyu.mall.oms.rpc.OmsAfterSaleApiImpl;
 import com.clmcat.qianyu.mall.oms.rpc.OmsOrderApiImpl;
 import com.clmcat.qianyu.mall.api.oms.model.dto.OmsOrderDto;
+import com.clmcat.qianyu.mall.api.pay.model.dto.PayPaymentDto;
 import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleAuditDTO;
 import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleCreateDTO;
 import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleQueryDTO;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsAfterSale;
+import com.clmcat.qianyu.mall.oms.model.entity.OmsOrderItem;
 import com.clmcat.qianyu.mall.oms.model.entity.status.OmsStatus;
 import com.clmcat.qianyu.mall.oms.model.vo.AfterSaleCreateVO;
 import com.clmcat.qianyu.mall.oms.model.vo.AfterSaleDetailVO;
 import com.clmcat.qianyu.mall.oms.model.vo.AfterSaleSimpleVO;
 import com.clmcat.qianyu.mall.oms.support.OmsSupport;
+import com.clmcat.qianyu.mall.pay.model.dto.RefundDTO;
+import com.clmcat.qianyu.mall.pay.model.entity.PayPayment;
+import com.clmcat.qianyu.mall.pay.rpc.PayPaymentApiImpl;
+import com.clmcat.qianyu.mall.pay.rpc.PayRefundApiImpl;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import com.clmcat.qianyu.mall.oms.service.OmsAfterSaleViewServiceBiz;
@@ -29,6 +36,12 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
 
     @Resource
     private OmsOrderApiImpl orderServiceBiz;
+
+    /** S21：仅退款审核通过触发余额退款（同模块进程内直调，照资金原语范式）。字段名用 *ApiImpl 避开 @DubboReference 代理 bean 同名碰撞。 */
+    @Resource
+    private PayRefundApiImpl payRefundApiImpl;
+    @Resource
+    private PayPaymentApiImpl payPaymentApiImpl;
 
     public AfterSaleCreateVO applyAfterSale(Long userId, AfterSaleCreateDTO dto) {
         // Validate order exists and belongs to user
@@ -142,6 +155,41 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
         String reason = dto.getApproved() ? null : dto.getRejectReason();
         boolean ok = afterSaleServiceBiz.updateStatusCAS(dto.getAftersaleId(), OmsAfterSale.STATUS_PENDING_REVIEW, toStatus, reason);
         OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(!ok);
+
+        // S21：仅退款(type=1)审核通过 → 触发退款（同事务；balance 即时成功→releaseStockForOrder 释放库存路径）
+        if (dto.getApproved() && Integer.valueOf(1).equals(afterSale.getType())) {
+            refundForOnlyRefund(afterSale);
+        }
+    }
+
+    /**
+     * S21：仅退款触发余额退款。
+     * <p>幂等：outRefundNo 由 aftersaleId 派生，重复审核(被 CAS 拦)或已退过(findByRefundNo 命中)均跳过。
+     * <p>金额：取售后订单项总额（applyAfterSale 未设 afterSale.amount，按 orderItem 兜底）。
+     * <p>事务：沿用 auditAfterSale 的 @Transactional；refund 失败抛出 → 审核状态 CAS 一并回滚（资金一致性）。
+     * <p>注：已支付订单 confirmStock 后 locked=0，refund 内 releaseStock CAS 会跳过；sold→available 回库需新原语（后续增强）。
+     */
+    private void refundForOnlyRefund(OmsAfterSale afterSale) {
+        String outRefundNo = "ASR" + afterSale.getId();
+        if (payRefundApiImpl.findByRefundNo(outRefundNo) != null) {
+            return; // 已退过，幂等跳过
+        }
+        PayPaymentDto payment = payPaymentApiImpl.findLatestByOrderId(afterSale.getOrderId());
+        if (payment == null || payment.getPayStatus() == null
+                || payment.getPayStatus() != PayPayment.PAY_STATUS_SUCCESS) {
+            return; // 无成功支付单（仅退款订单必已付；异常态静默跳过，不阻断审核）
+        }
+        BigDecimal amount = BigDecimal.ZERO;
+        OmsOrderItem item = orderServiceBiz.findItemById(afterSale.getOrderItemId());
+        if (item != null && item.getTotalAmount() != null) {
+            amount = item.getTotalAmount();
+        }
+        RefundDTO rfd = new RefundDTO();
+        rfd.setPaySn(payment.getPaymentNo());
+        rfd.setOutRefundNo(outRefundNo);
+        rfd.setRefundAmount(amount.toPlainString());
+        rfd.setRefundReason("售后仅退款 #" + afterSale.getId());
+        payRefundApiImpl.refund(rfd); // 失败抛出 → 主事务回滚（审核态 + 退款单原子）
     }
 
     /**

@@ -1,18 +1,28 @@
 package com.clmcat.qianyu.mall.pay.config;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @ConfigurationProperties(prefix = "qianyu.mall.pay")
 @Data
-public class PayConfig {
+public class PayConfig implements InitializingBean {
 
     private Sandbox sandbox = new Sandbox();
     private Alipay alipay = new Alipay();
     private Wxpay wxpay = new Wxpay();
     private Timeout timeout = new Timeout();
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        log.info("sandbox:{}",sandbox);
+        log.info("alipay:{}",alipay);
+        log.info("wxpay:{}",wxpay);
+    }
 
     @Data
     public static class Sandbox {
@@ -35,7 +45,7 @@ public class PayConfig {
 
     @Data
     public static class Wxpay {
-        private String appId = "demo-wxpay";
+        private String appId = "demo-wxpay1";
         /** S13: 微信支付商户号 */
         private String merchantId = "";
         /** S13: 商户 API 证书序列号 */

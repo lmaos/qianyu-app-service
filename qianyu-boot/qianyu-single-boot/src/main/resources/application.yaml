@@ -8,6 +8,7 @@ spring:
     group:
       # dev 环境不适用nacos, 直接引入各模块的配置文件，方便本地开发调试。其他环境使用nacos配置中心统一管理配置。
       dev: jdbc,redis,sms,im,storage,login,mall
+      local: mall
   cloud:
     nacos:
       config:
@@ -26,6 +27,7 @@ spring:
     - optional:nacos:application-im.yaml
     - optional:nacos:application-storage.yaml
     - optional:nacos:application-login.yaml
+    - optional:nacos:application-mall.yaml
   # 使用虚拟线程
   threads:
     virtual:

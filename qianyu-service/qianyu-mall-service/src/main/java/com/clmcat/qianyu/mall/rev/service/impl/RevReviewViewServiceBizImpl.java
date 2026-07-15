@@ -196,7 +196,7 @@ public class RevReviewViewServiceBizImpl implements RevReviewViewServiceBiz {
      */
     public Page<ReviewItemVO> getMerchantReviewList(long userId, MerchantReviewQueryDTO dto) {
         // Resolve merchantId from userId via MCH module
-        MerchantDto merchantDto = merchantApi.getByUserId(userId);
+        MerchantDto merchantDto = merchantApi.requireActiveMerchant(userId);
         // S25: 非商家不再 fallback userId（原 fallback 致 replyReview 归属校验失效）
         RevStatus.REV_NOT_MERCHANT.assertThrowResEx(merchantDto == null);
         long merchantId = merchantDto.getId();
@@ -253,7 +253,7 @@ public class RevReviewViewServiceBizImpl implements RevReviewViewServiceBiz {
         RevStatus.REV_REVIEW_NOT_FOUND.assertThrowResEx(review == null);
 
         // Resolve merchantId from userId via MCH module
-        MerchantDto merchantDto = merchantApi.getByUserId(userId);
+        MerchantDto merchantDto = merchantApi.requireActiveMerchant(userId);
         // S25: 非商家不再 fallback userId（原 fallback 致 replyReview 归属校验失效）
         RevStatus.REV_NOT_MERCHANT.assertThrowResEx(merchantDto == null);
         long merchantId = merchantDto.getId();

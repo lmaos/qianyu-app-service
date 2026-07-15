@@ -110,7 +110,7 @@ public class LogisticsViewServiceBizImpl implements LogisticsViewServiceBiz {
 
         // S17: 商家归属校验（HTTP 调用 userId>0；shipOrder 内部 userId=0 已外层校验订单归属，跳过）
         if (userId > 0) {
-            MerchantDto m = merchantApi.getByUserId(userId);
+            MerchantDto m = merchantApi.requireActiveMerchant(userId);
             OmsOrderDto order = omsOrderApi.findById(dto.getOrderId());
             LogisticsStatus.LOG_LOGISTICS_NOT_BELONG_MERCHANT.assertThrowResEx(
                     m == null || order == null || !m.getId().equals(order.getMerchantId()));
@@ -154,7 +154,7 @@ public class LogisticsViewServiceBizImpl implements LogisticsViewServiceBiz {
 
         // S17: 商家归属校验（HTTP 调用 userId>0）
         if (userId > 0) {
-            MerchantDto m = merchantApi.getByUserId(userId);
+            MerchantDto m = merchantApi.requireActiveMerchant(userId);
             OmsOrderDto order = omsOrderApi.findById(shipping.getOrderId());
             LogisticsStatus.LOG_LOGISTICS_NOT_BELONG_MERCHANT.assertThrowResEx(
                     m == null || order == null || !m.getId().equals(order.getMerchantId()));

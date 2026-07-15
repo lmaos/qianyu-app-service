@@ -78,6 +78,11 @@ public class AdminAccountViewServiceBizImpl implements AdminAccountViewServiceBi
                 BackstageLoginVerifyFunction.SESSION_KEY_PREFIX + token,
                 buildSessionJson(account.getId(), account.getUsername(), permCodes),
                 BackstageLoginVerifyFunction.SESSION_TTL_HOURS, TimeUnit.HOURS);
+        // BG-03：写反向索引 admin:session:idx:{adminId} → SET(token)，供 disable 按 adminId 即时吊销全部 session。
+        // TTL 比 session 长 1h，确保滑续期内 idx 不先于 session 过期（verifyLogin 会同步续期 idx）。
+        String idxKey = BackstageLoginVerifyFunction.SESSION_KEY_PREFIX + "idx:" + account.getId();
+        redisTemplate.opsForSet().add(idxKey, token);
+        redisTemplate.expire(idxKey, BackstageLoginVerifyFunction.SESSION_TTL_HOURS + 1, TimeUnit.HOURS);
         writeLoginLog(account, loginIp, userAgent, 1, null);
         log.info("运营账号登录成功 adminId={} username={}", account.getId(), account.getUsername());
 
@@ -89,8 +94,16 @@ public class AdminAccountViewServiceBizImpl implements AdminAccountViewServiceBi
 
     @Override
     public void logout(String adminToken) {
-        if (adminToken != null && !adminToken.isEmpty()) {
-            redisTemplate.delete(BackstageLoginVerifyFunction.SESSION_KEY_PREFIX + adminToken);
+        if (adminToken == null || adminToken.isEmpty()) {
+            return;
+        }
+        String key = BackstageLoginVerifyFunction.SESSION_KEY_PREFIX + adminToken;
+        // BG-03：登出时从反向索引移除该 token，避免 idx SET 无界增长。
+        Long adminId = readAdminIdFromSession(key);
+        redisTemplate.delete(key);
+        if (adminId != null) {
+            redisTemplate.opsForSet().remove(
+                    BackstageLoginVerifyFunction.SESSION_KEY_PREFIX + "idx:" + adminId, adminToken);
         }
     }
 
@@ -132,6 +145,19 @@ public class AdminAccountViewServiceBizImpl implements AdminAccountViewServiceBi
             return MAPPER.writeValueAsString(m);
         } catch (Exception e) {
             throw new RuntimeException("build admin session json fail", e);
+        }
+    }
+
+    /** BG-03：从 session JSON 解析 adminId（logout 清反向索引用；缺失/异常返回 null）。 */
+    @SuppressWarnings("unchecked")
+    private Long readAdminIdFromSession(String key) {
+        try {
+            String json = redisTemplate.opsForValue().get(key);
+            if (json == null) return null;
+            Object id = MAPPER.readValue(json, Map.class).get("adminId");
+            return id instanceof Number ? ((Number) id).longValue() : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 

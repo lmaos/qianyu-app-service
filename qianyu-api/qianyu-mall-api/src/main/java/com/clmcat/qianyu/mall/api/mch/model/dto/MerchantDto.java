@@ -20,6 +20,10 @@ public class MerchantDto implements Serializable {
     private String bankName;
     private String bankAccount;
     private String bankHolder;
+    private String bankBranch;
+    private String legalPersonName;
+    private String legalPersonIdCard;
+    private String contactEmail;
     private Integer settlementCycle;
     private Integer auditStatus;
     private String auditRemark;

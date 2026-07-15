@@ -16,10 +16,12 @@ import com.clmcat.qianyu.mall.backstage.model.entity.AdminRole;
 import com.clmcat.qianyu.mall.backstage.model.vo.AdminAccountVO;
 import com.clmcat.qianyu.mall.backstage.model.vo.AdminRoleVO;
 import com.clmcat.qianyu.mall.backstage.service.AdminAccountAdminServiceBiz;
+import com.clmcat.qianyu.mall.backstage.support.BackstageLoginVerifyFunction;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +42,7 @@ import java.util.stream.Collectors;
  *   <li>雪花 ID workerId=52（与登录服务 42 错开避免冲突）；</li>
  *   <li>QueryWrapper 占位符参数化（P0-0 安全，禁拼接）；</li>
  *   <li>assignRoles 先 deleteByQuery(account_id) 清旧关联，再批量 insertSelective（幂等全量覆盖）；</li>
- *   <li>disable 仅 status=0，session 自然过期，不主动删 Redis（简化）。</li>
+ *   <li>disable 置 status=0 并即时吊销该账号全部活跃 session（BG-03：反向索引 admin:session:idx:{adminId}）。</li>
  * </ul>
  */
 @Slf4j
@@ -55,6 +58,8 @@ public class AdminAccountAdminServiceBizImpl implements AdminAccountAdminService
     @Resource private AdminAccountMapper accountMapper;
     @Resource private AdminAccountRoleMapper accountRoleMapper;
     @Resource private AdminRoleMapper roleMapper;
+    /** BG-03：disable 联动吊销 session 用（admin:session:idx:{adminId}）。 */
+    @Resource(name = "stringRedisTemplate") private StringRedisTemplate redisTemplate;
 
     @Override
     public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<AdminAccountVO> page(AdminAccountPageQueryDTO dto) {
@@ -159,7 +164,28 @@ public class AdminAccountAdminServiceBizImpl implements AdminAccountAdminService
         exists.setStatus(0);
         exists.setUpdateTime(System.currentTimeMillis());
         accountMapper.update(exists);
-        log.info("运营账号禁用 id={}（session 自然过期，不主动删 Redis）", accountId);
+        // BG-03：即时吊销该账号全部活跃 session（不等 2h TTL）。
+        revokeSessions(accountId);
+        log.info("运营账号禁用 id={}（已联动吊销活跃 session）", accountId);
+    }
+
+    /**
+     * BG-03：按 adminId 吊销其全部活跃 session。
+     * <p>反向索引 {@code admin:session:idx:{adminId}} → SET(token)（login 写入 / verifyLogin 续期）。
+     * 逐个 {@code del admin:session:{token}} 后清索引本身；删除不存在的 key 返回 false，计 count 仅统计真实删除数。
+     */
+    private void revokeSessions(Long accountId) {
+        String idxKey = BackstageLoginVerifyFunction.SESSION_KEY_PREFIX + "idx:" + accountId;
+        Set<String> tokens = redisTemplate.opsForSet().members(idxKey);
+        int revoked = 0;
+        if (tokens != null) {
+            for (String t : tokens) {
+                Boolean deleted = redisTemplate.delete(BackstageLoginVerifyFunction.SESSION_KEY_PREFIX + t);
+                if (Boolean.TRUE.equals(deleted)) revoked++;
+            }
+        }
+        redisTemplate.delete(idxKey);
+        log.info("禁用账号 id={} 联动吊销 {} 个活跃 session", accountId, revoked);
     }
 
     @Override

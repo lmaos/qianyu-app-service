@@ -116,3 +116,70 @@ CREATE TABLE t_admin_op_log (
     KEY idx_ts (ts),
     KEY idx_perm_code (perm_code)
 ) COMMENT='运营操作日志';
+
+-- ============================================================
+-- 种子数据（BG-05a，幂等，可重复执行）
+--   - super_admin（admin/admin123）：拥有全部 21 个 permCode，供 BG-06 全链路冒烟登录。
+--   - viewer（auditor/admin123）：仅 7 个 *:view 权限，缺 mch:withdrawal:approve 等，供 BG-06#11 / BG-07 BS-16 无权限 403 用例。
+--   - 密码 BCrypt cost=12（与 AdminAccountViewServiceBizImpl.PASSWORD_ENCODER 一致），明文 admin123。
+--     哈希由 spring-security-crypto BCryptPasswordEncoder(12).encode("admin123") 生成（salt 内嵌，可重复验证 matches=true）。
+--   - 幂等：实体表 ON DUPLICATE KEY UPDATE id=id（命中 uk_username/uk_role_code/uk_perm_code 或主键）；
+--     关联表（复合主键）用 INSERT IGNORE。
+--   - 仅首次执行需真正写入；已存在的行保持不变。
+-- ============================================================
+
+-- (a) 权限点（21 个，permCode 字典对齐 @RequiresPermission 实际取值）
+INSERT INTO t_admin_permission (id, perm_code, perm_name, type, parent_id, path, method, create_time, update_time, deleted) VALUES
+  (101, 'admin:account:manage',     '账号管理',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (102, 'admin:role:manage',        '角色管理',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (103, 'admin:permission:manage',  '权限管理',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (104, 'admin:oplog:view',         '操作日志查看', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (105, 'mch:audit',                '商户审核',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (106, 'mch:merchant:view',        '商户查看',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (107, 'mch:merchant:freeze',      '商户冻结/解冻',3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (108, 'mch:merchant:disable',     '商户禁用',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (109, 'mch:withdrawal:view',      '提现查看',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (110, 'mch:withdrawal:approve',   '提现审批通过', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (111, 'mch:withdrawal:reject',    '提现拒绝',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (112, 'mch:withdrawal:transfer',  '提现打款标记', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (113, 'pms:spu:view',             '商品查看',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (114, 'pms:spu:listoff',          '商品上下架',   3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (115, 'pms:spu:audit',            '商品审核',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (116, 'oms:order:view',           '订单查看',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (117, 'oms:order:close',          '订单关闭',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (118, 'oms:aftersale:view',       '售后查看',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (119, 'oms:aftersale:arbitrate',  '售后仲裁',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (120, 'rev:review:view',          '评价查看',     3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (121, 'rev:review:batchUpdate',   '评价批量处理', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0)
+ON DUPLICATE KEY UPDATE id = id;
+
+-- (b) 角色（super_admin 全权限 / viewer 只读）
+INSERT INTO t_admin_role (id, role_code, role_name, status, remark, create_time, update_time, deleted) VALUES
+  (1, 'super_admin', '超级管理员', 1, '全部权限（BG-05a 种子）', 1719907200000, 1719907200000, 0),
+  (2, 'viewer',      '只读运营',   1, '仅 *:view 权限（BG-06#11/BG-07 BS-16 无权限用例）', 1719907200000, 1719907200000, 0)
+ON DUPLICATE KEY UPDATE id = id;
+
+-- (c) 角色-权限关联
+-- super_admin(1) → 全部 21 个权限
+INSERT IGNORE INTO t_admin_role_permission (role_id, permission_id, create_time) VALUES
+  (1, 101, 1719907200000), (1, 102, 1719907200000), (1, 103, 1719907200000), (1, 104, 1719907200000),
+  (1, 105, 1719907200000), (1, 106, 1719907200000), (1, 107, 1719907200000), (1, 108, 1719907200000),
+  (1, 109, 1719907200000), (1, 110, 1719907200000), (1, 111, 1719907200000), (1, 112, 1719907200000),
+  (1, 113, 1719907200000), (1, 114, 1719907200000), (1, 115, 1719907200000), (1, 116, 1719907200000),
+  (1, 117, 1719907200000), (1, 118, 1719907200000), (1, 119, 1719907200000), (1, 120, 1719907200000),
+  (1, 121, 1719907200000);
+-- viewer(2) → 仅 7 个 *:view 权限（无 approve/reject/transfer/audit/manage）
+INSERT IGNORE INTO t_admin_role_permission (role_id, permission_id, create_time) VALUES
+  (2, 104, 1719907200000), (2, 106, 1719907200000), (2, 109, 1719907200000),
+  (2, 113, 1719907200000), (2, 116, 1719907200000), (2, 118, 1719907200000), (2, 120, 1719907200000);
+
+-- (d) 运营账号（密码 admin123，BCrypt cost=12；pwd_salt 留空串，BCrypt 自带盐）
+INSERT INTO t_admin_account (id, username, pwd_hash, pwd_salt, real_name, status, fail_count, create_time, update_time, deleted) VALUES
+  (1, 'admin',   '$2a$12$6ag3qfSu1egjD2cr03H4tOiOpVBTk2wK75fGPP6aJWYQtFIbugks6', '', '超级管理员', 1, 0, 1719907200000, 1719907200000, 0),
+  (2, 'auditor', '$2a$12$6ag3qfSu1egjD2cr03H4tOiOpVBTk2wK75fGPP6aJWYQtFIbugks6', '', '只读运营',   1, 0, 1719907200000, 1719907200000, 0)
+ON DUPLICATE KEY UPDATE id = id;
+
+-- (e) 账号-角色关联
+INSERT IGNORE INTO t_admin_account_role (account_id, role_id, create_time) VALUES
+  (1, 1, 1719907200000),  -- admin → super_admin
+  (2, 2, 1719907200000);  -- auditor → viewer

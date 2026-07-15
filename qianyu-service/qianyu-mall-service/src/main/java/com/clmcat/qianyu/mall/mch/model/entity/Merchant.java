@@ -47,6 +47,18 @@ public class Merchant {
     @Column(value = "bank_holder", comment = "开户人姓名（加密存储）")
     private String bankHolder;
 
+    @Column(value = "bank_branch", comment = "开户支行")
+    private String bankBranch;
+
+    @Column(value = "legal_person_name", comment = "法人/经营者姓名")
+    private String legalPersonName;
+
+    @Column(value = "legal_person_id_card", comment = "法人/经营者身份证号")
+    private String legalPersonIdCard;
+
+    @Column(value = "contact_email", comment = "联系人邮箱")
+    private String contactEmail;
+
     @Column(value = "settlement_cycle", comment = "结算周期: 1=T+1 2=T+7 3=T+15")
     private Integer settlementCycle;
 

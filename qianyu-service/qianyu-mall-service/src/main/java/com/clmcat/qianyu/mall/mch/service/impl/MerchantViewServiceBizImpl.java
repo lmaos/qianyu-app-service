@@ -159,64 +159,69 @@ public class MerchantViewServiceBizImpl implements MerchantViewServiceBiz {
      * 商家入驻申请
      */
     public SettleResultVO settleApply(long userId, MerchantSettleDTO dto) {
-        MchStatus.MCH_MERCHANT_NOT_FOUND.assertThrowResEx(dto == null);
-        // Validate required fields
-        if (dto.getShopName() == null || dto.getShopName().isEmpty()) dto.setShopName("Shop-" + userId);
-        if (dto.getContactName() == null || dto.getContactName().isEmpty()) dto.setContactName("Contact");
-        if (dto.getContactPhone() == null || dto.getContactPhone().isEmpty()) dto.setContactPhone("0000000000");
+        // 1. 必填校验（决策 D-01：统一要求执照——店名/联系人/电话/执照号/执照图）
+        MchStatus.MCH_SETTLE_AUDIT_FAIL.assertThrowResEx(dto == null);
+        MchStatus.MCH_SETTLE_AUDIT_FAIL.assertThrowResEx(isBlank(dto.getShopName())
+                || isBlank(dto.getContactName()) || isBlank(dto.getContactPhone())
+                || isBlank(dto.getBusinessLicenseNo()) || isBlank(dto.getBusinessLicense()));
 
-        // 1. 校验用户是否已是商家
+        // 2. 用户商户态判定
         Merchant existing = merchantServiceBiz.selectByUserId(userId);
         if (existing != null) {
             int auditStatus = existing.getAuditStatus() != null ? existing.getAuditStatus() : -1;
             int status = existing.getStatus() != null ? existing.getStatus() : 0;
-            MchStatus.MCH_ALREADY_MERCHANT.assertThrowResEx(auditStatus == 1 && status == 1);
-            MchStatus.MCH_SETTLE_ALREADY_APPLIED.assertThrowResEx(true);
+            MchStatus.MCH_ALREADY_MERCHANT.assertThrowResEx(auditStatus == 1 && status == 1); // 已生效商户不可重复
+            MchStatus.MCH_SETTLE_ALREADY_APPLIED.assertThrowResEx(auditStatus == 0);           // 待审不可重提
+            // auditStatus==2（被拒）→ 走下方覆盖更新分支，允许改后重提（决策 D-10）
         }
 
-        // 2. 校验营业执照唯一
-        // TODO: 替换真实接口 - 校验营业执照编号唯一性
+        // 3. 营业执照号唯一（排除本人已有同号，支持被拒重提用同执照）
+        Merchant licenseOwner = merchantServiceBiz.selectByLicenseNo(dto.getBusinessLicenseNo());
+        boolean licenseUsedByOther = licenseOwner != null
+                && (existing == null || !licenseOwner.getId().equals(existing.getId()));
+        MchStatus.MCH_BUSINESS_LICENSE_DUPLICATE.assertThrowResEx(licenseUsedByOther);
 
         long now = System.currentTimeMillis();
+        long merchantId;
+        if (existing != null) {
+            // 4a. 被拒重提：覆盖更新既有 merchant，重置审核态
+            applySettleDto(existing, dto);
+            existing.setAuditStatus(0);
+            existing.setStatus(0);
+            existing.setAuditRemark(null);
+            existing.setUpdateTime(now);
+            merchantServiceBiz.updateMerchant(existing);
+            merchantId = existing.getId();
+        } else {
+            // 4b. 首次申请：新建 mch_merchant
+            Merchant merchant = new Merchant();
+            merchantId = MerchantConvert.MERCHANT_ID_SNOWFLAKE.nextId();
+            merchant.setId(merchantId);
+            merchant.setUserId(userId);
+            applySettleDto(merchant, dto);
+            merchant.setSettlementCycle(1); // 默认 T+1
+            merchant.setAuditStatus(0);     // 待审核
+            merchant.setStatus(0);          // 禁用，审核通过后启用
+            merchant.setCreateTime(now);
+            merchant.setUpdateTime(now);
+            merchant.setDeleted(0);
+            merchantServiceBiz.insertSelective(merchant);
 
-        // 3. 插入 mch_merchant
-        Merchant merchant = new Merchant();
-        long merchantId = MerchantConvert.MERCHANT_ID_SNOWFLAKE.nextId();
-        merchant.setId(merchantId);
-        merchant.setUserId(userId);
-        merchant.setName(dto.getShopName());
-        merchant.setType(2); // 企业
-        merchant.setContactName(dto.getContactName());
-        merchant.setContactPhone(dto.getContactPhone());
-        merchant.setLicenseNo(dto.getBusinessLicenseNo());
-        merchant.setLicenseImage(dto.getBusinessLicense());
-        merchant.setDescription(dto.getDescription());
-        merchant.setBankName(dto.getBankName());
-        merchant.setBankAccount(dto.getBankAccountNo());
-        merchant.setBankHolder(dto.getBankAccountName());
-        merchant.setSettlementCycle(1); // 默认 T+1
-        merchant.setAuditStatus(0); // 待审核
-        merchant.setStatus(0); // 禁用，审核通过后启用
-        merchant.setCreateTime(now);
-        merchant.setUpdateTime(now);
-        merchant.setDeleted(0);
-        merchantServiceBiz.insertSelective(merchant);
-
-        // 4. 插入 mch_store
-        MerchantStore store = new MerchantStore();
-        long storeId = MerchantConvert.STORE_ID_SNOWFLAKE.nextId();
-        store.setId(storeId);
-        store.setMerchantId(merchantId);
-        store.setName(dto.getShopName());
-        store.setContactPhone(dto.getContactPhone());
-        store.setLogo(dto.getShopLogo());
-        store.setCoverImage(dto.getShopBanner());
-        store.setDescription(dto.getDescription());
-        store.setStatus(0); // 关闭，审核通过后开启
-        store.setCreateTime(now);
-        store.setUpdateTime(now);
-        store.setDeleted(0);
-        storeServiceBiz.insertSelective(store);
+            // 5. 新建 mch_store（仅首次申请）
+            MerchantStore store = new MerchantStore();
+            store.setId(MerchantConvert.STORE_ID_SNOWFLAKE.nextId());
+            store.setMerchantId(merchantId);
+            store.setName(dto.getShopName());
+            store.setContactPhone(dto.getContactPhone());
+            store.setLogo(dto.getShopLogo());
+            store.setCoverImage(dto.getShopBanner());
+            store.setDescription(dto.getDescription());
+            store.setStatus(0); // 关闭，审核通过后开启
+            store.setCreateTime(now);
+            store.setUpdateTime(now);
+            store.setDeleted(0);
+            storeServiceBiz.insertSelective(store);
+        }
 
         String applySn = "MCH" + new java.text.SimpleDateFormat("yyyyMMddHHmmss").format(new java.util.Date(now)) + String.format("%03d", (int) (merchantId % 1000));
 
@@ -228,6 +233,28 @@ public class MerchantViewServiceBizImpl implements MerchantViewServiceBiz {
                 .rejectReason(null)
                 .auditTime(null)
                 .build();
+    }
+
+    /** DTO → Merchant 字段映射（含补全的 法人姓名/身份证/邮箱/支行 + 主体类型 type）。 */
+    private void applySettleDto(Merchant m, MerchantSettleDTO dto) {
+        m.setName(dto.getShopName());
+        m.setType(dto.getType() != null ? dto.getType() : 2); // 默认企业
+        m.setContactName(dto.getContactName());
+        m.setContactPhone(dto.getContactPhone());
+        m.setContactEmail(dto.getContactEmail());
+        m.setLicenseNo(dto.getBusinessLicenseNo());
+        m.setLicenseImage(dto.getBusinessLicense());
+        m.setDescription(dto.getDescription());
+        m.setLegalPersonName(dto.getLegalPersonName());
+        m.setLegalPersonIdCard(dto.getLegalPersonIdCard());
+        m.setBankName(dto.getBankName());
+        m.setBankAccount(dto.getBankAccountNo());
+        m.setBankHolder(dto.getBankAccountName());
+        m.setBankBranch(dto.getBankBranch());
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isEmpty();
     }
 
     /**
@@ -414,35 +441,5 @@ public class MerchantViewServiceBizImpl implements MerchantViewServiceBiz {
             storeServiceBiz.insertSelective(store);
         }
         merchantServiceBiz.updateMerchant(merchant);
-    }
-
-    /**
-     * 审核商家入驻
-     */
-    public void auditMerchant(long userId, MerchantAuditDTO dto) {
-        MchStatus.MCH_MERCHANT_NOT_FOUND.assertThrowResEx(MerchantConvert.isNullOrNonPositive(dto.getMerchantId()));
-        Merchant merchant = merchantServiceBiz.selectOneById(dto.getMerchantId());
-        MchStatus.MCH_MERCHANT_NOT_FOUND.assertThrowResEx(merchant == null);
-
-        long now = System.currentTimeMillis();
-
-        if (Boolean.TRUE.equals(dto.getApproved())) {
-            merchant.setAuditStatus(1);
-            merchant.setStatus(1); // 启用
-            merchant.setUpdateTime(now);
-            merchantServiceBiz.updateMerchant(merchant);
-
-            MerchantStore store = storeServiceBiz.selectStoreByMerchantId(merchant.getId());
-            if (store != null) {
-                store.setStatus(1);
-                store.setUpdateTime(now);
-                storeServiceBiz.updateStore(store);
-            }
-        } else {
-            merchant.setAuditStatus(2);
-            merchant.setAuditRemark(dto.getRejectReason());
-            merchant.setUpdateTime(now);
-            merchantServiceBiz.updateMerchant(merchant);
-        }
     }
 }

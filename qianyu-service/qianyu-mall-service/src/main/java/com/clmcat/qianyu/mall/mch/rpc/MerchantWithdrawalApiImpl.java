@@ -6,23 +6,34 @@ import com.clmcat.qianyu.mall.api.mch.MerchantWithdrawalApi;
 import com.clmcat.qianyu.mall.api.mch.model.dto.MerchantDto;
 import com.clmcat.qianyu.mall.api.mch.model.dto.WithdrawalPageQueryDTO;
 import com.clmcat.qianyu.mall.api.mch.model.dto.WithdrawalPageResultDto;
+import com.clmcat.qianyu.mall.mch.mapper.FundOpLogMapper;
 import com.clmcat.qianyu.mall.mch.mapper.MerchantWithdrawalMapper;
+import com.clmcat.qianyu.mall.mch.model.entity.FundOpLog;
 import com.clmcat.qianyu.mall.mch.model.entity.MerchantAccount;
 import com.clmcat.qianyu.mall.mch.model.entity.MerchantWithdrawal;
 import com.clmcat.qianyu.mall.mch.model.entity.status.MchStatus;
+import com.clmcat.basics.commons.snowflake.CustomSnowflake;
+import com.clmcat.qianyu.core.snowflake.SnowflakeSupport;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 提现审批闭环 RPC 实现（运营端）。
@@ -47,6 +58,20 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
     /** 跨子域（merchant 域）查 merchantName，走 Dubbo。 */
     @DubboReference
     private MerchantApi merchantApi;
+
+    // ==================== BG-02：资金类 op_log（同 @Transactional 强一致） ====================
+
+    /** 资金 op_log 雪花 ID（workerId=53，与登录服务 42 等错开）。 */
+    private static final CustomSnowflake FUND_OPLOG_ID_SNOWFLAKE = SnowflakeSupport.createSnowflake(42, 10, 11);
+    private static final ObjectMapper OPLOG_MAPPER = new ObjectMapper();
+
+    /** 反向读 admin 上下文（与 BackstageLoginVerifyFunction.ATTR_* 同值；mall-service 引不到 backstage 模块）。 */
+    private static final String ATTR_ADMIN_ID = "admin:id";
+    private static final String ATTR_USERNAME = "admin:username";
+
+    /** 资金 op_log Mapper（映射 t_admin_op_log，同 @Transactional 写入，审计失败回滚资金）。 */
+    @Resource
+    private FundOpLogMapper fundOpLogMapper;
 
     @Override
     public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<WithdrawalPageResultDto> pageByPlatform(WithdrawalPageQueryDTO query) {
@@ -89,6 +114,7 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void approve(Long withdrawalId) {
+        long start = System.currentTimeMillis();
         MchStatus.MCH_WITHDRAWAL_NOT_FOUND.assertThrowResEx(withdrawalId == null || withdrawalId <= 0);
         MerchantWithdrawal withdrawal = withdrawalMapper.selectOneById(withdrawalId);
         MchStatus.MCH_WITHDRAWAL_NOT_FOUND.assertThrowResEx(withdrawal == null);
@@ -110,13 +136,22 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
         // 账户 CAS：settleForApprove（frozen→totalWithdraw + version+1）
         MerchantAccount account = accountApi.selectAccountByMerchantId(withdrawal.getMerchantId());
         MchStatus.MCH_WITHDRAWAL_CAS_FAIL.assertThrowResEx(account == null);
-        boolean ok = accountApi.settleForApprove(
-                withdrawal.getMerchantId(), withdrawal.getAmount(), account.getVersion());
+        BigDecimal amt = withdrawal.getAmount();
+        Map<String, Object> before = fundBefore(withdrawal, account); // BG-02：落账前快照
+        boolean ok = accountApi.settleForApprove(withdrawal.getMerchantId(), amt, account.getVersion());
         if (!ok) {
             log.warn("approve 账户 settleForApprove CAS 失败 withdrawalId={} merchantId={}（frozen/version 冲突）",
                     withdrawalId, withdrawal.getMerchantId());
             MchStatus.MCH_WITHDRAWAL_CAS_FAIL.assertThrowResEx(true);
         }
+        // BG-02：after 快照（status→1；frozen−amt / totalWithdraw+amt / version+1）+ 同事务 op_log
+        Map<String, Object> afterW = withdrawalView(withdrawal); afterW.put("status", 1);
+        Map<String, Object> afterA = accountView(account);
+        afterA.put("frozenAmount", nullSafe(account.getFrozenAmount()).subtract(amt));
+        afterA.put("totalWithdraw", nullSafe(account.getTotalWithdraw()).add(amt));
+        afterA.put("version", account.getVersion() == null ? null : account.getVersion() + 1);
+        writeFundOpLog("mch:withdrawal:approve", withdrawalId,
+                jsonOf(before), jsonOf(fundSnap(afterW, afterA)), start);
         log.info("approve 提现单审批通过 withdrawalId={} merchantId={} amount={}",
                 withdrawalId, withdrawal.getMerchantId(), withdrawal.getAmount());
     }
@@ -124,6 +159,7 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void reject(Long withdrawalId, String rejectReason) {
+        long start = System.currentTimeMillis();
         MchStatus.MCH_WITHDRAWAL_NOT_FOUND.assertThrowResEx(withdrawalId == null || withdrawalId <= 0);
         MerchantWithdrawal withdrawal = withdrawalMapper.selectOneById(withdrawalId);
         MchStatus.MCH_WITHDRAWAL_NOT_FOUND.assertThrowResEx(withdrawal == null);
@@ -132,18 +168,23 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
         boolean fromAllowed = fromStatus != null && (fromStatus == 0 || fromStatus == 1 || fromStatus == 2);
         MchStatus.MCH_WITHDRAWAL_STATUS_INVALID.assertThrowResEx(!fromAllowed);
 
-        // 资金回退：1→4 / 2→4 需 refundForReject；0→4 仅状态变更（尚未冻结资金——0 时资金已在 apply 阶段冻结，
+        BigDecimal amt = withdrawal.getAmount();
+        MerchantAccount account = null;        // 仅 1/2 需退款，0→4 不动账户
+        Map<String, Object> before;            // BG-02 落账前快照
+        // 资金回退：1→4 / 2→4 需 refundForReject；0→4 仅状态变更（0 时资金已在 apply 阶段冻结，
         // 按状态机契约 0→4 不动账户；如运营发现 0 单有问题应直接拒绝且不再流转资金）
         if (fromStatus == 1 || fromStatus == 2) {
-            MerchantAccount account = accountApi.selectAccountByMerchantId(withdrawal.getMerchantId());
+            account = accountApi.selectAccountByMerchantId(withdrawal.getMerchantId());
             MchStatus.MCH_WITHDRAWAL_CAS_FAIL.assertThrowResEx(account == null);
-            boolean ok = accountApi.refundForReject(
-                    withdrawal.getMerchantId(), withdrawal.getAmount(), account.getVersion());
+            before = fundBefore(withdrawal, account);
+            boolean ok = accountApi.refundForReject(withdrawal.getMerchantId(), amt, account.getVersion());
             if (!ok) {
                 log.warn("reject 账户 refundForReject CAS 失败 withdrawalId={} merchantId={}（frozen/version 冲突）",
                         withdrawalId, withdrawal.getMerchantId());
                 MchStatus.MCH_WITHDRAWAL_CAS_FAIL.assertThrowResEx(true);
             }
+        } else {
+            before = fundBefore(withdrawal, null); // 0→4 无账户变动
         }
 
         // 提现单 CAS：fromStatus → 4
@@ -158,6 +199,18 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
                     withdrawalId, fromStatus);
             MchStatus.MCH_WITHDRAWAL_CAS_FAIL.assertThrowResEx(true);
         }
+        // BG-02：after 快照（status→4 + rejectReason；1/2 退款 balance+frozen）+ 同事务 op_log
+        Map<String, Object> afterW = withdrawalView(withdrawal);
+        afterW.put("status", 4);
+        afterW.put("rejectReason", rejectReason);
+        Map<String, Object> afterA = null;
+        if (account != null) {
+            afterA = accountView(account);
+            afterA.put("balance", nullSafe(account.getBalance()).add(amt));
+            afterA.put("frozenAmount", nullSafe(account.getFrozenAmount()).subtract(amt));
+            afterA.put("version", account.getVersion() == null ? null : account.getVersion() + 1);
+        }
+        writeFundOpLog("mch:withdrawal:reject", withdrawalId, jsonOf(before), jsonOf(fundSnap(afterW, afterA)), start);
         log.info("reject 提现单拒绝 withdrawalId={} merchantId={} fromStatus={} reason={}",
                 withdrawalId, withdrawal.getMerchantId(), fromStatus, rejectReason);
     }
@@ -165,6 +218,7 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void markTransferred(Long withdrawalId, String transferNo, Boolean success) {
+        long start = System.currentTimeMillis();
         MchStatus.MCH_WITHDRAWAL_NOT_FOUND.assertThrowResEx(withdrawalId == null || withdrawalId <= 0);
         MchStatus.MCH_WITHDRAWAL_STATUS_INVALID.assertThrowResEx(
                 transferNo == null || transferNo.isEmpty() || success == null);
@@ -195,9 +249,118 @@ public class MerchantWithdrawalApiImpl implements MerchantWithdrawalApi {
             log.warn("markTransferred 提现单 CAS 失败 withdrawalId={}（已被并发改动）", withdrawalId);
             MchStatus.MCH_WITHDRAWAL_CAS_FAIL.assertThrowResEx(true);
         }
+        // BG-02：before/after 快照（仅 withdrawal，不动账户）+ 同事务 op_log
+        Map<String, Object> before = fundSnap(withdrawalView(withdrawal), null);
+        Map<String, Object> afterW = withdrawalView(withdrawal);
+        afterW.put("status", toStatus);
+        afterW.put("transferNo", transferNo);
+        if (Boolean.TRUE.equals(success)) {
+            afterW.put("transferTime", now);
+        }
+        writeFundOpLog("mch:withdrawal:transfer", withdrawalId,
+                jsonOf(before), jsonOf(fundSnap(afterW, null)), start);
         log.info("markTransferred 打款标记 withdrawalId={} transferNo={} success={}",
                 withdrawalId, transferNo, success);
     }
+
+    // ==================== BG-02：资金类 op_log（同 @Transactional 强一致） ====================
+
+    /**
+     * 资金 op_log 写入（两段 CAS 均成功后调用）。
+     * <p>与主流程同 {@code @Transactional}：{@code fundOpLogMapper.insert} 抛错会随主事务回滚已落账的资金 CAS，
+     * 满足合并门禁「审计失败→资金回滚」（决策 2：A 强一致）。
+     */
+    private void writeFundOpLog(String permCode, Long withdrawalId, String beforeJson, String afterJson, long startMs) {
+        AdminContext ctx = currentAdminContext();
+        long now = System.currentTimeMillis();
+        FundOpLog opLog = new FundOpLog();
+        opLog.setId(FUND_OPLOG_ID_SNOWFLAKE.nextId());
+        opLog.setAccountId(ctx.adminId() == null ? 0L : ctx.adminId());
+        opLog.setUsername(ctx.username() == null ? "" : ctx.username());
+        opLog.setPermCode(permCode);
+        opLog.setTargetEntity("MerchantWithdrawal");
+        opLog.setTargetId(withdrawalId == null ? null : String.valueOf(withdrawalId));
+        opLog.setBeforeJson(beforeJson);
+        opLog.setAfterJson(afterJson);
+        opLog.setIp(ctx.ip());
+        opLog.setUserAgent(ctx.userAgent());
+        opLog.setTs(now);
+        opLog.setResult(1); // 到达此处即两段 CAS 均成功
+        opLog.setCostMs((int) (now - startMs));
+        opLog.setCreateTime(now);
+        fundOpLogMapper.insert(opLog);
+    }
+
+    /**
+     * 反向读运营上下文（adminId/username/ip/userAgent）。
+     * <p>单体 in-JVM Dubbo 跑在 HTTP 请求线程，{@link RequestContextHolder} 可读到 backstage
+     * {@code BackstageLoginVerifyFunction} 注入的 {@code admin:id}/{@code admin:username}；
+     * 无 web 上下文（如真实网络 Dubbo）则降级为占位值（adminId=0/username=空），审计仍可落库。
+     */
+    private AdminContext currentAdminContext() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs == null) return new AdminContext(0L, "", null, null);
+            HttpServletRequest req = attrs.getRequest();
+            Object id = req.getAttribute(ATTR_ADMIN_ID);
+            Long adminId = id instanceof Number ? ((Number) id).longValue() : 0L;
+            Object name = req.getAttribute(ATTR_USERNAME);
+            return new AdminContext(adminId, name instanceof String ? (String) name : "",
+                    req.getRemoteAddr(), req.getHeader("User-Agent"));
+        } catch (Exception e) {
+            return new AdminContext(0L, "", null, null);
+        }
+    }
+
+    private String jsonOf(Object o) {
+        try {
+            return OPLOG_MAPPER.writeValueAsString(o);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static Map<String, Object> withdrawalView(MerchantWithdrawal w) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", w.getId());
+        m.put("withdrawalNo", w.getWithdrawalNo());
+        m.put("merchantId", w.getMerchantId());
+        m.put("amount", w.getAmount());
+        m.put("status", w.getStatus());
+        return m;
+    }
+
+    private static Map<String, Object> accountView(MerchantAccount a) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        if (a == null) return m;
+        m.put("balance", a.getBalance());
+        m.put("frozenAmount", a.getFrozenAmount());
+        m.put("totalWithdraw", a.getTotalWithdraw());
+        m.put("version", a.getVersion());
+        return m;
+    }
+
+    /** before 快照：withdrawal + account（account 为 null 时置 null，表示该路径不动账户）。 */
+    private static Map<String, Object> fundBefore(MerchantWithdrawal w, MerchantAccount a) {
+        Map<String, Object> snap = new LinkedHashMap<>();
+        snap.put("withdrawal", withdrawalView(w));
+        snap.put("account", a == null ? null : accountView(a));
+        return snap;
+    }
+
+    /** 组装快照外层 {withdrawal, account}。 */
+    private static Map<String, Object> fundSnap(Map<String, Object> wv, Map<String, Object> av) {
+        Map<String, Object> snap = new LinkedHashMap<>();
+        snap.put("withdrawal", wv);
+        snap.put("account", av);
+        return snap;
+    }
+
+    private static BigDecimal nullSafe(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
+    }
+
+    private record AdminContext(Long adminId, String username, String ip, String userAgent) {}
 
     // ==================== private ====================
 

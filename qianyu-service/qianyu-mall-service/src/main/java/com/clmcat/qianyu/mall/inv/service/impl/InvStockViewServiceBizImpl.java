@@ -141,7 +141,7 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
             stockServiceBiz.insertStock(stock);
         }
         // S16: 校验 SKU 归属当前商家（防越权改任意 SKU 库存）
-        MerchantDto m = merchantApi.getByUserId(userId);
+        MerchantDto m = merchantApi.requireActiveMerchant(userId);
         PmsSkuDto skuDto = pmsSkuApi.getById(dto.getSkuId());
         InvStatus.INV_SKU_NOT_BELONG_MERCHANT.assertThrowResEx(
                 m == null || skuDto == null || !m.getId().equals(skuDto.getMerchantId()));
@@ -187,7 +187,7 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
 
         QueryWrapper qw = QueryWrapper.create();
         // S16: 仅查本商家 SKU 的库存（inv_stock 无 merchant_id，先查本商家 sku_id 列表再 IN 过滤）
-        MerchantDto m = merchantApi.getByUserId(userId);
+        MerchantDto m = merchantApi.requireActiveMerchant(userId);
         InvStatus.INV_SKU_NOT_BELONG_MERCHANT.assertThrowResEx(m == null);
         List<PmsSkuDto> skus = pmsSkuApi.listByMerchantId(m.getId());
         if (skus == null || skus.isEmpty()) {

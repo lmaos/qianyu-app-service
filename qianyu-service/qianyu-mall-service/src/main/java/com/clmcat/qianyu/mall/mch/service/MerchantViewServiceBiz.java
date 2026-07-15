@@ -1,6 +1,5 @@
 package com.clmcat.qianyu.mall.mch.service;
 
-import com.clmcat.qianyu.mall.mch.model.dto.MerchantAuditDTO;
 import com.clmcat.qianyu.mall.mch.model.dto.MerchantSettleDTO;
 import com.clmcat.qianyu.mall.mch.model.dto.ShopInfoUpdateDTO;
 import com.clmcat.qianyu.mall.mch.model.dto.ShopProductQueryDTO;
@@ -31,7 +30,5 @@ public interface MerchantViewServiceBiz {
     ShopInfoVO getShopInfo(long userId);
 
     void updateShopInfo(long userId, ShopInfoUpdateDTO dto);
-
-    void auditMerchant(long userId, MerchantAuditDTO dto);
 
 }

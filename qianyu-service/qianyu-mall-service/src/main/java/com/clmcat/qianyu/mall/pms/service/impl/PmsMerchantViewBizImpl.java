@@ -176,15 +176,13 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
             PmsStatus.PMS_BRAND_NOT_FOUND.assertThrowResEx(brand == null);
         }
 
-        // Resolve merchantId via MCH module
-        MerchantDto merchantDto = merchantApi.getByUserId(userId);
-        Long merchantId = merchantDto != null ? merchantDto.getId() : userId;
+        // 商户身份门禁：必须已审核通过且生效（收紧"成为商户后才能上架"）；原 fallback→userId 已移除
+        MerchantDto merchantDto = merchantApi.requireActiveMerchant(userId);
+        Long merchantId = merchantDto.getId();
         Long storeId = 0L;
-        if (merchantDto != null) {
-            MerchantStoreDto storeDto = merchantStoreApi.getByMerchantId(merchantDto.getId());
-            if (storeDto != null) {
-                storeId = storeDto.getId();
-            }
+        MerchantStoreDto storeDto = merchantStoreApi.getByMerchantId(merchantDto.getId());
+        if (storeDto != null) {
+            storeId = storeDto.getId();
         }
 
         // 生成 SPU ID
@@ -580,9 +578,7 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
     }
 
     private Long resolveMerchantId(long userId) {
-        MerchantDto merchantDto = merchantApi.getByUserId(userId);
-        // S1: 非商家不再回退 userId（原 fallback 致任意 C 端用户可冒充 merchantId 操作商品）
-        PmsStatus.PMS_MERCHANT_NOT_FOUND.assertThrowResEx(merchantDto == null);
-        return merchantDto.getId();
+        // 商户身份门禁：必须已审核通过且生效（待审/冻结/禁用一律拒绝）——统一走 MerchantApi.requireActiveMerchant
+        return merchantApi.requireActiveMerchant(userId).getId();
     }
 }

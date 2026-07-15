@@ -77,10 +77,7 @@ public class OmsMerchantOrderController {
     }
 
     private Long resolveMerchantId(Long userId) {
-        MerchantDto merchantDto = merchantApi.getByUserId(userId);
-        // 越权防护：非商家不允许走 B 端订单接口，原来 fallback 用 userId 当 merchantId
-        // 会让任意已登录用户都能查到 merchant_id=userId 的订单（即便刚好没数据，也是脏查询）
-        MchStatus.MCH_NOT_MERCHANT.assertThrowResEx(merchantDto == null);
-        return merchantDto.getId();
+        // 商户身份门禁：必须已审核通过且生效（待审/冻结/禁用一律拒绝）——统一走 requireActiveMerchant
+        return merchantApi.requireActiveMerchant(userId).getId();
     }
 }

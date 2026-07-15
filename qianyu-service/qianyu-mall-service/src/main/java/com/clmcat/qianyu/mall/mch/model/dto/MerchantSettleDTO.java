@@ -7,6 +7,9 @@ import lombok.Data;
 @Schema(description = "商家入驻申请请求")
 public class MerchantSettleDTO {
 
+    @Schema(description = "主体类型：1=个体工商户 2=企业（默认企业）")
+    private Integer type;
+
     @Schema(description = "店铺名称")
     private String shopName;
 

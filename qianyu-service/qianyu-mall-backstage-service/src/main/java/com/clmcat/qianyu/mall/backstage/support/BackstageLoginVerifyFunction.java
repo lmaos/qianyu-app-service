@@ -78,6 +78,8 @@ public class BackstageLoginVerifyFunction implements LoginVerifyFunction {
             List<String> permCodes = (List<String>) session.get("permCodes");
 
             redisTemplate.expire(key, SESSION_TTL_HOURS, TimeUnit.HOURS);
+            // BG-03：同步续期反向索引 admin:session:idx:{adminId}，保证长会话（滑续期）下 disable 仍能按 adminId 吊销。
+            redisTemplate.expire(SESSION_KEY_PREFIX + "idx:" + adminId, SESSION_TTL_HOURS + 1, TimeUnit.HOURS);
 
             request.setAttribute(ATTR_ADMIN_ID, adminId);
             request.setAttribute(ATTR_PERM_CODES, permCodes);
