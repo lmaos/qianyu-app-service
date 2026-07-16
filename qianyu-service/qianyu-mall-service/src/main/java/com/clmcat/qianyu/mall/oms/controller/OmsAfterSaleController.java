@@ -4,6 +4,7 @@ import com.clmcat.framework.webmvc.anns.*;
 import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleCreateDTO;
 import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleIdDTO;
 import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleQueryDTO;
+import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleReturnShipDTO;
 import com.clmcat.qianyu.mall.oms.model.vo.AfterSaleCreateVO;
 import com.clmcat.qianyu.mall.oms.model.vo.AfterSaleDetailVO;
 import com.clmcat.qianyu.mall.oms.model.vo.AfterSaleSimpleVO;
@@ -55,5 +56,21 @@ public class OmsAfterSaleController {
             @Parameter(hidden = true) @Token long userId,
             @Params AfterSaleIdDTO dto) {
         afterSaleViewServiceBiz.cancelAfterSale(userId, dto.getAftersaleId());
+    }
+
+    @Operation(summary = "买家填写退货物流（type=2/3/4）")
+    @PostMapping("/aftersaleReturnShip")
+    public void aftersaleReturnShip(
+            @Parameter(hidden = true) @Token long userId,
+            @Params AfterSaleReturnShipDTO dto) {
+        afterSaleViewServiceBiz.aftersaleReturnShip(userId, dto);
+    }
+
+    @Operation(summary = "买家确认收到换货/维修品（type=3/4，确认后完成）")
+    @PostMapping("/aftersaleConfirmReplacement")
+    public void aftersaleConfirmReplacement(
+            @Parameter(hidden = true) @Token long userId,
+            @Params AfterSaleIdDTO dto) {
+        afterSaleViewServiceBiz.aftersaleConfirmReplacement(userId, dto.getAftersaleId());
     }
 }

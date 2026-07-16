@@ -40,6 +40,8 @@ public class OmsAfterSaleApiImpl implements OmsAfterSaleApi {
             if (dto.getRejectReason() != null) afterSale.setRejectReason(dto.getRejectReason());
             if (dto.getReturnShippingNo() != null) afterSale.setReturnShippingNo(dto.getReturnShippingNo());
             if (dto.getReturnShippingCompany() != null) afterSale.setReturnShippingCompany(dto.getReturnShippingCompany());
+            if (dto.getSendBackShippingNo() != null) afterSale.setSendBackShippingNo(dto.getSendBackShippingNo());
+            if (dto.getSendBackShippingCompany() != null) afterSale.setSendBackShippingCompany(dto.getSendBackShippingCompany());
             if (dto.getRefundTime() != null) afterSale.setRefundTime(dto.getRefundTime());
             afterSale.setUpdateTime(System.currentTimeMillis());
             afterSaleMapper.update(afterSale);
@@ -70,6 +72,36 @@ public class OmsAfterSaleApiImpl implements OmsAfterSaleApi {
         OmsAfterSale update = new OmsAfterSale();
         update.setStatus(toStatus);
         if (rejectReason != null) update.setRejectReason(rejectReason);
+        update.setUpdateTime(System.currentTimeMillis());
+        int affected = afterSaleMapper.updateByQuery(update,
+                QueryWrapper.create().where("id = ?", id).and("status = ?", fromStatus));
+        return affected > 0;
+    }
+
+    /**
+     * 商家填寄回物流 + CAS 推进（type=3/4：55→70）。同时写 sendBackShippingNo/Company。
+     */
+    @Override
+    public boolean updateSendBackShippingCAS(Long id, int fromStatus, int toStatus, String shippingNo, String shippingCompany) {
+        OmsAfterSale update = new OmsAfterSale();
+        update.setStatus(toStatus);
+        update.setSendBackShippingNo(shippingNo);
+        update.setSendBackShippingCompany(shippingCompany);
+        update.setUpdateTime(System.currentTimeMillis());
+        int affected = afterSaleMapper.updateByQuery(update,
+                QueryWrapper.create().where("id = ?", id).and("status = ?", fromStatus));
+        return affected > 0;
+    }
+
+    /**
+     * 买家填退货物流 + CAS 推进（type=2：20→40）。同时写 returnShippingNo/Company。
+     */
+    @Override
+    public boolean updateReturnShippingCAS(Long id, int fromStatus, int toStatus, String shippingNo, String shippingCompany) {
+        OmsAfterSale update = new OmsAfterSale();
+        update.setStatus(toStatus);
+        update.setReturnShippingNo(shippingNo);
+        update.setReturnShippingCompany(shippingCompany);
         update.setUpdateTime(System.currentTimeMillis());
         int affected = afterSaleMapper.updateByQuery(update,
                 QueryWrapper.create().where("id = ?", id).and("status = ?", fromStatus));

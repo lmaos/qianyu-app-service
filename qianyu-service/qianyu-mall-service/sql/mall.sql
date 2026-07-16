@@ -1270,3 +1270,64 @@ CREATE TABLE IF NOT EXISTS `cms_zone` (
 -- 全部 41 张表已创建
 -- ============================================================
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- =============================================================================
+-- (追加 2026-07-16) CMS 楼层选品改造：手动选品 + 自动投放框架
+-- =============================================================================
+
+-- cms_zone 加填充模式列
+ALTER TABLE `cms_zone` ADD COLUMN `fill_mode` TINYINT NOT NULL DEFAULT 2
+    COMMENT '填充模式: 0=仅手动 1=仅自动 2=手动优先+自动补足' AFTER `category_id`;
+
+-- 楼层-商品关联（手动选品 + 自动投放落点）
+CREATE TABLE IF NOT EXISTS `cms_zone_product` (
+    `id`          BIGINT       NOT NULL COMMENT '主键（Snowflake ID）',
+    `zone_id`     BIGINT       NOT NULL COMMENT '楼层 ID',
+    `spu_id`      BIGINT       NOT NULL COMMENT '商品 SPU ID',
+    `sort`        INT          NOT NULL DEFAULT 0 COMMENT '楼层内排序（升序）',
+    `status`      TINYINT      NOT NULL DEFAULT 0 COMMENT '0=显示 1=隐藏',
+    `source`      TINYINT      NOT NULL DEFAULT 0 COMMENT '0=手动 1=自动',
+    `rule_id`     BIGINT       DEFAULT NULL COMMENT '自动来源规则 ID（预留）',
+    `create_time` BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒时间戳）',
+    `update_time` BIGINT       NOT NULL DEFAULT 0 COMMENT '更新时间（毫秒时间戳）',
+    `deleted`     TINYINT      NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0=未删除 1=已删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_zone_spu` (`zone_id`, `spu_id`),
+    KEY `idx_zone_sort` (`zone_id`, `sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='楼层-商品关联（手动选品+自动投放）';
+
+-- SPU 状态变更流水（驱动楼层自动投放任务）
+CREATE TABLE IF NOT EXISTS `pms_spu_status_log` (
+    `id`           BIGINT       NOT NULL COMMENT '主键（Snowflake ID）',
+    `spu_id`       BIGINT       NOT NULL COMMENT '商品 SPU ID',
+    `from_status`  TINYINT      DEFAULT NULL COMMENT '变更前状态',
+    `to_status`    TINYINT      NOT NULL COMMENT '变更后状态',
+    `event`        VARCHAR(32)  NOT NULL COMMENT '事件: LIST_ON/LIST_OFF/SUBMIT_AUDIT/AUDIT_PASS/AUDIT_REGRESS/EDIT_REGRESS/CREATE',
+    `source`       VARCHAR(16)  NOT NULL COMMENT '来源: MERCHANT/ADMIN/SYSTEM',
+    `operator_id`  BIGINT       DEFAULT NULL COMMENT '操作者（userId 或 adminId）',
+    `reason`       VARCHAR(255) DEFAULT NULL COMMENT '原因（如下架原因）',
+    `processed`    TINYINT      NOT NULL DEFAULT 0 COMMENT '0=未消费 1=已消费（投放任务）',
+    `process_time` BIGINT       DEFAULT NULL COMMENT '消费时间（毫秒时间戳）',
+    `create_time`  BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒时间戳）',
+    PRIMARY KEY (`id`),
+    KEY `idx_spu` (`spu_id`),
+    KEY `idx_pending` (`processed`, `create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SPU 状态变更流水（驱动楼层自动投放）';
+
+-- =============================================================================
+-- (追加 2026-07-16) CMS 楼层自动投放规则表
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS `cms_zone_rule` (
+    `id`          BIGINT       NOT NULL COMMENT '主键（Snowflake ID）',
+    `zone_id`     BIGINT       NOT NULL COMMENT '楼层 ID',
+    `name`        VARCHAR(64)  NOT NULL COMMENT '规则名称',
+    `rule_type`   VARCHAR(32)  NOT NULL COMMENT 'NEW_PRODUCT/HIGH_SALES/BY_CATEGORY/KEYWORD',
+    `rule_params` JSON                                 COMMENT '规则参数 {threshold/categoryId/days/keyword}',
+    `sort`        INT          NOT NULL DEFAULT 0 COMMENT '排序',
+    `status`      TINYINT      NOT NULL DEFAULT 0 COMMENT '0=启用 1=停用',
+    `create_time` BIGINT       NOT NULL DEFAULT 0 COMMENT '创建时间（毫秒时间戳）',
+    `update_time` BIGINT       NOT NULL DEFAULT 0 COMMENT '更新时间（毫秒时间戳）',
+    `deleted`     TINYINT      NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0=未删除 1=已删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_zone_status` (`zone_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='楼层自动投放规则';

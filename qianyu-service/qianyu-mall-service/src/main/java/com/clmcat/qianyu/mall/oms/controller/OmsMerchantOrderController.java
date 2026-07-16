@@ -76,6 +76,24 @@ public class OmsMerchantOrderController {
         return afterSaleViewServiceBiz.merchantAfterSaleList(merchantId, dto);
     }
 
+    @Operation(summary = "B端-确认收到退货（type=2 退货退款/type=3换货/type=4维修）")
+    @PostMapping("/aftersaleConfirmReturn")
+    public void aftersaleConfirmReturn(
+            @Parameter(hidden = true) @Token long userId,
+            @Params AfterSaleIdDTO dto) {
+        Long merchantId = resolveMerchantId(userId);
+        afterSaleViewServiceBiz.aftersaleConfirmReturn(merchantId, dto.getAftersaleId());
+    }
+
+    @Operation(summary = "B端-商家填写寄回物流（type=3换货/type=4维修，55→70）")
+    @PostMapping("/aftersaleSendBack")
+    public void aftersaleSendBack(
+            @Parameter(hidden = true) @Token long userId,
+            @Params AfterSaleReturnShipDTO dto) {
+        Long merchantId = resolveMerchantId(userId);
+        afterSaleViewServiceBiz.aftersaleSendBack(merchantId, dto);
+    }
+
     private Long resolveMerchantId(Long userId) {
         // 商户身份门禁：必须已审核通过且生效（待审/冻结/禁用一律拒绝）——统一走 requireActiveMerchant
         return merchantApi.requireActiveMerchant(userId).getId();

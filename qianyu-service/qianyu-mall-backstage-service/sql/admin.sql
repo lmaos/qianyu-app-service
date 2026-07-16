@@ -183,3 +183,39 @@ ON DUPLICATE KEY UPDATE id = id;
 INSERT IGNORE INTO t_admin_account_role (account_id, role_id, create_time) VALUES
   (1, 1, 1719907200000),  -- admin → super_admin
   (2, 2, 1719907200000);  -- auditor → viewer
+
+-- =============================================================================
+-- (追加 2026-07-16) 分类管理权限点 pms:category:* （后台分类管理页 PmsAdminCategoryController）
+--   续号 122-125；super_admin 全挂，viewer 仅 :view。幂等（ON DUPLICATE / IGNORE）。
+-- =============================================================================
+INSERT INTO t_admin_permission (id, perm_code, perm_name, type, parent_id, path, method, create_time, update_time, deleted) VALUES
+  (122, 'pms:category:view',   '分类查看', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (123, 'pms:category:create', '分类创建', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (124, 'pms:category:update', '分类编辑', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (125, 'pms:category:delete', '分类删除', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0)
+ON DUPLICATE KEY UPDATE id = id;
+
+-- super_admin(1) → 分类全部 4 个权限
+INSERT IGNORE INTO t_admin_role_permission (role_id, permission_id, create_time) VALUES
+  (1, 122, 1719907200000), (1, 123, 1719907200000), (1, 124, 1719907200000), (1, 125, 1719907200000);
+-- viewer(2) → 仅分类查看
+INSERT IGNORE INTO t_admin_role_permission (role_id, permission_id, create_time) VALUES
+  (2, 122, 1719907200000);
+
+-- =============================================================================
+-- (追加 2026-07-16) CMS 楼层管理权限点 cms:zone:* （CmsAdminZoneController）
+--   续号 126-127；super_admin 全挂，viewer 仅 :view。幂等。
+-- =============================================================================
+INSERT INTO t_admin_permission (id, perm_code, perm_name, type, parent_id, path, method, create_time, update_time, deleted) VALUES
+  (126, 'cms:zone:view',   '楼层查看', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (127, 'cms:zone:manage', '楼层管理', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0)
+ON DUPLICATE KEY UPDATE id = id;
+
+-- =============================================================================
+-- (追加 2026-07-16) CMS Tab/Banner 管理权限点（CmsAdminTabController/CmsAdminBannerController）
+--   续号 128-129；super_admin 全挂。幂等。
+-- =============================================================================
+INSERT INTO t_admin_permission (id, perm_code, perm_name, type, parent_id, path, method, create_time, update_time, deleted) VALUES
+  (128, 'cms:tab:manage',    '导航Tab管理', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (129, 'cms:banner:manage', '轮播Banner管理', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0)
+ON DUPLICATE KEY UPDATE id = id;

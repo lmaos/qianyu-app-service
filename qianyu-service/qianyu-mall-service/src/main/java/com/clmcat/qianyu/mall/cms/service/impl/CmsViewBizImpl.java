@@ -2,9 +2,11 @@ package com.clmcat.qianyu.mall.cms.service.impl;
 
 import com.clmcat.qianyu.mall.cms.mapper.CmsBannerMapper;
 import com.clmcat.qianyu.mall.cms.mapper.CmsHomeTabMapper;
+import com.clmcat.qianyu.mall.cms.mapper.CmsZoneProductMapper;
 import com.clmcat.qianyu.mall.cms.model.entity.CmsBanner;
 import com.clmcat.qianyu.mall.cms.model.entity.CmsHomeTab;
 import com.clmcat.qianyu.mall.cms.model.entity.CmsZone;
+import com.clmcat.qianyu.mall.cms.model.entity.CmsZoneProduct;
 import com.clmcat.qianyu.mall.cms.service.CmsZoneServiceBiz;
 import com.clmcat.qianyu.mall.cms.model.vo.BannerVo;
 import com.clmcat.qianyu.mall.cms.model.vo.HomePageVo;
@@ -23,10 +25,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.clmcat.qianyu.mall.cms.model.entity.table.CmsHomeTabTableDef.CMS_HOME_TAB;
 import static com.clmcat.qianyu.mall.cms.model.entity.table.CmsBannerTableDef.CMS_BANNER;
+import static com.clmcat.qianyu.mall.cms.model.entity.table.CmsZoneProductTableDef.CMS_ZONE_PRODUCT;
 import static com.clmcat.qianyu.mall.pms.model.entity.table.PmsSpuTableDef.PMS_SPU;
 import com.clmcat.qianyu.mall.cms.service.CmsViewBiz;
 
@@ -40,6 +48,8 @@ public class CmsViewBizImpl implements CmsViewBiz {
     private CmsBannerMapper bannerMapper;
     @Resource
     private CmsZoneServiceBiz zoneServiceBiz;
+    @Resource
+    private CmsZoneProductMapper zoneProductMapper;
     @Resource
     private PmsSpuMapper spuMapper;
     @Resource
@@ -186,35 +196,81 @@ public class CmsViewBizImpl implements CmsViewBiz {
     }
 
     /**
-     * 加载 Zone 关联的商品（按销量前 N）
+     * 加载 Zone 关联的商品。填充优先级：手动选品 → 自动投放行 → 旧「分类+销量」兜底。
      *
-     * @param zone         当前 zone
-     * @param tabCategoryId 当前 Tab 的分类 ID；null/0 时用 zone 自身的 categoryId
+     * <p>fill_mode：0=仅手动（只取手动行，无兜底）/ 1=仅自动（只取自动行+兜底）/ 2=手动优先+自动补足（默认，手动+自动行+兜底）。
+     * <p>未配置任何选品行时（默认 MIXED），退化为旧逻辑（按 tabCategoryId 或 zone.categoryId + 销量 TopN），现网零破坏。
+     * <p>下架/删除的 SPU 不展示（按 status=1 + deleted=0 过滤）。
+     *
+     * @param zone          当前 zone
+     * @param tabCategoryId 当前 Tab 的分类 ID；null/0 时用 zone 自身的 categoryId（仅兜底用）
      */
     private List<SpuSimpleVo> loadZoneProducts(CmsZone zone, Long tabCategoryId) {
-        int count = zone.getProductCount() != null ? zone.getProductCount() : 4;
+        int cap = zone.getProductCount() != null ? zone.getProductCount() : 4;
+        int fillMode = zone.getFillMode() != null ? zone.getFillMode() : CmsZone.FILL_MIXED;
+        List<SpuSimpleVo> result = new ArrayList<>();
+        Set<Long> picked = new HashSet<>();
 
-        QueryWrapper qw = QueryWrapper.create()
-                .where(PMS_SPU.STATUS.eq(1));
-
-        if (tabCategoryId != null && tabCategoryId > 0) {
-            // 具体 Tab → 强制按 Tab 分类过滤（覆盖 zone 自身的分类）
-            qw.and(PMS_SPU.CATEGORY_ID.eq(tabCategoryId));
-        } else if (zone.getCategoryId() != null && zone.getCategoryId() > 0) {
-            // recommend Tab → 用 zone 自身的分类（与 homePage 行为一致）
-            // category_id = 0 视为未设置（兼容历史脏数据），退化到"全部商品按销量排序"
-            qw.and(PMS_SPU.CATEGORY_ID.eq(zone.getCategoryId()));
+        // 1) 选品/投放行（cms_zone_product）：手动(source=0)优先于自动(source=1)
+        List<CmsZoneProduct> rows = zoneProductMapper.selectListByQuery(
+                QueryWrapper.create()
+                        .where(CMS_ZONE_PRODUCT.ZONE_ID.eq(zone.getId()))
+                        .and(CMS_ZONE_PRODUCT.STATUS.eq(CmsZoneProduct.STATUS_SHOW))
+                        .orderBy(CMS_ZONE_PRODUCT.SOURCE.asc(), CMS_ZONE_PRODUCT.SORT.asc(), CMS_ZONE_PRODUCT.ID.asc()));
+        if (rows != null && !rows.isEmpty()) {
+            List<Long> spuIds = rows.stream().map(CmsZoneProduct::getSpuId).distinct().collect(Collectors.toList());
+            List<PmsSpu> onSale = spuMapper.selectListByQuery(
+                    QueryWrapper.create()
+                            .where(PMS_SPU.ID.in(spuIds))
+                            .and(PMS_SPU.STATUS.eq(1))
+                            .and(PMS_SPU.DELETED.eq(0)));
+            Map<Long, PmsSpu> onSaleMap = new HashMap<>();
+            Set<Long> onSaleIds = new HashSet<>();
+            for (PmsSpu s : onSale) {
+                onSaleMap.put(s.getId(), s);
+                onSaleIds.add(s.getId());
+            }
+            for (CmsZoneProduct r : rows) {
+                if (result.size() >= cap) {
+                    break;
+                }
+                if (fillMode == CmsZone.FILL_MANUAL_ONLY && r.getSource() != CmsZoneProduct.SOURCE_MANUAL) {
+                    continue;
+                }
+                if (fillMode == CmsZone.FILL_AUTO_ONLY && r.getSource() != CmsZoneProduct.SOURCE_AUTO) {
+                    continue;
+                }
+                if (!onSaleIds.contains(r.getSpuId()) || !picked.add(r.getSpuId())) {
+                    continue;
+                }
+                result.add(pmsSupport.toSpuSimpleVo(onSaleMap.get(r.getSpuId())));
+            }
         }
 
-        qw.orderBy(PMS_SPU.SALES.desc());
-        qw.limit(count);
-
-        List<PmsSpu> spuList = spuMapper.selectListByQuery(qw);
-        spuList = spuList != null ? spuList : Collections.emptyList();
-
-        List<SpuSimpleVo> result = new ArrayList<>();
-        for (PmsSpu spu : spuList) {
-            result.add(pmsSupport.toSpuSimpleVo(spu));
+        // 2) 不足时旧兜底（仅 AUTO_ONLY/MIXED）：按 tabCategoryId 或 zone.categoryId + 销量补齐
+        if (result.size() < cap && fillMode != CmsZone.FILL_MANUAL_ONLY) {
+            int need = cap - result.size();
+            QueryWrapper qw = QueryWrapper.create()
+                    .where(PMS_SPU.STATUS.eq(1))
+                    .and(PMS_SPU.DELETED.eq(0));
+            if (!picked.isEmpty()) {
+                qw.and(PMS_SPU.ID.notIn(picked));
+            }
+            if (tabCategoryId != null && tabCategoryId > 0) {
+                qw.and(PMS_SPU.CATEGORY_ID.eq(tabCategoryId));
+            } else if (zone.getCategoryId() != null && zone.getCategoryId() > 0) {
+                qw.and(PMS_SPU.CATEGORY_ID.eq(zone.getCategoryId()));
+            }
+            qw.orderBy(PMS_SPU.SALES.desc()).limit(need);
+            List<PmsSpu> legacy = spuMapper.selectListByQuery(qw);
+            if (legacy != null) {
+                for (PmsSpu s : legacy) {
+                    if (result.size() >= cap) {
+                        break;
+                    }
+                    result.add(pmsSupport.toSpuSimpleVo(s));
+                }
+            }
         }
         return result;
     }

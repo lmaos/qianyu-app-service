@@ -8,6 +8,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
+import com.clmcat.qianyu.mall.pms.service.PmsSpuStatusChanger;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -27,6 +28,9 @@ public class PmsSpuApiImpl implements PmsSpuApi {
 
     @Resource
     private com.clmcat.qianyu.mall.pms.mapper.PmsSpuCategoryMapper spuCategoryMapper;
+
+    @Resource
+    private PmsSpuStatusChanger spuStatusChanger;
 
     @Override
     public PmsSpuDto getById(Long spuId) {
@@ -110,9 +114,8 @@ public class PmsSpuApiImpl implements PmsSpuApi {
         PmsSpu spu = spuMapper.selectOneByQuery(
                 QueryWrapper.create().where(PMS_SPU.ID.eq(spuId)).and(PMS_SPU.DELETED.eq(0)));
         if (spu == null) return;
-        spu.setStatus(2);
-        spu.setUpdateTime(System.currentTimeMillis());
-        spuMapper.update(spu);
+        // 强制下架（走 changer 落状态流水；source=ADMIN，带下架原因）
+        spuStatusChanger.change(spuId, PmsSpu.STATUS_OFF_SHELF, "LIST_OFF", "ADMIN", null, reason, null);
     }
 
     @Override
@@ -121,10 +124,12 @@ public class PmsSpuApiImpl implements PmsSpuApi {
                 QueryWrapper.create().where(PMS_SPU.ID.eq(spuId)).and(PMS_SPU.DELETED.eq(0)));
         if (spu == null) return;
         if (Boolean.TRUE.equals(approved)) {
-            spu.setStatus(1);
+            // 审核通过即上架（走 changer 落状态流水；source=ADMIN）
+            spuStatusChanger.change(spuId, PmsSpu.STATUS_ON_SALE, "AUDIT_PASS", "ADMIN", null, rejectReason, null);
+        } else {
+            // 2C：审核驳回 → 回退草稿（走 changer 落状态流水；原 bug 此分支不改 status）
+            spuStatusChanger.change(spuId, PmsSpu.STATUS_DRAFT, "AUDIT_REGRESS", "ADMIN", null, rejectReason, null);
         }
-        spu.setUpdateTime(System.currentTimeMillis());
-        spuMapper.update(spu);
     }
 
     // ==================== Internal methods for ViewBiz ====================

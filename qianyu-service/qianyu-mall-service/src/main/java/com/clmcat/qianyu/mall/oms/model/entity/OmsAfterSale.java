@@ -47,7 +47,7 @@ public class OmsAfterSale {
     @Column(value = "images", comment = "凭证图片列表JSON")
     private String images;
 
-    @Column(value = "status", comment = "售后状态: 10/20/30/40/50/60")
+    @Column(value = "status", comment = "售后状态: 10待审核/20商家同意/30拒绝/40用户已发货/50已完成/55商家已收货/60已取消/70商家已寄出")
     private Integer status;
 
     @Column(value = "reject_reason", comment = "商家拒绝原因")
@@ -78,12 +78,14 @@ public class OmsAfterSale {
     private Integer deleted;
 
     // ===== 售后状态常量 =====
-    public static final int STATUS_PENDING_REVIEW  = 10;
-    public static final int STATUS_MERCHANT_AGREE  = 20;
-    public static final int STATUS_MERCHANT_REJECT = 30;
-    public static final int STATUS_USER_SHIPPED    = 40;
-    public static final int STATUS_COMPLETED       = 50;
-    public static final int STATUS_CANCELLED       = 60;
+    public static final int STATUS_PENDING_REVIEW    = 10;
+    public static final int STATUS_MERCHANT_AGREE    = 20;
+    public static final int STATUS_MERCHANT_REJECT   = 30;
+    public static final int STATUS_USER_SHIPPED      = 40;
+    public static final int STATUS_COMPLETED         = 50;
+    public static final int STATUS_MERCHANT_RECEIVED = 55;
+    public static final int STATUS_CANCELLED         = 60;
+    public static final int STATUS_MERCHANT_SENT     = 70;
 
     // ===== 售后类型常量 =====
     public static final int TYPE_REFUND_ONLY       = 1;

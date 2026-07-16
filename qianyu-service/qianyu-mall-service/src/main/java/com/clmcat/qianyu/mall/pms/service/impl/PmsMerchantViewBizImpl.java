@@ -34,6 +34,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import com.clmcat.qianyu.mall.pms.service.PmsMerchantViewBiz;
+import com.clmcat.qianyu.mall.pms.service.PmsSpuStatusChanger;
 
 @Service
 @Slf4j
@@ -65,6 +66,9 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
 
     @Resource
     private PmsSupport pmsSupport;
+
+    @Resource
+    private PmsSpuStatusChanger spuStatusChanger;
 
     /**
      * 商家商品管理页聚合
@@ -226,6 +230,8 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
         spu.setUpdateTime(now);
         spu.setDeleted(0);
         spuServiceBiz.insertSelective(spu);
+        // 新建草稿记一条状态流水（审计用；to_status=0 不被投放任务消费）
+        spuStatusChanger.recordCreate(spuId, "MERCHANT", userId);
 
         // 处理 SKU 列表
         boolean hasDefault = false;
@@ -409,12 +415,12 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
             update.setFreightTemplateId(dto.getFreightTemplateId());
         }
         update.setUpdateTime(now);
-        // 编辑在售/下架商品 → 回草稿(需重新审核才能再上架)
+        spuServiceBiz.updateSpu(update);
+        // 编辑在售/下架商品 → 回草稿（走 changer 落状态流水；非状态字段已在上面 update 完成）
         if (spu.getStatus() != null
                 && (spu.getStatus() == PmsSpu.STATUS_ON_SALE || spu.getStatus() == PmsSpu.STATUS_OFF_SHELF)) {
-            update.setStatus(PmsSpu.STATUS_DRAFT);
+            spuStatusChanger.change(dto.getSpuId(), PmsSpu.STATUS_DRAFT, "EDIT_REGRESS", "MERCHANT", userId, null, null);
         }
-        spuServiceBiz.updateSpu(update);
 
         // 更新 SPU-分类关联（若 categoryId 变更）
         if (dto.getCategoryId() != null && !dto.getCategoryId().equals(spu.getCategoryId())) {
@@ -448,13 +454,8 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
 
         long now = System.currentTimeMillis();
 
-        // 更新 SPU status=1
-        PmsSpu update = new PmsSpu();
-        update.setId(spuId);
-        update.setStatus(1);
-        update.setPublishTime(now);
-        update.setUpdateTime(now);
-        spuServiceBiz.updateSpu(update);
+        // 上架（走 changer 落状态流水）
+        spuStatusChanger.change(spuId, PmsSpu.STATUS_ON_SALE, "LIST_ON", "MERCHANT", userId, null, u -> u.setPublishTime(now));
 
         // 同步更新所有 SKU status=0（上架）
         List<PmsSku> skuList = skuServiceBiz.selectBySpuId(spuId);
@@ -478,14 +479,9 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
         PmsStatus.PMS_SPU_NOT_OWNER.assertThrowResEx(
                 spu.getMerchantId() == null || !spu.getMerchantId().equals(merchantId));
 
+        // 下架（走 changer 落状态流水）
         long now = System.currentTimeMillis();
-
-        // 更新 SPU status=2
-        PmsSpu update = new PmsSpu();
-        update.setId(spuId);
-        update.setStatus(2);
-        update.setUpdateTime(now);
-        spuServiceBiz.updateSpu(update);
+        spuStatusChanger.change(spuId, PmsSpu.STATUS_OFF_SHELF, "LIST_OFF", "MERCHANT", userId, null, null);
 
         // 同步更新所有 SKU status=1（下架）
         List<PmsSku> skuList = skuServiceBiz.selectBySpuId(spuId);
@@ -516,12 +512,8 @@ public class PmsMerchantViewBizImpl implements PmsMerchantViewBiz {
         PmsStatus.PMS_SPU_STATUS_INVALID.assertThrowResEx(
                 status != PmsSpu.STATUS_DRAFT && status != PmsSpu.STATUS_OFF_SHELF);
 
-        long now = System.currentTimeMillis();
-        PmsSpu update = new PmsSpu();
-        update.setId(spuId);
-        update.setStatus(PmsSpu.STATUS_PENDING_AUDIT);
-        update.setUpdateTime(now);
-        spuServiceBiz.updateSpu(update);
+        // 提交审核（走 changer 落状态流水）
+        spuStatusChanger.change(spuId, PmsSpu.STATUS_PENDING_AUDIT, "SUBMIT_AUDIT", "MERCHANT", userId, null, null);
     }
 
     /**

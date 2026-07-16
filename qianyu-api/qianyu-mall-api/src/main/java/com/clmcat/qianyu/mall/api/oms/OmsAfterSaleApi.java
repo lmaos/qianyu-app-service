@@ -26,6 +26,22 @@ public interface OmsAfterSaleApi {
     boolean updateStatusCAS(Long id, int fromStatus, int toStatus, String rejectReason);
 
     /**
+     * 买家填退货物流 + CAS 推进（type=2 退货退款：20 商家同意 → 40 用户已发货）。
+     * <p>WHERE {@code id} AND {@code status = fromStatus}，同时写 returnShippingNo/Company，防并发。
+     *
+     * @return true 表示 CAS 成功；false 表示单据已被并发改动
+     */
+    boolean updateReturnShippingCAS(Long id, int fromStatus, int toStatus, String shippingNo, String shippingCompany);
+
+    /**
+     * 商家填寄回物流 + CAS 推进（type=3 换货 / type=4 维修：55 商家已收货 → 70 商家已寄出）。
+     * <p>WHERE {@code id} AND {@code status = fromStatus}，同时写 sendBackShippingNo/Company，防并发。
+     *
+     * @return true 表示 CAS 成功；false 表示单据已被并发改动
+     */
+    boolean updateSendBackShippingCAS(Long id, int fromStatus, int toStatus, String shippingNo, String shippingCompany);
+
+    /**
      * 平台跨店售后分页（运营端视角）。
      * <p>支持按 merchantId / status / type 过滤，按 create_time DESC 排序。
      *

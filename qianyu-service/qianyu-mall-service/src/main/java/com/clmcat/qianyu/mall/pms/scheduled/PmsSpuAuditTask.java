@@ -3,6 +3,7 @@ package com.clmcat.qianyu.mall.pms.scheduled;
 import com.clmcat.qianyu.mall.pms.config.PmsConfig;
 import com.clmcat.qianyu.mall.pms.mapper.PmsSpuMapper;
 import com.clmcat.qianyu.mall.pms.model.entity.PmsSpu;
+import com.clmcat.qianyu.mall.pms.service.PmsSpuStatusChanger;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,9 @@ public class PmsSpuAuditTask {
     @Resource
     private PmsConfig pmsConfig;
 
+    @Resource
+    private PmsSpuStatusChanger spuStatusChanger;
+
     /**
      * 扫描待审核商品并推进为审核通过。间隔由 {@code qianyu.mall.pms.audit.rate-ms} 配置（默认 30s）。
      */
@@ -52,17 +56,12 @@ public class PmsSpuAuditTask {
         if (pending.isEmpty()) return;
 
         log.info("商品审核(stub): 发现 {} 个待审核商品（延迟 {} 秒）", pending.size(), pmsConfig.getAudit().getDelaySeconds());
-        long now = System.currentTimeMillis();
         int approved = 0;
         for (PmsSpu spu : pending) {
             try {
-                // CAS 推进 4 → 5（WHERE id + status=4；affected=0 表示已被其它流程改动，跳过）
-                PmsSpu update = new PmsSpu();
-                update.setStatus(PmsSpu.STATUS_APPROVED);
-                update.setUpdateTime(now);
-                int affected = spuMapper.updateByQuery(update,
-                        QueryWrapper.create().where("id = ?", spu.getId()).and("status = ?", PmsSpu.STATUS_PENDING_AUDIT));
-                if (affected > 0) {
+                // CAS 推进 4 → 5（changer 内 WHERE id + status=4；affected=0 表示已被其它流程改动，跳过）
+                // 状态写入 + 流水收敛在 changer.casApprovePending（source=SYSTEM）
+                if (spuStatusChanger.casApprovePending(spu.getId())) {
                     approved++;
                 } else {
                     log.info("商品审核跳过(状态已变更): spuId={}", spu.getId());

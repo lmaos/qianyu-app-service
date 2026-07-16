@@ -38,6 +38,14 @@ public class CmsZone {
     @Column(value = "category_id")
     private Long categoryId;
 
+    /** 填充模式常量 */
+    public static final int FILL_MANUAL_ONLY = 0;
+    public static final int FILL_AUTO_ONLY = 1;
+    public static final int FILL_MIXED = 2;
+
+    @Column(value = "fill_mode", comment = "填充模式: 0=仅手动 1=仅自动 2=手动优先+自动补足")
+    private Integer fillMode;
+
     @Column(value = "sort")
     private Integer sort;
 

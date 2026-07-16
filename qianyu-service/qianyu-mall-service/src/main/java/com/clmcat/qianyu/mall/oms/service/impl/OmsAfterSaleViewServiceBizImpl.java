@@ -7,6 +7,7 @@ import com.clmcat.qianyu.mall.api.pay.model.dto.PayPaymentDto;
 import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleAuditDTO;
 import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleCreateDTO;
 import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleQueryDTO;
+import com.clmcat.qianyu.mall.oms.model.dto.AfterSaleReturnShipDTO;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsAfterSale;
 import com.clmcat.qianyu.mall.oms.model.entity.OmsOrderItem;
 import com.clmcat.qianyu.mall.oms.model.entity.status.OmsStatus;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import com.clmcat.qianyu.mall.oms.service.OmsAfterSaleViewServiceBiz;
 
 @Service
@@ -55,6 +57,13 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
 
         Long merchantId = orderDto.getMerchantId() != null ? orderDto.getMerchantId() : 0L;
 
+        // 取订单项总额作为退款金额（详情页展示；triggerRefund 仍按 orderItem 兜底）
+        BigDecimal amount = BigDecimal.ZERO;
+        OmsOrderItem item = orderServiceBiz.findItemById(dto.getOrderItemId());
+        if (item != null && item.getTotalAmount() != null) {
+            amount = item.getTotalAmount();
+        }
+
         OmsAfterSale afterSale = new OmsAfterSale();
         afterSale.setId(OmsSupport.AFTERSALE_ID_SNOWFLAKE.nextId());
         afterSale.setAfterSaleNo("AS" + afterSale.getId());
@@ -65,6 +74,9 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
         afterSale.setType(dto.getType());
         afterSale.setReason(dto.getReason());
         afterSale.setDescription(dto.getDescription());
+        afterSale.setAmount(amount);
+        afterSale.setImages(dto.getImages() != null && !dto.getImages().isEmpty()
+                ? com.alibaba.fastjson.JSON.toJSONString(dto.getImages()) : null);
         afterSale.setStatus(OmsAfterSale.STATUS_PENDING_REVIEW);
         afterSale.setCreateTime(System.currentTimeMillis());
         afterSale.setUpdateTime(System.currentTimeMillis());
@@ -116,20 +128,41 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
         OmsAfterSale afterSale = afterSaleServiceBiz.getAfterSaleById(aftersaleId);
         OmsStatus.OMS_AFTERSALE_NOT_FOUND.assertThrowResEx(afterSale == null);
         OmsStatus.OMS_AFTERSALE_NOT_BELONG_USER.assertThrowResEx(!afterSale.getUserId().equals(userId));
+        OmsOrderDto orderDto = orderServiceBiz.findById(afterSale.getOrderId());
 
         return AfterSaleDetailVO.builder()
                 .id(afterSale.getId())
                 .aftersaleSn("AS" + afterSale.getId())
                 .orderId(afterSale.getOrderId())
                 .orderItemId(afterSale.getOrderItemId())
+                .orderSn(orderDto.getOrderNo())
                 .type(afterSale.getType())
                 .typeText(typeText(afterSale.getType()))
                 .reason(afterSale.getReason())
                 .description(afterSale.getDescription())
+                .images(parseImages(afterSale.getImages()))
                 .status(afterSale.getStatus())
                 .statusText(statusText(afterSale.getStatus()))
                 .rejectReason(afterSale.getRejectReason())
+                .refundAmount(afterSale.getAmount() != null ? afterSale.getAmount().toPlainString() : null)
+                .returnShippingNo(afterSale.getReturnShippingNo())
+                .returnShippingCompany(afterSale.getReturnShippingCompany())
+                .sendBackShippingNo(afterSale.getSendBackShippingNo())
+                .sendBackShippingCompany(afterSale.getSendBackShippingCompany())
+                .refundTime(afterSale.getRefundTime() != null ? String.valueOf(afterSale.getRefundTime()) : null)
                 .build();
+    }
+
+    /** 实体 images 为 JSON 字符串，转 List 供前端渲染；空/异常返回空列表。 */
+    private List<String> parseImages(String imagesJson) {
+        if (imagesJson == null || imagesJson.isBlank()) {
+            return new ArrayList<>();
+        }
+        try {
+            return com.alibaba.fastjson.JSON.parseArray(imagesJson, String.class);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
@@ -156,20 +189,20 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
         boolean ok = afterSaleServiceBiz.updateStatusCAS(dto.getAftersaleId(), OmsAfterSale.STATUS_PENDING_REVIEW, toStatus, reason);
         OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(!ok);
 
-        // S21：仅退款(type=1)审核通过 → 触发退款（同事务；balance 即时成功→releaseStockForOrder 释放库存路径）
-        if (dto.getApproved() && Integer.valueOf(1).equals(afterSale.getType())) {
-            refundForOnlyRefund(afterSale);
+        // S21：仅退款(type=1)审核通过 → 即时触发退款（type=2 退款挪到「确认收货」，type=3/4 不退款）
+        if (dto.getApproved() && Integer.valueOf(OmsAfterSale.TYPE_REFUND_ONLY).equals(afterSale.getType())) {
+            triggerRefund(afterSale);
         }
     }
 
     /**
-     * S21：仅退款触发余额退款。
-     * <p>幂等：outRefundNo 由 aftersaleId 派生，重复审核(被 CAS 拦)或已退过(findByRefundNo 命中)均跳过。
-     * <p>金额：取售后订单项总额（applyAfterSale 未设 afterSale.amount，按 orderItem 兜底）。
-     * <p>事务：沿用 auditAfterSale 的 @Transactional；refund 失败抛出 → 审核状态 CAS 一并回滚（资金一致性）。
+     * 售后触发余额退款（type=1 审核通过时 / type=2 商家确认收货时调用）。
+     * <p>幂等：outRefundNo 由 aftersaleId 派生，重复触发(被 CAS 拦)或已退过(findByRefundNo 命中)均跳过。
+     * <p>金额：取售后订单项总额（applyAfterSale 兜底设了 afterSale.amount；这里仍按 orderItem 兜底防漏）。
+     * <p>事务：沿用调用方的 @Transactional；refund 失败抛出 → 状态 CAS 一并回滚（资金一致性）。
      * <p>注：已支付订单 confirmStock 后 locked=0，refund 内 releaseStock CAS 会跳过；sold→available 回库需新原语（后续增强）。
      */
-    private void refundForOnlyRefund(OmsAfterSale afterSale) {
+    private void triggerRefund(OmsAfterSale afterSale) {
         String outRefundNo = "ASR" + afterSale.getId();
         if (payRefundApiImpl.findByRefundNo(outRefundNo) != null) {
             return; // 已退过，幂等跳过
@@ -177,7 +210,7 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
         PayPaymentDto payment = payPaymentApiImpl.findLatestByOrderId(afterSale.getOrderId());
         if (payment == null || payment.getPayStatus() == null
                 || payment.getPayStatus() != PayPayment.PAY_STATUS_SUCCESS) {
-            return; // 无成功支付单（仅退款订单必已付；异常态静默跳过，不阻断审核）
+            return; // 无成功支付单（售后订单必已付；异常态静默跳过，不阻断主流程）
         }
         BigDecimal amount = BigDecimal.ZERO;
         OmsOrderItem item = orderServiceBiz.findItemById(afterSale.getOrderItemId());
@@ -188,8 +221,95 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
         rfd.setPaySn(payment.getPaymentNo());
         rfd.setOutRefundNo(outRefundNo);
         rfd.setRefundAmount(amount.toPlainString());
-        rfd.setRefundReason("售后仅退款 #" + afterSale.getId());
-        payRefundApiImpl.refund(rfd); // 失败抛出 → 主事务回滚（审核态 + 退款单原子）
+        rfd.setRefundReason("售后退款 #" + afterSale.getId());
+        payRefundApiImpl.refund(rfd); // 失败抛出 → 主事务回滚（状态 + 退款单原子）
+    }
+
+    /**
+     * C 端：买家填退货物流（type=2/3/4，20 商家同意 → 40 用户已发货）。
+     * type=2(退货退款)/3(换货)/4(维修) 都需要买家寄回商品；写 returnShippingNo/Company + CAS 推进。
+     */
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    @Override
+    public void aftersaleReturnShip(Long userId, AfterSaleReturnShipDTO dto) {
+        OmsAfterSale afterSale = afterSaleServiceBiz.getAfterSaleById(dto.getAftersaleId());
+        OmsStatus.OMS_AFTERSALE_NOT_FOUND.assertThrowResEx(afterSale == null);
+        OmsStatus.OMS_AFTERSALE_NOT_BELONG_USER.assertThrowResEx(!afterSale.getUserId().equals(userId));
+        boolean typeValid = Set.of(OmsAfterSale.TYPE_RETURN_REFUND, OmsAfterSale.TYPE_EXCHANGE, OmsAfterSale.TYPE_REPAIR)
+                .contains(afterSale.getType());
+        OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(
+                !typeValid || afterSale.getStatus() != OmsAfterSale.STATUS_MERCHANT_AGREE);
+        boolean ok = afterSaleServiceBiz.updateReturnShippingCAS(dto.getAftersaleId(),
+                OmsAfterSale.STATUS_MERCHANT_AGREE, OmsAfterSale.STATUS_USER_SHIPPED,
+                dto.getShippingNo(), dto.getShippingCompany());
+        OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(!ok);
+    }
+
+    /**
+     * B 端：商家确认收到退货（type=2/3/4，40 用户已发货 → 50/55）。
+     * type=2: CAS 40→50 + 触发退款；type=3/4: CAS 40→55（商家已收货，等待寄回），不退款。
+     */
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    @Override
+    public void aftersaleConfirmReturn(Long merchantId, Long aftersaleId) {
+        OmsAfterSale afterSale = afterSaleServiceBiz.getAfterSaleById(aftersaleId);
+        OmsStatus.OMS_AFTERSALE_NOT_FOUND.assertThrowResEx(afterSale == null);
+        OmsStatus.OMS_AFTERSALE_NOT_BELONG_MERCHANT.assertThrowResEx(!afterSale.getMerchantId().equals(merchantId));
+        boolean typeValid = Set.of(OmsAfterSale.TYPE_RETURN_REFUND, OmsAfterSale.TYPE_EXCHANGE, OmsAfterSale.TYPE_REPAIR)
+                .contains(afterSale.getType());
+        OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(
+                !typeValid || afterSale.getStatus() != OmsAfterSale.STATUS_USER_SHIPPED);
+
+        if (Integer.valueOf(OmsAfterSale.TYPE_RETURN_REFUND).equals(afterSale.getType())) {
+            // type=2: CAS 40→50 + triggerRefund
+            boolean ok = afterSaleServiceBiz.updateStatusCAS(aftersaleId,
+                    OmsAfterSale.STATUS_USER_SHIPPED, OmsAfterSale.STATUS_COMPLETED, null);
+            OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(!ok);
+            triggerRefund(afterSale);
+        } else {
+            // type=3/4: CAS 40→55（商家已收货），不退款
+            boolean ok = afterSaleServiceBiz.updateStatusCAS(aftersaleId,
+                    OmsAfterSale.STATUS_USER_SHIPPED, OmsAfterSale.STATUS_MERCHANT_RECEIVED, null);
+            OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(!ok);
+        }
+    }
+
+    /**
+     * B 端：商家填写寄回物流（type=3 换货 / type=4 维修，55 商家已收货 → 70 商家已寄出）。
+     * 写 sendBackShippingNo/Company + CAS 推进；不涉及退款。
+     */
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    @Override
+    public void aftersaleSendBack(Long merchantId, AfterSaleReturnShipDTO dto) {
+        OmsAfterSale afterSale = afterSaleServiceBiz.getAfterSaleById(dto.getAftersaleId());
+        OmsStatus.OMS_AFTERSALE_NOT_FOUND.assertThrowResEx(afterSale == null);
+        OmsStatus.OMS_AFTERSALE_NOT_BELONG_MERCHANT.assertThrowResEx(!afterSale.getMerchantId().equals(merchantId));
+        boolean typeValid = Set.of(OmsAfterSale.TYPE_EXCHANGE, OmsAfterSale.TYPE_REPAIR)
+                .contains(afterSale.getType());
+        OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(
+                !typeValid || afterSale.getStatus() != OmsAfterSale.STATUS_MERCHANT_RECEIVED);
+        boolean ok = afterSaleServiceBiz.updateSendBackShippingCAS(dto.getAftersaleId(),
+                OmsAfterSale.STATUS_MERCHANT_RECEIVED, OmsAfterSale.STATUS_MERCHANT_SENT,
+                dto.getShippingNo(), dto.getShippingCompany());
+        OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(!ok);
+    }
+
+    /**
+     * C 端：买家确认收到换货/维修品（type=3/4，70 商家已寄出 → 50 已完成）。
+     */
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    @Override
+    public void aftersaleConfirmReplacement(Long userId, Long aftersaleId) {
+        OmsAfterSale afterSale = afterSaleServiceBiz.getAfterSaleById(aftersaleId);
+        OmsStatus.OMS_AFTERSALE_NOT_FOUND.assertThrowResEx(afterSale == null);
+        OmsStatus.OMS_AFTERSALE_NOT_BELONG_USER.assertThrowResEx(!afterSale.getUserId().equals(userId));
+        boolean typeValid = Set.of(OmsAfterSale.TYPE_EXCHANGE, OmsAfterSale.TYPE_REPAIR)
+                .contains(afterSale.getType());
+        OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(
+                !typeValid || afterSale.getStatus() != OmsAfterSale.STATUS_MERCHANT_SENT);
+        boolean ok = afterSaleServiceBiz.updateStatusCAS(aftersaleId,
+                OmsAfterSale.STATUS_MERCHANT_SENT, OmsAfterSale.STATUS_COMPLETED, null);
+        OmsStatus.OMS_AFTERSALE_STATUS_ERROR.assertThrowResEx(!ok);
     }
 
     /**
@@ -253,7 +373,9 @@ public class OmsAfterSaleViewServiceBizImpl implements OmsAfterSaleViewServiceBi
             case 30 -> "商家拒绝";
             case 40 -> "用户已发货";
             case 50 -> "已完成";
+            case 55 -> "商家已收货";
             case 60 -> "已取消";
+            case 70 -> "商家已寄出";
             default -> "";
         };
     }
