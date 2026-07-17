@@ -35,6 +35,15 @@ public interface OmsOrderApi {
     boolean markReceived(Long orderId);
 
     /**
+     * 发货专用——CAS 推进订单 20(待发货)→30(待收货) 并回写 delivery_time。
+     * <p>真 CAS（WHERE id + status + version），防并发双推进。供 shipOrder 调用。
+     *
+     * @param orderId 订单 ID
+     * @return true 成功；false 表示订单状态非 20（已发货/已取消等并发变更）
+     */
+    boolean markShipped(Long orderId);
+
+    /**
      * 按订单 ID 查明细（S4 新增契约）。供 InvStockApi.confirmStock 跨域取 skuId+quantity 核销库存。
      *
      * @param orderId 订单 ID

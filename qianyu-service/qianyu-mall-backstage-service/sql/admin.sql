@@ -219,3 +219,26 @@ INSERT INTO t_admin_permission (id, perm_code, perm_name, type, parent_id, path,
   (128, 'cms:tab:manage',    '导航Tab管理', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
   (129, 'cms:banner:manage', '轮播Banner管理', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0)
 ON DUPLICATE KEY UPDATE id = id;
+
+-- =============================================================================
+-- (追加 2026-07-17) 优惠券管理权限点（AdminCouponController）
+--   续号 130-134；super_admin(线上 178342042368026174) 全挂，viewer(2) 仅 view。
+-- =============================================================================
+INSERT INTO t_admin_permission (id, perm_code, perm_name, type, parent_id, path, method, create_time, update_time, deleted) VALUES
+  (130, 'sms:coupon:view',   '优惠券查看', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (131, 'sms:coupon:create', '优惠券创建', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (132, 'sms:coupon:update', '优惠券编辑', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (133, 'sms:coupon:delete', '优惠券删除', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0),
+  (134, 'sms:coupon:manage', '优惠券启停', 3, 0, NULL, NULL, 1719907200000, 1719907200000, 0)
+ON DUPLICATE KEY UPDATE id = id;
+
+-- super_admin 全挂（线上 Snowflake 角色 ID）
+INSERT IGNORE INTO t_admin_role_permission (role_id, permission_id) VALUES
+  (178342042368026174, 130),
+  (178342042368026174, 131),
+  (178342042368026174, 132),
+  (178342042368026174, 133),
+  (178342042368026174, 134);
+-- viewer 仅 view
+INSERT IGNORE INTO t_admin_role_permission (role_id, permission_id) VALUES
+  (2, 130);

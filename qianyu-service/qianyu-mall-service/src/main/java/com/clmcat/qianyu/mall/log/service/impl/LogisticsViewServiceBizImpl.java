@@ -1,5 +1,6 @@
 package com.clmcat.qianyu.mall.log.service.impl;
 
+import com.clmcat.qianyu.mall.log.config.LogisticsConfig;
 import com.clmcat.qianyu.mall.log.rpc.DeliveryTraceApiImpl;
 import com.clmcat.qianyu.mall.log.rpc.LogisticsApiImpl;
 import com.clmcat.qianyu.mall.api.mch.MerchantApi;
@@ -48,6 +49,9 @@ public class LogisticsViewServiceBizImpl implements LogisticsViewServiceBiz {
     @Resource
     private LogisticsTrackerFactory trackerFactory;
 
+    @Resource
+    private LogisticsConfig logisticsConfig;
+
     /**
      * 根据订单 ID 查询物流
      */
@@ -59,6 +63,10 @@ public class LogisticsViewServiceBizImpl implements LogisticsViewServiceBiz {
         LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(shippings == null || shippings.isEmpty());
 
         LogShipping shipping = shippings.get(0);
+        // S-IDOR: 校验订单归属当前用户（防越权查他人物流详情）
+        OmsOrderDto order = omsOrderApi.findById(shipping.getOrderId());
+        LogisticsStatus.LOG_LOGISTICS_NOT_BELONG_USER.assertThrowResEx(
+                order == null || !Long.valueOf(userId).equals(order.getUserId()));
         List<LogDeliveryTrace> traces = traceServiceBiz.selectByShippingId(shipping.getId());
         return LogisticsConvert.toDetailVO(shipping, traces);
     }
@@ -72,6 +80,11 @@ public class LogisticsViewServiceBizImpl implements LogisticsViewServiceBiz {
 
         LogShipping shipping = logisticsServiceBiz.selectOneById(logisticsId);
         LogisticsStatus.LOG_LOGISTICS_NOT_FOUND.assertThrowResEx(shipping == null);
+
+        // S-IDOR: 校验订单归属当前用户（防越权查他人物流轨迹）
+        OmsOrderDto order = omsOrderApi.findById(shipping.getOrderId());
+        LogisticsStatus.LOG_LOGISTICS_NOT_BELONG_USER.assertThrowResEx(
+                order == null || !Long.valueOf(userId).equals(order.getUserId()));
 
         // M5: 调用物流轨迹提供商（Mock/快递鸟/快递100，由 config 决定）
         LogisticsTracker tracker = trackerFactory.getTracker();
@@ -182,8 +195,15 @@ public class LogisticsViewServiceBizImpl implements LogisticsViewServiceBiz {
      */
     public Boolean handlePush(LogisticsPushDTO dto) {
         LogisticsStatus.LOG_SIGN_VERIFY_FAIL.assertThrowResEx(dto == null);
-        // TODO：替换真实接口 - 验证签名
-        // LogisticsStatus.LOG_SIGN_VERIFY_FAIL.assertThrowResEx(verifySignFailed);
+
+        // 验签：sign == 配置密钥（常量时间比较，防时序攻击）；密钥未配置 → fail-closed 全拒（避免误配置敞开口子）
+        String signKey = logisticsConfig.getCallbackSignKey();
+        LogisticsStatus.LOG_SIGN_VERIFY_FAIL.assertThrowResEx(
+                signKey == null || signKey.isEmpty() || dto.getSign() == null);
+        LogisticsStatus.LOG_SIGN_VERIFY_FAIL.assertThrowResEx(
+                !java.security.MessageDigest.isEqual(
+                        dto.getSign().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        signKey.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
 
         LogisticsStatus.LOG_LOGISTICS_CODE_INVALID.assertThrowResEx(
                 dto.getLogisticsCode() == null || dto.getLogisticsNo() == null);

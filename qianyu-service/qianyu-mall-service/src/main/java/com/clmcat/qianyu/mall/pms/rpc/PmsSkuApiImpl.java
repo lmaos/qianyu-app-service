@@ -10,6 +10,7 @@ import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static com.clmcat.qianyu.mall.pms.model.entity.table.PmsSkuTableDef.PMS_SKU;
@@ -58,6 +59,27 @@ public class PmsSkuApiImpl implements PmsSkuApi {
         }
         List<PmsSku> skuList = skuMapper.selectListByQuery(
                 QueryWrapper.create().where(PMS_SKU.MERCHANT_ID.eq(merchantId))
+                        .and(PMS_SKU.DELETED.eq(0)));
+        if (skuList == null || skuList.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<PmsSkuDto> result = new ArrayList<>();
+        for (PmsSku sku : skuList) {
+            PmsSkuDto dto = toDto(sku);
+            if (dto != null) {
+                result.add(dto);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public List<PmsSkuDto> listByIds(Collection<Long> skuIds) {
+        if (skuIds == null || skuIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<PmsSku> skuList = skuMapper.selectListByQuery(
+                QueryWrapper.create().where(PMS_SKU.ID.in(skuIds))
                         .and(PMS_SKU.DELETED.eq(0)));
         if (skuList == null || skuList.isEmpty()) {
             return new ArrayList<>();

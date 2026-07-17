@@ -5,7 +5,9 @@ import com.clmcat.qianyu.mall.inv.rpc.InvStockApiImpl;
 import com.clmcat.qianyu.mall.api.mch.MerchantApi;
 import com.clmcat.qianyu.mall.api.mch.model.dto.MerchantDto;
 import com.clmcat.qianyu.mall.api.pms.PmsSkuApi;
+import com.clmcat.qianyu.mall.api.pms.PmsSpuApi;
 import com.clmcat.qianyu.mall.api.pms.model.dto.PmsSkuDto;
+import com.clmcat.qianyu.mall.api.pms.model.dto.PmsSpuDto;
 import com.clmcat.qianyu.mall.inv.model.dto.*;
 import com.clmcat.qianyu.mall.inv.model.entity.InvStock;
 import com.clmcat.qianyu.mall.inv.model.entity.InvStockLog;
@@ -23,7 +25,11 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import com.clmcat.qianyu.mall.inv.service.InvStockViewServiceBiz;
 
 @Service
@@ -40,6 +46,9 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
 
     @DubboReference
     private PmsSkuApi pmsSkuApi;
+
+    @DubboReference
+    private PmsSpuApi pmsSpuApi;
 
     /**
      * 锁定库存
@@ -163,7 +172,8 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
         InvStockLog log = new InvStockLog();
         log.setId(InvSupport.STOCK_LOG_ID_SNOWFLAKE.nextId());
         log.setSkuId(dto.getSkuId());
-        log.setType(1); // 商家调整
+        // type：4=手动增加 / 5=手动减少（与库存流水类型语义一致；adjustType 1=增加→4，2=减少→5）
+        log.setType(dto.getAdjustType() == 1 ? 4 : 5);
         log.setQuantity(delta);
         log.setBeforeStock(beforeStock);
         log.setAfterStock(beforeStock + delta);
@@ -194,11 +204,26 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
             return new Page<>(pageNum, pageSize);
         }
         List<Long> skuIds = new ArrayList<>();
+        Map<Long, PmsSkuDto> skuMap = new HashMap<>();
+        Set<Long> spuIds = new HashSet<>();
         for (PmsSkuDto s : skus) {
             skuIds.add(s.getId());
+            skuMap.put(s.getId(), s);
+            if (s.getSpuId() != null) spuIds.add(s.getSpuId());
         }
         qw.in("sku_id", skuIds);
         qw.orderBy("update_time DESC");
+
+        // 批量取 SPU 名（回填 spuName；skuName/skuImage 取自已查的 SKU）
+        Map<Long, String> spuNameMap = new HashMap<>();
+        if (!spuIds.isEmpty()) {
+            List<PmsSpuDto> spus = pmsSpuApi.batchGetByIds(spuIds);
+            if (spus != null) {
+                for (PmsSpuDto spu : spus) {
+                    if (spu.getId() != null) spuNameMap.put(spu.getId(), spu.getName());
+                }
+            }
+        }
 
         Page<InvStock> stockPage = stockServiceBiz.paginate(Page.of(pageNum, pageSize), qw);
         if (stockPage == null || stockPage.getRecords() == null) {
@@ -207,9 +232,16 @@ public class InvStockViewServiceBizImpl implements InvStockViewServiceBiz {
 
         List<StockPageItemVO> voList = new ArrayList<>();
         for (InvStock stock : stockPage.getRecords()) {
+            PmsSkuDto skuDto = skuMap.get(stock.getSkuId());
+            String skuName = skuDto != null ? skuDto.getSkuName() : null;
+            String skuImage = skuDto != null ? skuDto.getSkuImage() : null;
+            String spuName = (skuDto != null && skuDto.getSpuId() != null) ? spuNameMap.get(skuDto.getSpuId()) : null;
             voList.add(StockPageItemVO.builder()
                     .id(stock.getId())
                     .skuId(stock.getSkuId())
+                    .skuName(skuName)
+                    .spuName(spuName)
+                    .skuImage(skuImage)
                     .availableStock(stock.getAvailableStock())
                     .lockedStock(stock.getLockedStock())
                     .safetyStock(stock.getSafetyStock())

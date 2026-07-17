@@ -70,6 +70,14 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
     @Resource
     private LogisticsViewServiceBiz logisticsViewServiceBiz;
 
+    /** P3: 价格计算引擎 */
+    @Resource
+    private com.clmcat.qianyu.mall.oms.service.OrderPriceService priceService;
+
+    /** P3: 优惠券核销/回滚 RPC */
+    @DubboReference
+    private com.clmcat.qianyu.mall.api.coupon.SmsCouponApi smsCouponApi;
+
     /** 系统通知投递（降级，不阻断主流程——决策 D-05）。 */
     @DubboReference
     private com.clmcat.qianyu.mall.api.msg.MsgApi msgApi;
@@ -173,13 +181,17 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         // P0-1: stock lock failure is fatal — order must not be created without stock lock
         invStockApi.lockStock(orderNo, lockItems);
         // P0-1: declare before try (used in return outside try block)
-        java.math.BigDecimal freightAmount = java.math.BigDecimal.ZERO;
-        java.math.BigDecimal payAmount = totalAmount.add(freightAmount);
+        // P3: PriceService 算价（含券抵扣试算，不锁券）
+        com.clmcat.qianyu.mall.oms.model.vo.PriceResult priceResult = priceService.calculatePrice(userId, totalAmount, dto.getCouponUserId());
+        java.math.BigDecimal freightAmount = priceResult.getFreightAmount();
+        java.math.BigDecimal couponAmount = priceResult.getCouponAmount();
+        java.math.BigDecimal payAmount = priceResult.getPayAmount();
         // P0-1: compensating release on failure (INV is remote, not in local tx)
+        OmsOrder order = null;
         try {
         // --- order build + insert (if this fails, release stock) ---
 
-        OmsOrder order = new OmsOrder();
+        order = new OmsOrder();
         order.setId(orderId);
         order.setOrderNo(orderNo);
         order.setUserId(userId);
@@ -187,7 +199,7 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         order.setTotalAmount(totalAmount);
         order.setPayAmount(payAmount);
         order.setFreightAmount(freightAmount);
-        order.setCouponAmount(java.math.BigDecimal.ZERO);
+        order.setCouponAmount(couponAmount);
         order.setDiscountAmount(java.math.BigDecimal.ZERO);
         order.setTotalQuantity(totalQuantity);
         order.setStatus(OmsOrder.STATUS_PENDING_PAY);
@@ -219,13 +231,33 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
             throw e;
         }
 
+        // P3: 券核销 CAS（insert 成功后；失败=优雅去券重算，不阻断下单）
+        if (priceResult.getAppliedUserCouponId() != null && order != null) {
+            try {
+                boolean locked = smsCouponApi.lockAndApplyCoupon(dto.getCouponUserId(), orderId);
+                if (!locked) {
+                    log.warn("[createOrder] 券{} 核销失败（竞态/已用/过期），订单{} 去券", dto.getCouponUserId(), orderId);
+                    order.setCouponAmount(java.math.BigDecimal.ZERO);
+                    order.setCouponUserId(null);
+                    order.setPayAmount(totalAmount.add(freightAmount));
+                    orderServiceBiz.updateOrder(order);
+                    couponAmount = java.math.BigDecimal.ZERO;
+                    payAmount = totalAmount.add(freightAmount);
+                }
+            } catch (Exception ex) {
+                log.error("[createOrder] 券核销异常，订单{} 去券", orderId, ex);
+                couponAmount = java.math.BigDecimal.ZERO;
+                payAmount = totalAmount.add(freightAmount);
+            }
+        }
+
         return OrderCreateVO.builder()
                 .orderId(orderId)
                 .orderSn(orderNo)
                 .totalAmount(totalAmount.toPlainString())
                 .freightAmount(freightAmount.toPlainString())
                 .discountAmount(java.math.BigDecimal.ZERO.toPlainString())
-                .couponAmount(java.math.BigDecimal.ZERO.toPlainString())
+                .couponAmount(couponAmount.toPlainString())
                 .payAmount(payAmount.toPlainString())
                 .totalQuantity(totalQuantity)
                 .build();
@@ -365,6 +397,16 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
                 invStockApi.releaseStock(order.getOrderNo(), releaseItems);
             } catch (Exception e) {
                 // Release failure should not block cancellation
+            }
+        }
+
+        // P4: 回滚优惠券（如果订单使用了券，best-effort 不阻断取消）
+        if (order.getCouponUserId() != null && order.getCouponUserId() > 0) {
+            try {
+                smsCouponApi.rollbackCoupon(order.getCouponUserId());
+                log.info("[cancelOrder] 订单{} 回滚券{}", order.getId(), order.getCouponUserId());
+            } catch (Exception e) {
+                log.warn("[cancelOrder] 订单{} 回滚券{} 失败", order.getId(), order.getCouponUserId(), e);
             }
         }
     }
@@ -518,10 +560,9 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         OmsStatus.OMS_ORDER_NOT_BELONG_MERCHANT.assertThrowResEx(!order.getMerchantId().equals(merchantId));
         OmsStatus.OMS_ORDER_STATUS_ERROR.assertThrowResEx(order.getStatus() != OmsOrder.STATUS_PENDING_SHIP);
 
-        order.setStatus(OmsOrder.STATUS_SHIPPED);
-        order.setDeliveryTime(System.currentTimeMillis());
-        order.setUpdateTime(System.currentTimeMillis());
-        orderServiceBiz.updateOrder(order);
+        // CAS 推进 20→30 + delivery_time（WHERE id+status+version，防并发双发货）；失败→状态错误
+        boolean shipped = orderServiceBiz.markShipped(order.getId());
+        OmsStatus.OMS_ORDER_STATUS_ERROR.assertThrowResEx(!shipped);
         notifySafely(order.getUserId(), 2, "订单已发货", "商家已发货，请注意查收。", "order_shipped", order.getId());
 
         // 同步创建物流记录，发货后用户才能查物流轨迹

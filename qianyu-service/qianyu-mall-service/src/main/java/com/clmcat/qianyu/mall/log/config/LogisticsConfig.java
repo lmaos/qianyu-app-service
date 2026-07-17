@@ -30,6 +30,14 @@ public class LogisticsConfig {
     private Kdniao kdniao = new Kdniao();
     private Kuaidi100 kuaidi100 = new Kuaidi100();
 
+    /**
+     * 物流回调验签密钥（trackPush 须在 sign 字段携带本值）。
+     * <p>当前为通用 token 占位：{@code MessageDigest.isEqual(sign, key)} 常量时间比较。
+     * 留空则 fail-closed（拒绝所有 push，避免误配置反而敞开口子）。
+     * 将来接快递100/快递鸟官方订阅时，替换为对应官方签名算法。
+     */
+    private String callbackSignKey = "";
+
     @Data
     public static class Kdniao {
         private String businessId = "";

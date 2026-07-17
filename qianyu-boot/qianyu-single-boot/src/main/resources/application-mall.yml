@@ -39,3 +39,5 @@ qianyu:
         # 快递100 实时查询 API（https://api.kuaidi100.com）
         customer: ""          # 快递100授权码（customer）
         key: ""               # 快递100签名密钥（key）
+      # 物流回调验签密钥（trackPush 的 sign 字段须携带本值；留空则 fail-closed 全拒）
+      callback-sign-key: "qianyu-logistics-callback-secret-demo"

@@ -123,6 +123,26 @@ public class OmsOrderApiImpl implements OmsOrderApi {
     }
 
     @Override
+    public boolean markShipped(Long orderId) {
+        OmsOrder order = orderMapper.selectOneById(orderId);
+        if (order == null || order.getStatus() != OmsOrder.STATUS_PENDING_SHIP) {
+            return false;
+        }
+        long ver = order.getVersion();
+        // CAS 20→30 + 回写 delivery_time（仿 markPaid/markReceived 模式，防并发双发货）
+        OmsOrder update = new OmsOrder();
+        update.setStatus(OmsOrder.STATUS_SHIPPED);
+        update.setDeliveryTime(System.currentTimeMillis());
+        update.setVersion(ver + 1);
+        update.setUpdateTime(System.currentTimeMillis());
+        int affected = orderMapper.updateByQuery(update,
+                QueryWrapper.create().where("id = ?", orderId)
+                        .and("status = ?", OmsOrder.STATUS_PENDING_SHIP)
+                        .and("version = ?", ver));
+        return affected > 0;
+    }
+
+    @Override
     public com.clmcat.qianyu.mall.api.model.dto.PageResultDTO<OmsOrderDto> pageByPlatform(OrderPageQueryDTO query) {
         // 动态过滤：所有占位符由 MyBatis-Flex 参数化，杜绝 SQL 拼接
         QueryWrapper qw = QueryWrapper.create().where("deleted = ?", 0);
