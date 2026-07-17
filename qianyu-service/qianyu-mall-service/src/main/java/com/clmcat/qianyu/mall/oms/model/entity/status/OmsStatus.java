@@ -26,6 +26,7 @@ public enum OmsStatus implements ResponseErrorStatus, Serializable {
     OMS_STOCK_LOCK_FAILED(405018, "库存锁定失败"),
     OMS_ORDER_DUPLICATE_REQUEST(405019, "订单重复提交，请勿重复操作"),
     OMS_ORDER_QUANTITY_INVALID(405020, "订单商品数量无效（须 1-99）"),
+    OMS_ORDER_MULTI_MERCHANT(405021, "订单商品来自不同商家，请分开下单"),
     ;
 
     OmsStatus(Integer status, String message) {

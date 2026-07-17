@@ -146,6 +146,13 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
                     }
                 }
                 merchantId = skuDto.getMerchantId() != null ? skuDto.getMerchantId() : 0L;
+                // P4: 单商家下单校验（不同商家混单 → 拒绝）
+                Long itemMerchantId = skuDto.getMerchantId();
+                if (itemMerchantId != null && itemMerchantId > 0 && merchantId > 0
+                        && !merchantId.equals(itemMerchantId)) {
+                    OmsStatus.OMS_ORDER_MULTI_MERCHANT.assertThrowResEx(true);
+                }
+                merchantId = itemMerchantId != null ? itemMerchantId : merchantId;
             }
 
             java.math.BigDecimal itemTotal = price.multiply(java.math.BigDecimal.valueOf(itemDTO.getQuantity()));
@@ -181,8 +188,18 @@ public class OmsOrderViewServiceBizImpl implements OmsOrderViewServiceBiz {
         // P0-1: stock lock failure is fatal — order must not be created without stock lock
         invStockApi.lockStock(orderNo, lockItems);
         // P0-1: declare before try (used in return outside try block)
-        // P3: PriceService 算价（含券抵扣试算，不锁券）
-        com.clmcat.qianyu.mall.oms.model.vo.PriceResult priceResult = priceService.calculatePrice(userId, totalAmount, dto.getCouponUserId());
+        // P3+P2: PriceService 算价（含运费 + 券抵扣试算，不锁券）
+        com.clmcat.qianyu.mall.oms.model.vo.FreightContext freightCtx = com.clmcat.qianyu.mall.oms.model.vo.FreightContext.builder()
+                .merchantId(merchantId)
+                .province(validatedAddress != null ? validatedAddress.getProvince() : null)
+                .items(orderItems.stream().map(oi -> com.clmcat.qianyu.mall.oms.model.vo.FreightContext.FreightItem.builder()
+                        .spuId(oi.getSpuId())
+                        .quantity(oi.getQuantity())
+                        .weight(java.math.BigDecimal.ZERO) // createOrder 循环中未收集 weight/volume，传 0 → 按件计费兜底
+                        .volume(java.math.BigDecimal.ZERO)
+                        .build()).toList())
+                .build();
+        com.clmcat.qianyu.mall.oms.model.vo.PriceResult priceResult = priceService.calculatePrice(userId, totalAmount, dto.getCouponUserId(), freightCtx);
         java.math.BigDecimal freightAmount = priceResult.getFreightAmount();
         java.math.BigDecimal couponAmount = priceResult.getCouponAmount();
         java.math.BigDecimal payAmount = priceResult.getPayAmount();

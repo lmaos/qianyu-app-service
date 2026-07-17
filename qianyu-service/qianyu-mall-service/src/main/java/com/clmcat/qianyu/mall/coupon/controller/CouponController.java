@@ -55,13 +55,34 @@ public class CouponController {
         return couponViewServiceBiz.myCoupons(userId, status, pageNum, pageSize);
     }
 
-    @Operation(summary = "下单可用券（含试算抵扣）")
+    @Resource
+    private com.clmcat.qianyu.mall.coupon.service.CouponMatchService couponMatchService;
+
+    @Operation(summary = "下单可用券（含 scope 匹配 + 试算抵扣）")
     @PostMapping("/usable")
-    public List<UsableCouponVO> usable(
+    public List<com.clmcat.qianyu.mall.coupon.model.vo.MatchedCouponVO> usable(
             @Parameter(hidden = true) @Token long userId,
             @Params CouponUsableDTO dto) {
         java.math.BigDecimal amount = dto != null && dto.getOrderAmount() != null
                 ? dto.getOrderAmount() : java.math.BigDecimal.ZERO;
-        return couponViewServiceBiz.usableForOrder(userId, amount);
+        List<Long> spuIds = new java.util.ArrayList<>();
+        List<Long> categoryIds = new java.util.ArrayList<>();
+        if (dto != null && dto.getItems() != null) {
+            for (CouponUsableDTO.CouponItem item : dto.getItems()) {
+                if (item.getSpuId() != null) spuIds.add(item.getSpuId());
+                if (item.getCategoryId() != null) categoryIds.add(item.getCategoryId());
+            }
+        }
+        Long merchantId = dto != null ? dto.getMerchantId() : null;
+        return couponMatchService.matchCoupons(userId, spuIds, categoryIds, merchantId, amount);
+    }
+
+    @Operation(summary = "全部可用券（含 scope 原始字段，购物车本地匹配用）")
+    @PostMapping("/matchAll")
+    public List<com.clmcat.qianyu.mall.coupon.model.vo.MatchedCouponVO> matchAll(
+            @Parameter(hidden = true) @Token long userId) {
+        // 传空 items + 0 金额 → 返回全部未用券（usable=false 但含 scope 信息）
+        return couponMatchService.matchCoupons(userId, java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(), null, java.math.BigDecimal.ZERO);
     }
 }
