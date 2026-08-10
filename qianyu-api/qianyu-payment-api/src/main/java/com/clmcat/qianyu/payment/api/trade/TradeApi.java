@@ -42,4 +42,14 @@ public interface TradeApi {
      * @param transNo 统一交易流水号
      */
     void cancelOrder(String transNo);
+
+    /**
+     * 查询订单状态。
+     * <p>
+     * 用于对账：确认阶段超时后，调用方可通过此接口获知服务端真实状态。
+     *
+     * @param transNo 统一交易流水号
+     * @return 订单信息，不存在返回 null
+     */
+    TradeResult getOrder(String transNo);
 }

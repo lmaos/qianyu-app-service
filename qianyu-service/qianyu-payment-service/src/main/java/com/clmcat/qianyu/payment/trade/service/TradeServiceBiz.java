@@ -180,10 +180,19 @@ public class TradeServiceBiz implements TradeApi {
                     TradeOrderItem.STATUS_PENDING, TradeOrderItem.STATUS_SUCCESS);
         }
 
-        // ③ 更新母订单状态：PENDING → SUCCESS
+        // ③ 更新母订单状态：PENDING → SUCCESS（乐观锁，并发重试时可能已被另一个线程确认）
         int updated = tradeOrderMapper.customUpdateStatus(order.getId(),
                 TradeOrder.STATUS_PENDING, TradeOrder.STATUS_SUCCESS);
         if (updated == 0) {
+            // 可能是并发重试 → 幂等返回已有结果
+            TradeOrder latest = tradeOrderMapper.customSelectByTransNo(tn);
+            if (latest != null && latest.getStatus() == TradeOrder.STATUS_SUCCESS) {
+                return TradeResult.builder()
+                        .tradeId(latest.getId())
+                        .transNo(latest.getTransNo())
+                        .status(latest.getStatus())
+                        .build();
+            }
             ResponseStatus.R_OPERATION_FAIL.assertThrowResEx(true, "订单状态已变更，确认失败: " + tn);
         }
 
@@ -194,7 +203,25 @@ public class TradeServiceBiz implements TradeApi {
                 .build();
     }
 
-    // ==================== ③ 取消订单（解冻余额） ====================
+    // ==================== ③ 查询订单 ====================
+
+    @Override
+    public TradeResult getOrder(String transNo) {
+        if (transNo == null || transNo.trim().isEmpty()) {
+            return null;
+        }
+        TradeOrder order = tradeOrderMapper.customSelectByTransNo(transNo.trim());
+        if (order == null) {
+            return null;
+        }
+        return TradeResult.builder()
+                .tradeId(order.getId())
+                .transNo(order.getTransNo())
+                .status(order.getStatus())
+                .build();
+    }
+
+    // ==================== ④ 取消订单（解冻余额） ====================
 
     @Override
     @Transactional

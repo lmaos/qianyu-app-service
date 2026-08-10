@@ -31,31 +31,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 送礼核心服务（下单模式 + 月表路由）。
+ * 送礼核心服务。
  * <p>
- * 实现 {@link GiftApi}，通过 Dubbo RPC 暴露。
- * 编排送礼全流程：校验 → 创建订单（冻结余额）→ 记录流水（PENDING）→ 确认订单（扣款+结算）→ 标记完成。
+ * 流程：校验 → createOrder(冻结余额) → INSERT gift_send_record(SUCCESS) → confirmOrder(扣款+结算)。
  * <p>
- * 流程设计（下单模式）：
- * <ol>
- *   <li>校验参数、加载礼物配置、计算价格和佣金</li>
- *   <li>盲盒开奖（普通礼物跳过）</li>
- *   <li>生成统一交易流水号 {@code transNo}</li>
- *   <li>调用 {@link TradeApi#createOrder} — 冻结余额 + 创建 PENDING 订单</li>
- *   <li>INSERT gift_send_record_{月份}（PENDING）— 按 createTime 路由到 UTC 月表</li>
- *   <li>调用 {@link TradeApi#confirmOrder} — 确认扣款 + 结算收入 + 订单→SUCCESS</li>
- *   <li>UPDATE gift_send_record_{月份} → SUCCESS</li>
- * </ol>
- * <p>
- * 月表路由：查询时本月 + 上月双表搜索（覆盖全球时区跨月）。插入按 createTime 确定月表。
- * <p>
- * 异常处理：
- * <ul>
- *   <li>confirmOrder 失败 → 调用 cancelOrder 解冻余额，标记礼物记录 CANCELLED</li>
- *   <li>超时 PENDING 订单由 {@code OrderTimeoutChecker} 定时清理</li>
- * </ul>
- * <p>
- * 幂等：gift_send_record.uk_idempotent_key 防重，trade_order.uk_idempotent_key 防重。
+ * 冻结即视为已付费：createOrder 成功后余额已扣（移至 frozen），礼物记录直接写 SUCCESS。
+ * confirmOrder 完成真实扣款+主播结算，失败由对账重试或取消退款。
  *
  * @author ark-home
  * @date 2026-08-07
@@ -86,9 +67,8 @@ public class GiftSendServiceBiz extends GiftSupport implements GiftApi {
 
         long now = System.currentTimeMillis();
         String key = req.getIdempotentKey().trim();
-        String tableName = MonthTableRouter.tableName(TABLE_PREFIX, now);
 
-        // ① 幂等检查：本月 + 上月
+        // ① 幂等检查
         GiftSendRecord existing = selectByIdempotentKey(key);
         if (existing != null) {
             return toResult(existing);
@@ -119,7 +99,7 @@ public class GiftSendServiceBiz extends GiftSupport implements GiftApi {
         // ⑦ 计算结算金额
         long settleAmount = handler.resolveSettleAmount(gift, openResult, totalPrice, commissionRate);
 
-        // ⑧ 创建订单（冻结余额 + INSERT trade_order PENDING + INSERT trade_order_item × 1）
+        // ⑧ 构建结算子项
         SettleItem settleItem = SettleItem.builder()
                 .bizNo(transNo)
                 .toUserId(req.getReceiverUserId())
@@ -137,10 +117,16 @@ public class GiftSendServiceBiz extends GiftSupport implements GiftApi {
                 .items(Collections.singletonList(settleItem))
                 .build();
 
+        // ⑨ 创建订单（冻结余额）。
+        // createOrder 已通过 idempotentKey 防重，PENDING 正常；SUCCESS=重试场景；CANCELLED 则拒绝。
         TradeResult createResult = tradeApi.createOrder(tradeReq);
+        if (createResult.getStatus() != null && createResult.getStatus() == 2) {
+            ResponseStatus.R_OPERATION_FAIL.assertThrowResEx(true, "订单已取消，请更换幂等键重试");
+        }
 
-        // ⑨ INSERT 送礼记录到月表（PENDING。单次送 bizNo = transNo）
+        // ⑩ INSERT 送礼记录（冻结即视为付费成功，直接写 SUCCESS）
         long recordId = GIFT_ID_SNOWFLAKE.nextId();
+        String tableName = MonthTableRouter.tableName(TABLE_PREFIX, now);
 
         GiftSendRecord record = GiftSendRecord.builder()
                 .id(recordId)
@@ -161,7 +147,7 @@ public class GiftSendServiceBiz extends GiftSupport implements GiftApi {
                 .idempotentKey(key)
                 .commissionRate(commissionRate)
                 .settleAmount(settleAmount)
-                .status(GiftSendRecord.STATUS_PENDING)
+                .status(GiftSendRecord.STATUS_SUCCESS)
                 .remark("")
                 .createTime(now)
                 .build();
@@ -169,7 +155,6 @@ public class GiftSendServiceBiz extends GiftSupport implements GiftApi {
         try {
             giftSendRecordMapper.customInsert(tableName, record);
         } catch (DuplicateKeyException e) {
-            // 并发冲突 → 本月 + 上月再查一次
             GiftSendRecord dup = selectByIdempotentKey(key);
             if (dup != null) {
                 return toResult(dup);
@@ -177,32 +162,21 @@ public class GiftSendServiceBiz extends GiftSupport implements GiftApi {
             throw e;
         }
 
-        // ⑩ 确认订单（扣款确认 + 结算收入 + trade_order → SUCCESS）
+        // ⑪ 礼物记录已落库，此时即可触发消息。消息发送失败不影响结算。
+        try {
+            handler.afterSend(record, gift, req);
+        } catch (Exception e) {
+            log.error("afterSend 失败 recordId={}, 结算继续", recordId, e);
+        }
+
+        // ⑫ 确认订单（扣款确认 + 主播结算）。
+        // 失败时不调用 cancel——confirm 和 cancel 都是终态，由对账任务根据实际情况决定。
         try {
             tradeApi.confirmOrder(transNo);
         } catch (Exception e) {
-            log.error("确认订单失败 transNo={}, 尝试取消订单解冻余额", transNo, e);
-            try {
-                tradeApi.cancelOrder(transNo);
-            } catch (Exception cancelEx) {
-                log.error("取消订单也失败 transNo={}, 需人工处理或等定时清理", transNo, cancelEx);
-            }
+            log.error("确认订单失败 transNo={}, 保留 PENDING 等对账处理", transNo, e);
             throw e;
         }
-
-        // ⑪ 标记送礼记录为 SUCCESS（与 INSERT 同表）
-        int updated = giftSendRecordMapper.customUpdateStatus(tableName, recordId,
-                GiftSendRecord.STATUS_PENDING, GiftSendRecord.STATUS_SUCCESS);
-        if (updated == 0) {
-            log.warn("更新送礼记录状态失败 recordId={}, 可能已被并发修改", recordId);
-        }
-
-        record.setStatus(GiftSendRecord.STATUS_SUCCESS);
-
-        // ⑫ 后置处理（任务进度、奖池入池等，Phase 2 实现）
-        handler.afterSend(record, gift, req);
-
-        // TODO: 送礼后推送 WebSocket 消息到直播间，触发礼物动画播放
 
         return toResult(record);
     }
@@ -223,26 +197,16 @@ public class GiftSendServiceBiz extends GiftSupport implements GiftApi {
 
     // ---- 私有方法 ----
 
-    /**
-     * 按幂等键查询，本月 → 上月。
-     * <p>
-     * 覆盖全球时区 ±14h 边界：UTC 本月初的请求在东 12 区可能落在上月。
-     * 上月表不存在时忽略（启动初期或首月部署）。
-     */
     private GiftSendRecord selectByIdempotentKey(String key) {
         String current = MonthTableRouter.currentMonth();
-        String currentTable = MonthTableRouter.tableName(TABLE_PREFIX, current);
-        GiftSendRecord record = giftSendRecordMapper.customSelectByIdempotentKey(currentTable, key);
-        if (record != null) {
-            return record;
-        }
-        // 上月兜底
-        String lastMonth = MonthTableRouter.queryMonths(current, 2).get(1);
-        String lastTable = MonthTableRouter.tableName(TABLE_PREFIX, lastMonth);
+        String tbl = MonthTableRouter.tableName(TABLE_PREFIX, current);
+        GiftSendRecord record = giftSendRecordMapper.customSelectByIdempotentKey(tbl, key);
+        if (record != null) return record;
+        String last = MonthTableRouter.queryMonths(current, 2).get(1);
         try {
-            return giftSendRecordMapper.customSelectByIdempotentKey(lastTable, key);
+            return giftSendRecordMapper.customSelectByIdempotentKey(
+                    MonthTableRouter.tableName(TABLE_PREFIX, last), key);
         } catch (Exception e) {
-            log.debug("上月表查询失败（可能表不存在）: table={}", lastTable);
             return null;
         }
     }

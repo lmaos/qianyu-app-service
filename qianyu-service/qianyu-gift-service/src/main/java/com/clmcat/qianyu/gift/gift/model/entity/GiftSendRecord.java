@@ -114,7 +114,6 @@ public class GiftSendRecord {
     public static final int PAY_TYPE_COIN     = 1;
     public static final int PAY_TYPE_BACKPACK = 2;
 
-    public static final int STATUS_PENDING  = 0;
     public static final int STATUS_SUCCESS  = 1;
     public static final int STATUS_REFUNDED = 2;
 

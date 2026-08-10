@@ -89,7 +89,7 @@ CREATE TABLE gift_send_record (
     commission_rate     INT          NOT NULL DEFAULT 0  COMMENT '分佣比例快照（万分比）',
     settle_amount       BIGINT       NOT NULL DEFAULT 0  COMMENT '主播实际结算金额',
 
-    status              TINYINT      NOT NULL DEFAULT 0  COMMENT '0=PENDING 1=SUCCESS 2=REFUNDED',
+    status              TINYINT      NOT NULL DEFAULT 1  COMMENT '1=SUCCESS 2=REFUNDED',
     remark              VARCHAR(256) DEFAULT '' COMMENT '备注',
     create_time         BIGINT       NOT NULL  COMMENT '送礼时间戳（毫秒）',
 
